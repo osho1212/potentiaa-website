@@ -1,0 +1,17 @@
+{
+  "scene-counter": {
+    "src": "/assets/mascot/scenes/scene-counter.webp",
+    "width": 1400,
+    "height": 992
+  },
+  "scene-paperwork": {
+    "src": "/assets/mascot/scenes/scene-paperwork.webp",
+    "width": 1400,
+    "height": 1220
+  },
+  "scene-running": {
+    "src": "/assets/mascot/scenes/scene-running.webp",
+    "width": 1400,
+    "height": 1192
+  }
+}

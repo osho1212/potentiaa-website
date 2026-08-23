@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+.env*.local
+next-env.d.ts
+*.tsbuildinfo
+
+# The hero frame sequence IS committed - it is the rendered hero, and keeping
+# it in history means the module-stack look survives even if /studio changes.
+# Regenerate any time with `npm run dev` then /studio.
+
+# Raw Higgsfield output. The optimised .webp beside it is what ships;
+# these are 4 MB+ each and only needed to re-run scripts/prepare-mascot.mjs.
+public/assets/mascot/generated/*.png

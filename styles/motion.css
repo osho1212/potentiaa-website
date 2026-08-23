@@ -1,0 +1,113 @@
+/* =====================================================================
+   Potentiaa MOTION LAYER — marketing site only
+   ---------------------------------------------------------------------
+   DOCUMENTED DEVIATION from design.md §6, which states for the product UI:
+     - "Animation: fast, functional, never bouncy/spring. No parallax."
+     - "Transparency/blur: overlays/scrims only — never decorative glass."
+
+   The marketing site's job is different from the product's: it has to hold
+   a cold visitor's attention for one scroll. Scroll choreography, depth
+   parallax and the frosted header are therefore permitted HERE and ONLY
+   here. Anything shipped into the Business App must fall back to the
+   --duration-* / --ease-standard tokens in tokens.css.
+
+   Every rule below is disabled wholesale under prefers-reduced-motion.
+   ===================================================================== */
+
+:root {
+  /* Long, cinematic easing for scroll-linked movement */
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-drift: cubic-bezier(0.33, 0, 0.15, 1);
+
+  --duration-reveal: 900ms;
+  --duration-drift: 1400ms;
+
+  /* Lenis smooth-scroll tuning */
+  --lenis-duration: 1.2;
+
+  /* Depth layers — the module stack floats between content and chrome */
+  --z-field: 1;      /* parallax depth field */
+  --z-content: 10;
+  --z-behind: 5;     /* the module when the helix carries it BEHIND the text */
+  --z-stack: 30;     /* the module when the helix carries it in FRONT */
+  --z-header: 60;
+  /* the module while it is docked in the header, standing in for the logo -
+     it has to paint OVER the header's glass pill, not under it */
+  --z-docked: 70;
+  --z-modal: 100;
+
+  /* Frosted chrome (header pill + contact modal) */
+  --glass-bg: rgba(0, 27, 94, 0.44);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-blur: 20px;
+}
+
+/* Scroll-reveal primitive, driven by IntersectionObserver in Reveal.tsx */
+/* THE REVEAL SYSTEM.
+ *
+ * One observer-driven class with variants, rather than a single fade that every
+ * element shares. Everything on the page arriving the same way is what makes a
+ * long scroll feel flat - the eye stops registering the movement after the
+ * third section because there is only one thing to register.
+ *
+ * `.reveal` on its own is the default rise-and-fade. The variants change what
+ * the motion says: `--scale` for objects that should feel like they arrive
+ * rather than slide, `--left` / `--right` for things entering from the side of
+ * the layout they belong to, `--blur` for artwork that should resolve into
+ * focus. All of them share the same duration and easing so the page still
+ * moves as one system.
+ */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+  transition:
+    opacity var(--duration-reveal) var(--ease-smooth),
+    transform var(--duration-reveal) var(--ease-smooth),
+    filter var(--duration-reveal) var(--ease-smooth);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.reveal--scale { transform: translate3d(0, 18px, 0) scale(0.94); }
+.reveal--left { transform: translate3d(-36px, 0, 0); }
+.reveal--right { transform: translate3d(36px, 0, 0); }
+.reveal--blur { transform: translate3d(0, 20px, 0); filter: blur(10px); }
+.reveal--rise { transform: translate3d(0, 56px, 0); }
+
+/* Specificity has to beat `.explainer__body > *:not([data-zeal-active])`, which
+   is (0,2,0) and sets opacity 0.82. It was silently winning over `.reveal`
+   at (0,1,0), so every card and row inside an explainer section skipped its
+   fade entirely and only slid - measured at 0.82 before revealing, never 0.
+   Doubling the class is the least invasive way to outrank it. */
+.reveal.reveal { opacity: 0; }
+
+.reveal[data-visible="true"],
+.reveal.reveal[data-visible="true"] {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --lenis-duration: 0;
+  }
+
+  .reveal,
+  .reveal.reveal,
+  .reveal[data-visible="true"] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

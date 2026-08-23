@@ -1,0 +1,27 @@
+{
+  "prop-audit": {
+    "src": "/assets/mascot/props/prop-audit.webp",
+    "width": 248,
+    "height": 320
+  },
+  "prop-browser": {
+    "src": "/assets/mascot/props/prop-browser.webp",
+    "width": 320,
+    "height": 291
+  },
+  "prop-phone": {
+    "src": "/assets/mascot/props/prop-phone.webp",
+    "width": 188,
+    "height": 320
+  },
+  "prop-receipt": {
+    "src": "/assets/mascot/props/prop-receipt.webp",
+    "width": 267,
+    "height": 320
+  },
+  "prop-wrench": {
+    "src": "/assets/mascot/props/prop-wrench.webp",
+    "width": 319,
+    "height": 320
+  }
+}

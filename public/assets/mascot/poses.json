@@ -1,0 +1,47 @@
+{
+  "zeal-celebrating": {
+    "src": "/assets/mascot/zeal-celebrating.webp",
+    "width": 888,
+    "height": 1040,
+    "fingertip": {
+      "x": 0.9966,
+      "y": 0.1462
+    }
+  },
+  "zeal-idle": {
+    "src": "/assets/mascot/zeal-idle.webp",
+    "width": 759,
+    "height": 1040,
+    "fingertip": {
+      "x": 0.9974,
+      "y": 0.5837
+    }
+  },
+  "zeal-pointing": {
+    "src": "/assets/mascot/zeal-pointing.webp",
+    "width": 980,
+    "height": 1040,
+    "fingertip": {
+      "x": 0.9969,
+      "y": 0.3365
+    }
+  },
+  "zeal-presenting": {
+    "src": "/assets/mascot/zeal-presenting.webp",
+    "width": 875,
+    "height": 1040,
+    "fingertip": {
+      "x": 0.9977,
+      "y": 0.3615
+    }
+  },
+  "zeal-thinking": {
+    "src": "/assets/mascot/zeal-thinking.webp",
+    "width": 658,
+    "height": 1040,
+    "fingertip": {
+      "x": 0.9909,
+      "y": 0.6837
+    }
+  }
+}

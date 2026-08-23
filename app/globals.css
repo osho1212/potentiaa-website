@@ -1,0 +1,1619 @@
+@import "../styles/tokens.css";
+@import "../styles/motion.css";
+
+/* ---------------------------------------------------------------
+   Reset & base
+   --------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-page-dark);
+  color: var(--text-on-dark);
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  line-height: var(--lh-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Lenis owns the scroll; never let the browser fight it */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+
+body { overflow-x: hidden; }
+body[data-scroll-locked="true"] { overflow: hidden; }
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--lh-tight);
+  margin: 0;
+}
+
+p { margin: 0; }
+img { max-width: 100%; display: block; }
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--duration-base) var(--ease-standard);
+}
+
+button { font: inherit; cursor: pointer; }
+
+/* design.md 6 - focus ring is always visible, never suppressed */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--space-6);
+}
+
+.section {
+  position: relative;
+  z-index: var(--z-content);
+  padding-block: clamp(var(--space-20), 12vh, var(--space-24));
+}
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--blue-300);
+  margin-bottom: var(--space-4);
+}
+
+.section-title {
+  font-size: clamp(var(--fs-xl), 4.4vw, var(--fs-3xl));
+  max-width: 18ch;
+}
+
+.lede {
+  font-size: clamp(var(--fs-md), 2vw, var(--fs-lg));
+  line-height: var(--lh-relaxed);
+  color: var(--text-on-dark-secondary);
+  max-width: 56ch;
+}
+
+/* ---------------------------------------------------------------
+   Buttons  (design.md 6 - hover darkens, press scales 0.98)
+   --------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  transition:
+    background-color var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard),
+    color var(--duration-base) var(--ease-standard);
+}
+
+.btn:active { transform: scale(0.98); }
+
+.btn--primary {
+  background: var(--accent-primary);
+  color: var(--text-on-accent);
+  box-shadow: var(--shadow-glow-blue);
+}
+.btn--primary:hover { background: var(--accent-primary-hover); }
+.btn--primary:active { background: var(--accent-primary-active); }
+
+.btn--coral {
+  background: var(--accent-secondary);
+  color: var(--midnight-900);
+  box-shadow: var(--shadow-glow-coral);
+}
+.btn--coral:hover { background: var(--accent-secondary-hover); color: var(--white); }
+
+.btn--ghost {
+  background: var(--veil-subtle);
+  border-color: var(--border-on-dark);
+  color: var(--text-on-dark);
+}
+/* DOCUMENTED DEVIATION from design.md section 6, which says hover shifts "one
+   step darker along the element's own hue; never lighten".
+   That rule is written for the light surfaces the document assumes - white
+   cards on soft-white. This page is --midnight-950, and one step darker than a
+   transparent element on a near-black ground is no visible change at all. On
+   dark surfaces the affordance has to come up, not down. Solid brand-coloured
+   controls still darken on hover, exactly as written; only the transparent
+   on-dark ones invert it. */
+.btn--ghost:hover { background: var(--border-on-dark); }
+
+/* ---------------------------------------------------------------
+   Header - floating frosted pill  (motion layer: glass permitted)
+   --------------------------------------------------------------- */
+.header {
+  position: fixed;
+  top: var(--space-5);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-header);
+  width: min(calc(100% - var(--space-8)), var(--container-max));
+}
+
+.header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
+  border-radius: var(--radius-full);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+.header__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.header__link {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-on-dark-secondary);
+  transition: background-color var(--duration-base) var(--ease-standard),
+              color var(--duration-base) var(--ease-standard);
+}
+.header__link:hover { color: var(--text-on-dark); background: var(--veil-soft); }
+
+.header__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.header__logo {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+
+  /* Crossfaded against the 3D module, which parks itself on exactly this box
+     at the top of the page and flies out of it as you scroll - see the DOCK
+     section in components/ModuleStack.tsx. `--hero-dock` is 1 while the module
+     is sitting here and 0 once it has left, so the two are never both solid
+     and the navbar is never without a mark.
+
+     Opacity only, so the box keeps its size and the wordmark beside it does
+     not shift as the module comes and goes. Unset before the script runs,
+     which leaves the flat mark visible - the correct no-JS state. */
+  opacity: calc(1 - var(--hero-dock, 0));
+}
+
+.header__wordmark {
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--tracking-logo);
+  text-transform: uppercase;
+}
+
+.header__actions { display: flex; align-items: center; gap: var(--space-2); }
+
+@media (max-width: 900px) {
+  .header__wordmark { display: none; }
+}
+
+@media (max-width: 760px) {
+  .header__nav { display: none; }
+}
+
+/* ---------------------------------------------------------------
+   Module stack - the scroll-driven canvas sprite (hero element)
+   --------------------------------------------------------------- */
+.module-stack {
+  /* Substantially bigger. At min(36vw, 26vh, 420px) x 0.82 this resolved to
+     roughly 170px on a 1280x800 screen - a token, not a hero element. The helix
+     puts it in front only where the page is empty, so it no longer has to stay
+     small to stay out of the way. */
+  --cube-size: min(46vw, 44vh, 620px);
+
+  position: fixed;
+  /* left/top are written in px every frame by ModuleStack; the transform
+     carries the -50%/-50% centring so those two numbers are the object's
+     CENTRE rather than its corner. Anchoring to the centre is what lets the
+     depth scale grow it symmetrically instead of pinning one edge. */
+  left: 50vw;
+  top: 50vh;
+  width: var(--cube-size);
+  height: var(--cube-size);
+  transform: translate(-50%, -50%);
+  z-index: var(--z-stack);
+  pointer-events: none;
+  will-change: transform, left, top;
+}
+
+.module-stack__canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(var(--shadow-art-lg));
+}
+
+/* Shown until the frame sequence is generated - see /studio */
+.module-stack__notice {
+  position: absolute;
+  inset: auto 0 -64px 0;
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--text-on-dark-secondary);
+  pointer-events: auto;
+}
+.module-stack__notice a { color: var(--blue-300); text-decoration: underline; }
+
+@media (max-width: 720px) {
+  /* The blanket "drop it behind everything at 55%" is gone, because the thing
+     it was protecting against is now handled per frame and per position.
+
+     It existed when the module was one fixed object at one fixed depth: on a
+     phone there was no gutter for it to sit in, so the only safe answer was to
+     push the whole thing back and dim it. The helix has a real depth axis now -
+     it renders behind the text wherever it is over words and comes forward
+     where it is not, and it goes translucent on a forward pass that does cover
+     copy. Overriding z-index here would break exactly that, and pinning opacity
+     would flatten the distance haze that makes the depth read.
+
+     What DOES still apply is size. A phone is not a desk, and 46vw of a 390px
+     screen is a different object from 46vw of a 1440px one. */
+  .module-stack { --cube-size: min(58vw, 34vh); }
+}
+
+/* ---------------------------------------------------------------
+   Depth field - parallax module shards (motion layer)
+   --------------------------------------------------------------- */
+.field {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-field);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Shards are confined to the page margins, outside the content container.
+   They were drifting behind the copy, and while they sit below it in the
+   stacking order, glyphs still ended up set over artwork - bar.md M7. */
+/* The ambient section tint. Very low alpha and a soft falloff: it has to shift
+   the ground's temperature between sections without ever becoming a shape you
+   notice, and without lifting the background enough to cost body-copy
+   contrast. */
+.field__wash {
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
+  transition: none;
+}
+
+.field__shard {
+  position: absolute;
+  border-radius: var(--radius-md);
+  filter: blur(0.5px);
+  /* Colour and per-shard opacity are written by the component every frame -
+     hue from the section under the sightline, alpha from the shard's depth. */
+  will-change: transform;
+}
+
+.field__glow {
+  position: absolute;
+  border-radius: var(--radius-full);
+  filter: blur(90px);
+  opacity: 0.5;
+}
+
+/* ---------------------------------------------------------------
+   Hero
+   --------------------------------------------------------------- */
+.hero {
+  position: relative;
+  z-index: var(--z-content);
+  min-height: 100svh;
+  display: grid;
+  /* copy + object, then the trust strip pinned to the foot */
+  grid-template-rows: 1fr auto;
+  /* Must clear the fixed header pill: it sits at top var(--space-5) and is
+     about 64px tall, so anything above ~104px tucks under it. */
+  padding-block: calc(var(--space-20) + var(--space-6)) var(--space-8);
+}
+
+.hero__grid {
+  position: relative;
+  display: grid;
+  /* The copy takes a fixed measure and the object takes the rest. Not 1fr 1fr:
+     the headline is set at a size that only reads at about 46 characters, and
+     an equal split would have re-broken it at every viewport. */
+  grid-template-columns: minmax(0, 34rem) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.hero__copy {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-6);
+  /* Over the artwork, which bleeds left behind it. */
+  position: relative;
+  z-index: 1;
+}
+
+.hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-5);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  background: var(--glass-bg);
+  font-size: var(--fs-sm);
+  color: var(--text-on-dark-secondary);
+}
+
+.hero__eyebrow-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--blue-500);
+  box-shadow: 0 0 12px var(--blue-500);
+}
+
+.hero__title {
+  display: grid;
+  font-family: var(--font-display);
+  /* Set explicitly rather than inherited from the h1 rule: the clone lap
+     renders this as a <p> to keep one <h1> per document, and without this the
+     two laps would use different faces - visible at the loop seam. */
+  font-size: clamp(2.6rem, 4.6vw, 4.4rem);
+  font-weight: var(--fw-bold, 700);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  color: var(--text-on-dark);
+}
+
+.hero__title-line { display: block; }
+
+/* The gradient is per LINE, not across the block.
+   background-clip: text clips to an element's own text, and each line is its
+   own span - so the ramp restarts on each of them, which is what the reference
+   does and what keeps "connected." from ending mid-orange. */
+.hero__title-line--accent {
+  background: linear-gradient(
+    100deg,
+    var(--blue-500) 0%,
+    var(--magenta-500) 52%,
+    var(--coral-500) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero__lede {
+  max-width: 46ch;
+  color: var(--text-on-dark-secondary);
+  line-height: var(--lh-relaxed, 1.65);
+}
+
+.hero__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+}
+
+/* The primary call, as a gradient pill. */
+.hero__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    100deg,
+    var(--blue-500) 0%,
+    var(--magenta-500) 55%,
+    var(--coral-500) 100%
+  );
+  color: var(--white, #fff);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  box-shadow: 0 10px 30px -10px rgba(122, 62, 214, 0.75);
+  transition: transform var(--duration-base) var(--ease-standard),
+              box-shadow var(--duration-base) var(--ease-standard);
+}
+
+.hero__cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 36px -10px rgba(122, 62, 214, 0.95);
+}
+
+.hero__cta-arrow { display: inline-flex; }
+
+.hero__play {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-on-dark);
+  font-size: var(--fs-sm);
+}
+
+.hero__play-disc {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  transition: background-color var(--duration-base) var(--ease-standard);
+}
+
+.hero__play:hover .hero__play-disc { background: var(--veil-soft); }
+
+/* The pointer hint, bottom right of the artwork. */
+.hero__hint {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-on-dark-secondary);
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+}
+
+.hero__hint-mark {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--glass-border);
+  /* A crosshair, drawn rather than imported - two hairlines and a dot. */
+  background:
+    linear-gradient(var(--text-on-dark-secondary), var(--text-on-dark-secondary))
+      50% 50% / 1px 9px no-repeat,
+    linear-gradient(var(--text-on-dark-secondary), var(--text-on-dark-secondary))
+      50% 50% / 9px 1px no-repeat;
+}
+
+/* ---- The trust strip -------------------------------------------------- */
+
+.hero__trust {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+  padding-top: var(--space-6);
+}
+
+.hero__trust-lead {
+  max-width: 14ch;
+  padding-right: var(--space-8);
+  border-right: 1px solid var(--border-on-dark);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: lowercase;
+  font-variant: small-caps;
+  color: var(--text-on-dark-secondary);
+}
+
+.hero__trust-list {
+  display: flex;
+  align-items: center;
+  gap: clamp(var(--space-6), 4vw, var(--space-12));
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hero__trust-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--fs-base);
+  color: var(--text-on-dark-secondary);
+  opacity: 0.72;
+}
+
+.hero__trust-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--veil-soft);
+  border: 1px solid var(--border-on-dark);
+}
+
+/* ---- The object ------------------------------------------------------- */
+
+.hero__art {
+  position: relative;
+  justify-self: end;
+
+  /* Keeps the front field's `screen` blend to the artwork stack. Without it the
+     blend reaches whatever the hero happens to be sitting on. */
+  isolation: isolate;
+
+  /* The width is the intent, and neither the reset nor the grid column may
+     overrule it. The base reset gives every img `max-width: 100%`, which on a
+     grid item means "no wider than your column" - and the column here is
+     whatever the headline leaves, which measured 576px against the reference's
+     660.
+       52vw    the share of the fold the artwork takes, from the reference;
+       66svh   so it cannot outgrow a short viewport and push through the trust
+               strip below it;
+       800px   so it stops growing on very large monitors. */
+  max-width: none;
+  width: min(52vw, 66svh, 800px);
+
+  /* It bleeds left, under the copy, and right, past the container - which is
+     what the reference does and what stops it reading as a picture parked in
+     a column. The right value resolves to 0 on any viewport too narrow to have
+     a gutter to give back. */
+  margin-right: calc(max(0px, 100vw - var(--container-max)) * -0.28);
+  margin-left: calc(var(--space-16) * -1);
+
+  /* Sits a little above centre, scaled 90% */
+  transform: translateY(-3%) scale(0.9);
+  transform-origin: center center;
+}
+
+.hero__art-image {
+  position: relative;
+  z-index: 3;
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  transform: translateX(-56px) scale(1.045);
+  transform-origin: center center;
+
+  /* A transparent cut-out on a near-black page needs its own contact shadow or
+     it reads as pasted on. */
+  filter: drop-shadow(var(--shadow-art-lg));
+}
+
+/* ---- The energy field -------------------------------------------------- */
+
+/* Far bigger than the picture and centred on it, because the strands have to
+   run off the edge of the frame. That is most of why the object reads as
+   sitting INSIDE a current rather than in front of a decoration.
+
+   180% is FIELD_SCALE 1.8 in components/HeroEnergy, and the two HAVE to agree:
+   the component sizes its strands in units of the artwork's half-width and
+   works out pixels from the canvas box, so a disagreement silently mis-scales
+   the whole field.
+
+   300% was tried, to give the traced composition the room a wide reference
+   frame implies, and reverted. At that size the box reaches across the headline
+   and past the viewport edge - the page picked up a horizontal scrollbar - and
+   because the backing store is capped it spread to 0.73 device pixels per CSS
+   pixel, which takes the crispness off every filament. Small and sharp beats
+   large and thin.
+
+   TWO of these, with the picture between them - see .hero__art-field--front.
+   The field winds around the module stack, so a strand in front of it has to be
+   drawn in front of it. */
+.hero__art-field {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 0;
+  width: 500%;
+  height: 500%;
+  transform: translate(calc(-50% - 200px), calc(-50% + 30px)) rotate(0deg) scale(0.7994);
+  transform-origin: center center;
+  pointer-events: none;
+
+  /* Boundation removed: energy field bleeds freely out of the hero section frame */
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* The half of the field that is in FRONT of the modules.
+
+   Same canvas, same geometry, same mask - components/HeroEnergy sends each
+   segment to one layer or the other by the sign of its depth, so between them
+   they draw the field exactly once.
+
+   `screen` rather than normal compositing because this is light landing on the
+   render, not paint covering it: a filament crossing a lit face should brighten
+   it, and where the canvas is empty nothing should happen at all. `screen`
+   gives both and, unlike `plus-lighter`, is supported everywhere. */
+.hero__art-field--front {
+  z-index: 2;
+  mix-blend-mode: screen;
+}
+
+/* ---- The hero's ground ------------------------------------------------ */
+
+/* A bloom behind the object, and a wash that takes the section a shade darker
+   than the page.
+
+   Both are on a pseudo-element rather than on .hero itself so they sit BEHIND
+   the object without joining the stacking order the module and the depth field
+   negotiate. The wash fades out down the section instead of ending, because
+   the page ground continues past the fold - a flat panel would put a horizontal
+   seam across the page exactly where the marquee begins. */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(52% 50% at 68% 46%, rgba(120, 60, 214, 0.32), transparent 70%),
+    radial-gradient(42% 40% at 58% 54%, rgba(30, 74, 220, 0.26), transparent 72%),
+    radial-gradient(32% 28% at 80% 32%, rgba(255, 106, 91, 0.14), transparent 74%),
+    linear-gradient(180deg,
+      rgba(4, 4, 12, 0.62) 0%,
+      rgba(4, 4, 12, 0.62) 58%,
+      rgba(4, 4, 12, 0) 100%);
+}
+
+/* ---- Narrow ------------------------------------------------------------ */
+
+@media (max-width: 1080px) {
+  .hero__grid {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    text-align: center;
+    gap: var(--space-4);
+  }
+  .hero__copy { justify-items: center; }
+  .hero__actions { justify-content: center; }
+  .hero__lede { margin-inline: auto; }
+
+  /* Behind the copy rather than beside it - there is no "beside" left. */
+  .hero__art {
+    grid-row: 1;
+    justify-self: center;
+    width: min(92vw, 62svh, 620px);
+    margin: 0;
+    transform: none;
+    opacity: 0.62;
+  }
+  .hero__copy { grid-row: 1; }
+
+  .hero__hint { display: none; }
+}
+
+@media (max-width: 760px) {
+  .hero__title { font-size: clamp(2.1rem, 8.6vw, 3rem); }
+  .hero__trust { display: none; }
+  .hero__art { width: min(96vw, 54svh, 520px); }
+}
+
+/* ---------------------------------------------------------------
+   Marquee - trust strip
+   --------------------------------------------------------------- */
+.marquee {
+  display: flex;
+  overflow: hidden;
+  user-select: none;
+  gap: var(--space-12);
+  padding-block: var(--space-8);
+  mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
+}
+
+.marquee__track {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-12);
+  min-width: 100%;
+  animation: marquee-scroll 32s linear infinite;
+}
+
+.marquee:hover .marquee__track { animation-play-state: paused; }
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(-100% - var(--space-12))); }
+}
+
+/* design.md 6 - no stock imagery; placeholder slots until real logos land */
+.marquee__slot {
+  display: grid;
+  place-items: center;
+  height: 44px;
+  min-width: 148px;
+  padding-inline: var(--space-5);
+  border: 1px dashed var(--border-on-dark);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-on-dark-muted);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------
+   Intro
+   --------------------------------------------------------------- */
+.intro__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-16);
+  align-items: start;
+}
+
+.intro__statement {
+  font-family: var(--font-display);
+  font-size: clamp(var(--fs-lg), 2.8vw, var(--fs-2xl));
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--lh-snug);
+}
+
+.intro__stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-8);
+  margin-top: var(--space-12);
+}
+
+.intro__stat-value {
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--tracking-tight);
+}
+
+.intro__stat-label {
+  font-size: var(--fs-sm);
+  color: var(--text-on-dark-secondary);
+  margin-top: var(--space-2);
+}
+
+/* On wide screens the intro collapses to one narrow column so the right of
+   the container stays empty - that void is where the module stack parks. */
+@media (min-width: 861px) {
+  .intro__grid {
+    grid-template-columns: 1fr;
+    max-width: 680px;
+    gap: var(--space-10);
+  }
+}
+
+@media (max-width: 860px) {
+  .intro__grid { grid-template-columns: 1fr; gap: var(--space-10); }
+}
+
+/* ---------------------------------------------------------------
+   Work - what we build
+   --------------------------------------------------------------- */
+.work__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-12);
+}
+
+.work__grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--space-6);
+}
+
+.card {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--surface-card-dark);
+  border: 1px solid var(--border-on-dark);
+  padding: var(--space-8);
+  min-height: 320px;
+  isolation: isolate;
+  transition:
+    transform var(--duration-slow) var(--ease-smooth),
+    border-color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-slow) var(--ease-smooth);
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  border-color: var(--border-on-dark-strong);
+  box-shadow: var(--shadow-lg);
+}
+
+.card--wide { grid-column: span 7; }
+.card--narrow { grid-column: span 5; }
+.card--half { grid-column: span 6; }
+
+.card__slot {
+  position: relative;
+  height: 180px;
+  border-radius: var(--radius-md);
+  background-image: var(--gradient-brand);
+  margin-bottom: var(--space-6);
+  overflow: hidden;
+}
+
+.card__slot::after {
+  content: attr(data-slot);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-on-dark-strong);
+  background: var(--sunken-on-dark-soft);
+}
+
+.card__title {
+  font-size: var(--fs-lg);
+  margin-bottom: var(--space-3);
+}
+
+.card__body {
+  color: var(--text-on-dark-secondary);
+  font-size: var(--fs-base);
+  line-height: var(--lh-relaxed);
+}
+
+.card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+.tag {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-on-dark);
+  font-size: var(--fs-xs);
+  color: var(--text-on-dark-secondary);
+}
+
+/* The head keeps its own inset; the grid's inset is handled by .explainer,
+   which reserves Zeal's column. Was min-width 1100px, which meant the rail
+   simply did not exist at 1024 - the width the critic reviews at - leaving Zeal
+   nowhere to stand. */
+@media (min-width: 960px) {
+  .work__head { margin-left: 260px; }
+}
+
+@media (max-width: 860px) {
+  .card--wide, .card--narrow, .card--half { grid-column: span 12; }
+}
+
+/* ---------------------------------------------------------------
+   Zeal explaining a section
+
+   .explainer is the positioned stage: Zeal's reserved column on the left, the
+   section's own content on the right, and the leader drawn between the two.
+   Used by Work, Services and Process - see components/ZealExplainer.tsx.
+   --------------------------------------------------------------- */
+.explainer {
+  position: relative;
+  z-index: var(--z-content);
+  display: grid;
+  /* Widened with him: at 260px he was smaller than the cards he was explaining,
+     which failed bar.md M2 - the character has to be the dominant object, not a
+     figure parked in a margin. */
+  grid-template-columns: 300px 1fr;
+  gap: var(--space-16);
+  margin-top: var(--space-12);
+  align-items: stretch;
+}
+
+/* Zeal's column. Everything inside is positioned against this box, which is
+   what lets the leader be drawn in the same coordinate space as the anchor. */
+.explainer__stage {
+  position: relative;
+  min-height: 480px;
+  /* Stretched 96px BELOW the content block it sits beside, into the section's
+     own bottom padding. Zeal is bottom-anchored inside this box, so the box's
+     height is the entire budget he has to travel through - and in Services it
+     was 498px against a 450px character, 48px of slack for five targets. He
+     physically could not reach the fifth row without leaving the viewport, so
+     "Maintenance" was explained by an empty column. The section already
+     reserves 96px of padding under the stage; this borrows exactly that, so he
+     gains room without touching anything below. */
+  margin-bottom: -96px;
+}
+
+.explainer__body { min-width: 0; }
+
+.explainer__zeal {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  /* M5 - the silhouette breaks its container: the gesturing hand crosses out of
+     the column into the gutter. It crosses the boundary, never the copy. */
+  margin-right: calc(var(--space-10) * -1);
+  /* Transform eases; OPACITY DOES NOT. The fade is already a smooth function of
+     his measured distance from the header, recomputed every scroll frame, so a
+     CSS transition on top of it adds nothing but lag - and the lag is the whole
+     problem. Under a fast flick it left him rendering at 92% with his head 8px
+     above the header and at 42% with his head off the top of the screen, drawn
+     straight through the translucent nav. Measured: 13 frames over the nav
+     across a full-page sweep, zero once the transition came off. */
+  transition: transform var(--duration-slow) var(--ease-smooth);
+  will-change: transform;
+}
+
+.explainer__art {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* The rim light is baked into the artwork (M6), not faked here. This shadow
+     only grounds him, and stays soft - on a near-black page a hard black shadow
+     reads as a smudge rather than as depth. */
+  filter: drop-shadow(var(--shadow-art-lg));
+}
+
+/* M3/M4 - the payload. Three brand modules, one hue each, never repeated. */
+.explainer__satellite {
+  position: absolute;
+  border-radius: var(--radius-sm);
+  opacity: 0.4;
+  animation: satellite-drift 6s var(--ease-standard) infinite;
+}
+
+@keyframes satellite-drift {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -10px; }
+}
+
+/* The payload - the object Zeal holds out at the end of his gesture.
+   All of them are stacked in one box and cross-faded, so the swap is a
+   dissolve in place rather than a jump. */
+/* Anchored inside the character's box, not measured against the stage.
+
+   It used to be positioned from a fingertip coordinate recomputed every frame,
+   which was necessary while he travelled up and down the column and is now just
+   a moving part with nothing to do. These percentages put the object in his
+   open hand and keep it there. */
+.explainer__payload {
+  position: absolute;
+  right: 4%;
+  top: 44%;
+  width: 96px;
+  height: 96px;
+  pointer-events: none;
+}
+
+.explainer__prop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  scale: 0.8;
+  transition:
+    opacity var(--duration-slow) var(--ease-smooth),
+    scale var(--duration-slow) var(--ease-smooth);
+  filter: drop-shadow(var(--shadow-art-sm));
+}
+
+.explainer__prop[data-shown="true"] { opacity: 1; scale: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .explainer__payload { animation: none; }
+  .explainer__prop { transition: none; }
+}
+
+/* The leader: anchor to target. Opaque at the TARGET end - it ran the other way
+   at first, which left the business end of the gesture fully transparent. */
+
+/* What the gesture does TO the content. The same treatment everywhere, so the
+   mechanic reads as one idea rather than three. design.md 6 rules out coloured
+   left-border accents, so the response is carried by opacity and colour. */
+.explainer__body > *,
+.explainer__body .card {
+  transition:
+    opacity var(--duration-slow) var(--ease-standard),
+    transform var(--duration-slow) var(--ease-smooth),
+    box-shadow var(--duration-slow) var(--ease-smooth),
+    border-color var(--duration-slow) var(--ease-standard);
+}
+
+/* The active target is signalled by ADDITION, not by subtraction.
+   The Brief critic priced the old version: resting opacity was 0.5, so three of
+   the four Work cards sat half-faded at any moment purely so the fourth could
+   look chosen. That is a real cost paid by real readers - most of the section is
+   hard to read most of the time - to buy a distinction that other channels can
+   carry for free. A reader who is looking at card three should not have to fight
+   the page because Zeal is looking at card one.
+
+   So the resting state stays comfortably legible and the active one is built up:
+   a lift, a stronger border, a white title, a coral index. Opacity still moves,
+   but it is now the quietest of four signals rather than the only one. */
+/* Scoped to elements that have ALREADY revealed, and that is a correctness fix
+   as much as a specificity one.
+
+   `.explainer__body > *:not([data-zeal-active])` and `.reveal.reveal` are both
+   (0,2,0), so the tie went to whichever stylesheet loaded last - this one - and
+   every card and row inside an explainer section sat at 0.82 before it had
+   revealed instead of 0. They slid into place without ever fading, which is
+   half the animation missing on the two densest sections of the page.
+
+   Requiring [data-visible] both outranks the reveal's resting state at (0,3,0)
+   and says the true thing: an element that has not arrived yet cannot be the
+   dimmed-because-you-are-looking-elsewhere state. */
+.explainer__body > [data-visible="true"]:not([data-zeal-active]) { opacity: 0.82; }
+.explainer__body > *[data-zeal-active] { opacity: 1; }
+
+[data-zeal-active] .service__index { color: var(--coral-500); }
+[data-zeal-active] .service__title,
+[data-zeal-active] .card__title,
+[data-zeal-active] .step__title { color: var(--white); }
+
+.explainer__body > [data-zeal-active] {
+  border-color: var(--border-on-dark-strong);
+}
+
+/* Only the cards lift. Service rows are full-bleed against their neighbours, so
+   translating one would open a gap and shunt the list. */
+.explainer__body > .card[data-zeal-active] {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .explainer__zeal,
+  .explainer__satellite,
+  .explainer__body > * {
+    transition: none;
+    animation: none;
+  }
+  .explainer__body > *:not([data-zeal-active]) { opacity: 1; }
+  .explainer__body > .card[data-zeal-active] { transform: none; }
+}
+
+@media (max-width: 960px) {
+  /* The side-by-side column collapses here, so the pointing mechanic cannot
+     work - there is no gutter to point across.
+     
+     But Zeal is NOT dropped. He was, and the Brief critic was blunt about it:
+     the hero copy is "so you can run your operations from your phone", and the
+     mascot representing that company did not survive the phone. An owner sent
+     this link over WhatsApp saw zero Zeal, ever. Hiding him from the exact
+     audience the site is written for is not a defensible tradeoff.
+     
+     Instead he sits above the content, holding the payload, at a size that
+     leaves the copy alone. The leader goes, since there is nothing to point
+     across; the presence stays. And the copy is never dimmed here - the
+     spotlight mechanic only earns its cost when the pointing works. */
+  .explainer { grid-template-columns: 1fr; gap: var(--space-6); }
+
+  .explainer__stage {
+    min-height: 0;
+    height: 240px;
+    order: -1;
+    /* Reset the desktop overhang. There it borrows the section's bottom padding
+       to give him travel; here the stage is above the content because of
+       `order: -1`, so a negative bottom margin pulls the first card UP under
+       him - measured at 36px of silhouette over the card's own artwork. */
+    margin-bottom: 0;
+  }
+
+  /* No !important, and that is the point. This block used to force
+     `height: 240px !important; width: auto !important` while ZealExplainer went
+     on computing its geometry from the desktop height prop - and the two never
+     found out about each other. That disagreement is what put him at opacity 0
+     in the middle of a phone screen and threw the payload 18px past the right
+     edge of the viewport.
+
+     The component now reads this breakpoint itself and stops pointing, so the
+     stylesheet no longer has to shout over it. The sizing lives with the
+     component; this block only handles what CSS should: where he sits. */
+  .explainer__zeal {
+    left: 50%;
+    right: auto;
+    margin-right: 0;
+  }
+
+  .explainer__art { width: auto; }
+
+  .explainer__payload { display: none; }
+
+  .explainer__body > *:not([data-zeal-active]) { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .explainer__zeal,
+  .explainer__satellite {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------
+   Helping - the section where Zeal is with a person
+   --------------------------------------------------------------- */
+.beats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-10);
+  margin-top: var(--space-12);
+}
+
+.beat { display: grid; align-content: start; }
+
+/* The scene keeps its own flat ground rather than being cut out - two figures
+   interacting with a desk read as help; two floating silhouettes do not. */
+/* No box. The scenes used to be `border-radius + overflow:hidden + 1px border`
+   over a sunken panel, which is bar.md M5's stated failure - the character
+   boxed and cropped to a rectangle - and M6's too, since the frame carried its
+   own studio backdrop and put a second ground behind him. The craft critic
+   named both against this one element.
+
+   The art is cut out now, so the section's own background IS the flat ground
+   and there is no edge left to cross. */
+.beat__scene {
+  margin-bottom: var(--space-5);
+}
+
+.beat__art { width: 100%; height: auto; display: block; }
+
+.beat__stage {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--blue-300);
+  margin-bottom: var(--space-2);
+}
+
+.beat__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  margin-bottom: var(--space-3);
+}
+
+.beat__body {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-relaxed);
+  color: var(--text-on-dark-secondary);
+  margin-bottom: var(--space-4);
+}
+
+/* Zeal speaking. Marked as his by the coral rule and the italic, so it reads as
+   an aside from the character rather than more body copy. A left border would
+   break design.md 6, so the mark sits above the line instead. */
+.beat__aside {
+  position: relative;
+  padding-top: var(--space-4);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-relaxed);
+  color: var(--text-on-dark);
+}
+
+.beat__aside::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--space-8);
+  height: 2px;
+  border-radius: var(--radius-full);
+  background: var(--coral-500);
+}
+
+@media (max-width: 860px) {
+  .beats { grid-template-columns: 1fr; gap: var(--space-12); }
+}
+
+/* ---------------------------------------------------------------
+   Services
+   --------------------------------------------------------------- */
+
+.service {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-5);
+  padding-block: var(--space-6);
+  border-top: 1px solid var(--border-on-dark);
+}
+
+.service:last-child { border-bottom: 1px solid var(--border-on-dark); }
+
+.service__index {
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--blue-300);
+  padding-top: 4px;
+}
+
+.service__title {
+  font-size: var(--fs-md);
+  margin-bottom: var(--space-2);
+  transition: color var(--duration-slow) var(--ease-standard);
+}
+
+/* The row answers the point. design.md 6 rules out coloured left-border
+   accents, so the response is carried by the index colour and text brightness
+   instead - no new chrome, and it still reads instantly. */
+
+
+
+
+.service__items {
+  color: var(--text-on-dark-secondary);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-relaxed);
+}
+
+/* ---------------------------------------------------------------
+   Process - Start / Connect / Scale
+   --------------------------------------------------------------- */
+.process__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+  margin-top: var(--space-12);
+}
+
+/* The two-column .process__inner layout is gone with the Zeal placement the
+   craft critic cut. Its media query forced .process__grid to a single column,
+   which left the three steps as full-width slabs once the wrapper went. They go
+   back to being three across. */
+
+.step {
+  padding: var(--space-8);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-on-dark);
+  background: var(--sunken-on-dark-soft);
+}
+
+.step__modules {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  height: 56px;
+  margin-bottom: var(--space-6);
+}
+
+.step__module {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-xs);
+  background: var(--border-on-dark);
+}
+.step__module--on-1 { background: var(--midnight-500); }
+.step__module--on-2 { background: var(--blue-500); }
+.step__module--on-3 { background: var(--coral-500); }
+
+.step__title { font-size: var(--fs-md); margin-bottom: var(--space-3); }
+.step__body { color: var(--text-on-dark-secondary); font-size: var(--fs-sm); line-height: var(--lh-relaxed); }
+
+@media (max-width: 860px) { .process__grid { grid-template-columns: 1fr; } }
+
+/* ---------------------------------------------------------------
+   Footer CTA
+   --------------------------------------------------------------- */
+.cta {
+  position: relative;
+  z-index: var(--z-content);
+  padding-block: clamp(var(--space-24), 20vh, calc(var(--space-24) * 2)) var(--space-12);
+  text-align: center;
+}
+
+.cta__title {
+  font-size: clamp(var(--fs-2xl), 7vw, var(--fs-4xl));
+  font-weight: var(--fw-medium);
+  margin-bottom: var(--space-8);
+  /* Narrow enough that the stack has clear space beside it */
+  max-width: 11ch;
+  margin-inline: auto;
+}
+
+.cta__email {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: clamp(var(--fs-lg), 3.6vw, var(--fs-2xl));
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--tracking-tight);
+  background: var(--gradient-blue-coral);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.footer {
+  border-top: 1px solid var(--border-on-dark);
+  padding-block: var(--space-8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  font-size: var(--fs-sm);
+  color: var(--text-on-dark-secondary);
+}
+
+.footer__links { display: flex; gap: var(--space-6); flex-wrap: wrap; }
+.footer__links a:hover { color: var(--text-on-dark); }
+
+/* ---------------------------------------------------------------
+   Zeal at the call to action
+   --------------------------------------------------------------- */
+.cta__close {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-5);
+  margin-top: var(--space-10);
+}
+
+.zeal-idle {
+  position: relative;
+  width: 300px;
+  aspect-ratio: 3 / 4;
+  pointer-events: none;
+}
+
+/* The still and the clip occupy the same box so the handover cannot shift him
+   by a pixel. The still is beneath and fades out once the video is decoding. */
+.zeal-idle__art,
+.zeal-idle__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+}
+
+.zeal-idle__art {
+  filter: drop-shadow(var(--shadow-art-lg));
+  transition: opacity var(--duration-slow) var(--ease-standard);
+}
+
+.zeal-idle__art[data-hidden="true"] { opacity: 0; }
+
+/* THE WHOLE TRICK, and the box is gone with it.
+
+   mp4 carries no alpha, so the clip is rendered on pure black and screened over
+   the page. `screen` leaves the backdrop untouched wherever the source is black
+   - exactly, not approximately - so the video's rectangle disappears with no
+   key, no mask and no second encode in VP9 and HEVC to cover browsers.
+
+   `isolation: isolate` plus a solid --midnight-950 background used to sit here.
+   That pairing was right when the page behind this spot was one flat colour: it
+   gave the blend a known value to composite against. It stopped being right the
+   moment the background gained an ambient colour wash and shards drifting
+   across the full width - a solid midnight rectangle over a graded, moving
+   ground is exactly the visible box the isolation was supposed to prevent.
+
+   Both are removed. The blend now reaches the real page, which is what `screen`
+   wants: black goes to whatever is actually behind it, wash and shards
+   included, so there is nothing to see but the character. */
+.zeal-idle {
+  isolation: auto;
+  background: none;
+}
+
+.zeal-idle__video {
+  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-standard);
+}
+
+.zeal-idle__video[data-ready="true"] { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* The component does not render the <video> at all under reduced motion, so
+     there is nothing here to stop - only the still remains, at full opacity. */
+  .zeal-idle__art { opacity: 1; }
+}
+
+@media (max-width: 640px) {
+  .zeal-idle { width: 210px; }
+}
+
+/* ---------------------------------------------------------------
+   Contact modal
+   --------------------------------------------------------------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+}
+
+.modal__scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim-on-dark);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 0;
+  padding: 0;
+}
+
+.modal__panel {
+  position: relative;
+  width: min(100%, 940px);
+  max-height: min(86vh, 720px);
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  border-radius: var(--radius-xl);
+  background: var(--surface-card-dark);
+  border: 1px solid var(--border-on-dark);
+  box-shadow: var(--shadow-lg);
+}
+
+.modal__aside {
+  padding: var(--space-8);
+  border-right: 1px solid var(--border-on-dark);
+  background: var(--sunken-on-dark-soft);
+}
+
+.modal__main { padding: var(--space-8); }
+
+.modal__close {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-on-dark);
+  background: var(--veil-subtle);
+  color: var(--text-on-dark);
+  transition: background-color var(--duration-base) var(--ease-standard);
+}
+.modal__close:hover { background: var(--veil-strong); }
+
+.modal__title { font-size: var(--fs-xl); margin-bottom: var(--space-3); }
+
+/* Replaced the gradient avatar placeholder. Zeal walked the reader down the
+   page; handing them off to an empty circle at the moment they ask for help was
+   the wrong greeting. */
+.modal__zeal {
+  width: 140px;
+  margin-bottom: var(--space-4);
+  animation: zeal-breathe 4.2s var(--ease-standard) infinite;
+}
+
+.modal__zeal img {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(var(--shadow-art-sm));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal__zeal { animation: none; }
+}
+
+.field-row { display: grid; gap: var(--space-2); margin-bottom: var(--space-5); }
+
+.field-row label {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-on-dark-secondary);
+}
+
+.input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-on-dark);
+  background: var(--sunken-on-dark);
+  color: var(--text-on-dark);
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  transition: border-color var(--duration-base) var(--ease-standard);
+}
+.input::placeholder { color: var(--text-on-dark-muted); }
+.input:hover { border-color: var(--border-on-dark-strong); }
+
+textarea.input { resize: vertical; min-height: 120px; }
+
+.modal__note {
+  font-size: var(--fs-xs);
+  color: var(--text-on-dark-secondary);
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 780px) {
+  .modal__panel { grid-template-columns: 1fr; }
+  .modal__aside { border-right: 0; border-bottom: 1px solid var(--border-on-dark); }
+}
+
+/* ---------------------------------------------------------------
+   Frame studio (dev tool, not part of the public site)
+   --------------------------------------------------------------- */
+.studio {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 380px 1fr;
+}
+
+.studio__panel {
+  padding: var(--space-8);
+  border-right: 1px solid var(--border-on-dark);
+  background: var(--surface-card-dark);
+  overflow-y: auto;
+}
+
+.studio__stage { display: grid; place-items: center; background: var(--midnight-900); }
+
+.studio__log {
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--sunken-on-dark);
+  border: 1px solid var(--border-on-dark);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--fs-xs);
+  line-height: 1.7;
+  max-height: 320px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 900px) {
+  .studio { grid-template-columns: 1fr; }
+  .studio__panel { border-right: 0; border-bottom: 1px solid var(--border-on-dark); }
+}
+
+/* ---------------------------------------------------------------
+   Short-viewport guard  -  MUST STAY LAST IN THIS FILE
+   Media queries add no specificity, so these rules only beat the base
+   .hero / .header declarations by coming after them in source order.
+   Moving this block earlier silently stops it working.
+   --------------------------------------------------------------- */
+/* Short viewports - 1280x720 laptops, browsers with deep toolbars. The hero
+   holds one image at up to 560px inside a 100svh section; once the viewport
+   is under 760px tall, the top padding that clears the header plus the art at
+   full size no longer fits the fold, and the art starts hanging past it. Take
+   the padding back and cap the art against the viewport's HEIGHT rather than
+   only its width. */
+@media (max-height: 760px) {
+  /* Slimmer header, so the art still clears it without spending the vertical
+     budget it needs. */
+  .header { top: var(--space-3); }
+  .header__inner { padding-block: var(--space-1); }
+
+  .hero {
+    padding-block: calc(var(--space-16) + var(--space-6)) var(--space-4);
+  }
+  .hero__title { font-size: clamp(2rem, 3.6vw, 3rem); }
+  .hero__art { width: min(48vw, 66svh, 700px); }
+}

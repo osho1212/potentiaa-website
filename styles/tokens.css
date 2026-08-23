@@ -1,0 +1,192 @@
+/* =====================================================================
+   Potentiaa design tokens
+   Source of truth: design.md (compiled from tokens/*.css in the DS repo).
+   Do not hardcode hex/px in components — always reference these.
+   ===================================================================== */
+
+:root {
+  /* ---- Midnight — ink / dark surfaces ---- */
+  /* --midnight-950 is an addition to the design.md scale: the page ground had
+     to go deeper and bluer without disturbing the published brand steps. */
+  --midnight-950: #020A24;
+  --midnight-900: #000E33;
+  --midnight-800: #001B5E;
+  --midnight-700: #0A2470;
+  --midnight-600: #1A3688;
+  --midnight-500: #2E4CA6;
+  --midnight-100: #DFE5F5;
+  --midnight-50:  #F1F3FB;
+
+  /* ---- Electric Blue — primary interactive accent ---- */
+  --blue-700: #123FCC;
+  --blue-600: #1B4CE0;
+  --blue-500: #265DFF;
+  --blue-400: #4C79FF;
+  --blue-300: #7E9BFF;
+  --blue-100: #D9E2FF;
+  --blue-50:  #EEF2FF;
+
+  /* ---- Coral — secondary / warm accent ---- */
+  --coral-700: #E24A3F;
+  --coral-600: #F25B4E;
+  --coral-500: #FF6A5B;
+  --coral-400: #FF8C7F;
+  --coral-300: #FFB0A5;
+  --coral-100: #FFE1DC;
+  --coral-50:  #FFF1EE;
+
+  /* gradient-only, sampled from the logo — never a standalone UI color */
+  --magenta-500: #FA4592;
+
+  /* ---- Cool Gray — blue-tinted neutrals, never pure gray ---- */
+  --gray-900: #141A2E;
+  --gray-800: #20273F;
+  --gray-700: #333C58;
+  --gray-600: #4B5476;
+  --gray-500: #6B7494;
+  --gray-400: #96A0BC;
+  --gray-300: #C1C8DC;
+  --gray-200: #DEE2EE;
+  --gray-100: #EDF0F7;
+  --gray-50:  #F5F7FB;
+
+  --white: #FFFFFF;
+  --soft-white: #FAFBFE;
+
+  --status-success: #1F9D65;
+  --status-warning: #D98E1B;
+  --status-danger:  #D6423A;
+
+  /* ---- Semantic aliases ---- */
+  --bg-page: var(--soft-white);
+  --bg-page-dark: var(--midnight-950);
+  --surface-card: var(--white);
+  --surface-card-dark: var(--midnight-900);
+  --surface-muted: var(--gray-50);
+  --surface-sunken: var(--gray-100);
+
+  --text-primary: var(--gray-900);
+  --text-secondary: var(--gray-600);
+  --text-tertiary: var(--gray-500);
+  --text-on-dark: var(--white);
+  --text-on-dark-secondary: rgba(255, 255, 255, 0.64);
+  /* Third step on the on-dark ramp. The scale had primary and secondary but no
+     muted, so placeholder chrome was reaching for untokenised alphas. */
+  /* 0.50, not 0.38. At 0.38 this measured 3.48:1 on --midnight-950, which
+     fails WCAG AA at every size it is actually used at - the marquee slots at
+     12px and, worse, .input::placeholder at 16px, which carries real
+     instructional copy inside the contact form. The token was minted in an
+     earlier round to remove an untokenised alpha, and satisfied that rule by
+     creating a guaranteed contrast failure. 0.50 clears 4.5:1. */
+  /* One step above --text-on-dark-secondary, for copy that has to carry on a
+     busier ground. Part of the on-dark ramp rather than a one-off alpha. */
+  --text-on-dark-strong: rgba(255, 255, 255, 0.75);
+  --text-on-dark-muted: rgba(255, 255, 255, 0.5);
+  --text-on-accent: var(--white);
+
+  --border-default: var(--gray-200);
+  --border-strong: var(--gray-300);
+  --border-on-dark: rgba(255, 255, 255, 0.12);
+  --border-on-dark-strong: rgba(255, 255, 255, 0.24);
+
+  /* Veils over dark surfaces. These were scattered as raw rgba literals; every
+     neutral in this system is blue-tinted by construction, so the sunken ones
+     are midnight rather than black. */
+  --veil-subtle: rgba(255, 255, 255, 0.06);
+  --veil-soft: rgba(255, 255, 255, 0.08);
+  --veil-strong: rgba(255, 255, 255, 0.14);
+  --sunken-on-dark: rgba(0, 14, 51, 0.55);
+  --sunken-on-dark-soft: rgba(0, 14, 51, 0.35);
+  /* Dialog scrim. Midnight-tinted like every other overlay, never flat black. */
+  --scrim-on-dark: rgba(0, 14, 51, 0.72);
+
+  --accent-primary: var(--blue-500);
+  --accent-primary-hover: var(--blue-600);
+  --accent-primary-active: var(--blue-700);
+  --accent-secondary: var(--coral-500);
+  --accent-secondary-hover: var(--coral-600);
+  --accent-secondary-active: var(--coral-700);
+  --focus-ring: var(--blue-400);
+
+  /* ---- Gradients — used sparingly, high-impact only ---- */
+  --gradient-brand: linear-gradient(
+    135deg,
+    var(--midnight-800) 0%,
+    var(--blue-500) 52%,
+    var(--coral-500) 78%,
+    var(--magenta-500) 100%
+  );
+  --gradient-blue-coral: linear-gradient(135deg, var(--blue-500), var(--coral-500));
+
+  /* ---- Type ---- */
+  --font-display: var(--font-sora), "Segoe UI", system-ui, sans-serif;
+  --font-body: var(--font-manrope), "Segoe UI", system-ui, sans-serif;
+
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-base: 16px;
+  --fs-md: 18px;
+  --fs-lg: 22px;
+  --fs-xl: 28px;
+  --fs-2xl: 36px;
+  --fs-3xl: 48px;
+  --fs-4xl: 64px;
+
+  --lh-tight: 1.1;
+  --lh-snug: 1.25;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.65;
+
+  /* Nothing on the site goes above --fw-medium. The heavier steps stay so the
+     scale still matches design.md, but reaching for one breaks the rule the
+     type is set by: hierarchy comes from size and colour, not weight. Only 400
+     and 500 are actually loaded - see app/layout.tsx. */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-extrabold: 800;
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+  --tracking-logo: 0.28em; /* wordmark lockup only */
+
+  /* ---- Spacing & radius ---- */
+  --space-1: 4px;   --space-2: 8px;   --space-3: 12px;  --space-4: 16px;
+  --space-5: 20px;  --space-6: 24px;  --space-8: 32px;  --space-10: 40px;
+  --space-12: 48px; --space-16: 64px; --space-20: 80px; --space-24: 96px;
+
+  /* For chips below ~16px, where --radius-sm reads as a circle and destroys the
+     rounded-square character of the logo mark. Sub-16px elements only. */
+  --radius-xs: 5px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 999px;
+
+  --container-max: 1200px;
+
+  /* ---- Elevation ---- */
+  --shadow-sm: 0 1px 2px rgba(10,20,60,.06), 0 1px 1px rgba(10,20,60,.04);
+  --shadow-md: 0 4px 12px rgba(10,20,60,.08), 0 2px 4px rgba(10,20,60,.05);
+  --shadow-lg: 0 12px 32px rgba(10,20,60,.12), 0 4px 8px rgba(10,20,60,.06);
+  /* Drop-shadows for cut-out artwork sitting on the dark ground. Kept as
+     tokens so the three places that ground a mascot or an object cannot drift
+     apart. Black rather than midnight here on purpose: these sit UNDER an
+     object rather than tinting a surface, and a tinted shadow on a tinted
+     ground reads as a halo. */
+  --shadow-art-lg: 0 22px 40px rgba(0, 0, 0, 0.5);
+  --shadow-art-sm: 0 6px 16px rgba(0, 0, 0, 0.45);
+
+  --shadow-glow-blue: 0 8px 24px rgba(38,93,255,.28);
+  --shadow-glow-coral: 0 8px 24px rgba(255,106,91,.28);
+
+  /* ---- Motion (product baseline) ---- */
+  --ease-standard: cubic-bezier(.4, 0, .2, 1);
+  --ease-out: cubic-bezier(0, 0, .2, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+}
