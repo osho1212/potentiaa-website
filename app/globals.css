@@ -93,7 +93,10 @@ button { font: inherit; cursor: pointer; }
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-6);
+  /* Height fixed rather than left to padding + line-height, so every button on
+     the platform lands on the same 40px regardless of its font metrics. */
+  height: 40px;
+  padding-inline: var(--space-6);
   border-radius: var(--radius-full);
   border: 1px solid transparent;
   font-family: var(--font-body);
@@ -153,14 +156,30 @@ button { font: inherit; cursor: pointer; }
 .header__inner {
   display: flex;
   align-items: center;
+  /* Two independent pills at opposite ends of the header's width - the pill
+     styling itself lives on .header__pill below, not here. */
   justify-content: space-between;
   gap: var(--space-4);
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
+}
+
+/* Shared shell for both pills: glass, border, blur, and a height fixed
+   rather than padding-derived, so the brand pill (a 30px mark plus a line of
+   text) and the nav pill (a 40px button) land on the same height instead of
+   each pill sizing to its own tallest child. */
+.header__pill {
+  display: flex;
+  align-items: center;
+  height: 56px;
   border-radius: var(--radius-full);
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+.header__pill--nav {
+  gap: var(--space-6);
+  padding-inline: var(--space-5) var(--space-2);
 }
 
 .header__nav {
@@ -184,6 +203,7 @@ button { font: inherit; cursor: pointer; }
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  padding-inline: var(--space-5);
 }
 
 .header__logo {
@@ -330,8 +350,9 @@ button { font: inherit; cursor: pointer; }
   z-index: var(--z-content);
   min-height: 100svh;
   display: grid;
-  /* copy + object, then the trust strip pinned to the foot */
-  grid-template-rows: 1fr auto;
+  /* copy + object. Was `1fr auto`, the second row holding a trust strip that
+     has since been removed. */
+  grid-template-rows: 1fr;
   /* Must clear the fixed header pill: it sits at top var(--space-5) and is
      about 64px tall, so anything above ~104px tucks under it. */
   padding-block: calc(var(--space-20) + var(--space-6)) var(--space-8);
@@ -346,35 +367,25 @@ button { font: inherit; cursor: pointer; }
   grid-template-columns: minmax(0, 34rem) minmax(0, 1fr);
   align-items: center;
   gap: var(--space-8);
+
+  /* Pulled in from .container's shared var(--space-6): the hero's copy sits
+     closer to the page edge than the narrower body sections that padding is
+     tuned for. Scoped here rather than changed on .container, which every
+     section on the page shares. */
+  padding-left: var(--space-3);
 }
 
 .hero__copy {
   display: grid;
   justify-items: start;
-  gap: var(--space-6);
+  /* Only one gap left in this grid since the eyebrow and lede came out -
+     between the title and the actions row - so this is scoped to exactly
+     that one boundary rather than several. Widened for more breathing room
+     below "connected." before the buttons. */
+  gap: var(--space-8);
   /* Over the artwork, which bleeds left behind it. */
   position: relative;
   z-index: 1;
-}
-
-.hero__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-5);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-full);
-  background: var(--glass-bg);
-  font-size: var(--fs-sm);
-  color: var(--text-on-dark-secondary);
-}
-
-.hero__eyebrow-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: var(--radius-full);
-  background: var(--blue-500);
-  box-shadow: 0 0 12px var(--blue-500);
 }
 
 .hero__title {
@@ -382,8 +393,14 @@ button { font: inherit; cursor: pointer; }
   font-family: var(--font-display);
   /* Set explicitly rather than inherited from the h1 rule: the clone lap
      renders this as a <p> to keep one <h1> per document, and without this the
-     two laps would use different faces - visible at the loop seam. */
-  font-size: clamp(2.6rem, 4.6vw, 4.4rem);
+     two laps would use different faces - visible at the loop seam.
+     60.84px = 46.8px * 1.3. Earlier sizes here were capped to keep each
+     titleLead/titleAccent entry (lib/site.ts) to one row in the 544px (34rem)
+     copy column - deliberately given up on for this size, since the point of
+     it was to fill the empty space beside the copy, and "already has a
+     system." now wraps onto two rows inside its own line. That is intended,
+     not a bug to chase. */
+  font-size: 60.84px;
   font-weight: var(--fw-bold, 700);
   line-height: 1.04;
   letter-spacing: -0.02em;
@@ -391,6 +408,19 @@ button { font: inherit; cursor: pointer; }
 }
 
 .hero__title-line { display: block; }
+
+/* A break between the lead lines and the accent lines - the two read as
+   separate statements ("...a system." / "It just isn't connected.") and were
+   sitting on bare line-height with no air between them.
+   Not :first-of-type: every line here is a <span>, so "first of type" among
+   siblings is the very first lead line, which never carries this class - the
+   selector would silently match nothing. This targets the first accent line
+   specifically, by requiring its immediately preceding sibling to lack the
+   accent class - true only at the group boundary, not between the two accent
+   lines themselves. */
+.hero__title-line:not(.hero__title-line--accent) + .hero__title-line--accent {
+  margin-top: var(--space-6);
+}
 
 /* The gradient is per LINE, not across the block.
    background-clip: text clips to an element's own text, and each line is its
@@ -408,12 +438,6 @@ button { font: inherit; cursor: pointer; }
   color: transparent;
 }
 
-.hero__lede {
-  max-width: 46ch;
-  color: var(--text-on-dark-secondary);
-  line-height: var(--lh-relaxed, 1.65);
-}
-
 .hero__actions {
   display: flex;
   align-items: center;
@@ -426,29 +450,50 @@ button { font: inherit; cursor: pointer; }
   display: inline-flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-6);
+  /* Matches .btn's 40px - same fixed-height reasoning, see there. */
+  height: 40px;
+  padding-inline: var(--space-6);
+  position: relative;
   border: 0;
   border-radius: var(--radius-full);
+  /* Secondary style: no fill - the gradient lives only on the ring below,
+     drawn by ::before rather than a `border`, which cannot take a gradient. */
+  background: transparent;
+  color: var(--white, #fff);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  transition: transform var(--duration-base) var(--ease-standard);
+}
+
+/* The gradient ring. A `border` can't take a gradient, and the usual
+   double-background workaround (solid colour under the padding-box) needs a
+   flat colour to sit on - this button sits over the particle field, which
+   isn't one. Masking a gradient box down to just its edge keeps the ring
+   transparent in the middle, same as the button itself.
+   padding: 1.5px sets the ring's thickness - it's what the content-box inset
+   is measured from. */
+.hero__cta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: inherit;
   background: linear-gradient(
     100deg,
     var(--blue-500) 0%,
     var(--magenta-500) 55%,
     var(--coral-500) 100%
   );
-  color: var(--white, #fff);
-  font-family: inherit;
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-medium);
-  cursor: pointer;
-  box-shadow: 0 10px 30px -10px rgba(122, 62, 214, 0.75);
-  transition: transform var(--duration-base) var(--ease-standard),
-              box-shadow var(--duration-base) var(--ease-standard);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
-.hero__cta:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 36px -10px rgba(122, 62, 214, 0.95);
-}
+.hero__cta:hover { transform: translateY(-1px); }
 
 .hero__cta-arrow { display: inline-flex; }
 
@@ -500,54 +545,6 @@ button { font: inherit; cursor: pointer; }
       50% 50% / 9px 1px no-repeat;
 }
 
-/* ---- The trust strip -------------------------------------------------- */
-
-.hero__trust {
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  flex-wrap: wrap;
-  padding-top: var(--space-6);
-}
-
-.hero__trust-lead {
-  max-width: 14ch;
-  padding-right: var(--space-8);
-  border-right: 1px solid var(--border-on-dark);
-  font-size: var(--fs-xs);
-  letter-spacing: var(--tracking-wide);
-  text-transform: lowercase;
-  font-variant: small-caps;
-  color: var(--text-on-dark-secondary);
-}
-
-.hero__trust-list {
-  display: flex;
-  align-items: center;
-  gap: clamp(var(--space-6), 4vw, var(--space-12));
-  flex-wrap: wrap;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.hero__trust-item {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-size: var(--fs-base);
-  color: var(--text-on-dark-secondary);
-  opacity: 0.72;
-}
-
-.hero__trust-mark {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  background: var(--veil-soft);
-  border: 1px solid var(--border-on-dark);
-}
-
 /* ---- The object ------------------------------------------------------- */
 
 .hero__art {
@@ -577,8 +574,10 @@ button { font: inherit; cursor: pointer; }
   margin-right: calc(max(0px, 100vw - var(--container-max)) * -0.28);
   margin-left: calc(var(--space-16) * -1);
 
-  /* Sits a little above centre, scaled 90% */
-  transform: translateY(-3%) scale(0.9);
+  /* Sits a little above centre, 100px to the left, scaled 90%.
+     translateX leads deliberately: a translate placed AFTER the scale would be
+     applied in the scaled coordinate system and land 90px across, not 100. */
+  transform: translateX(-100px) translateY(-3%) scale(0.9);
   transform-origin: center center;
 }
 
@@ -589,7 +588,9 @@ button { font: inherit; cursor: pointer; }
   width: 100%;
   max-width: none;
   height: auto;
-  transform: translateX(-56px) scale(1.045);
+  /* -56px, shifted 30px right to -26px. translateX leads the scale so the
+     30px lands as 30 real px, not scaled down by the 1.045 that follows it. */
+  transform: translateX(-26px) scale(1.045);
   transform-origin: center center;
 
   /* A transparent cut-out on a near-black page needs its own contact shadow or
@@ -649,6 +650,17 @@ button { font: inherit; cursor: pointer; }
   mix-blend-mode: screen;
 }
 
+/* The 3D particle swarm that replaced the traced field above (still present,
+   just unmounted from Hero.tsx). One WebGL canvas, sat behind the module
+   image - inset negative so the sphere reads as surrounding the module
+   instead of being clipped to its box. */
+.hero__art-particles {
+  position: absolute;
+  inset: -40%;
+  z-index: 1;
+  pointer-events: none;
+}
+
 /* ---- The hero's ground ------------------------------------------------ */
 
 /* A bloom behind the object, and a wash that takes the section a shade darker
@@ -686,7 +698,6 @@ button { font: inherit; cursor: pointer; }
   }
   .hero__copy { justify-items: center; }
   .hero__actions { justify-content: center; }
-  .hero__lede { margin-inline: auto; }
 
   /* Behind the copy rather than beside it - there is no "beside" left. */
   .hero__art {
@@ -703,8 +714,7 @@ button { font: inherit; cursor: pointer; }
 }
 
 @media (max-width: 760px) {
-  .hero__title { font-size: clamp(2.1rem, 8.6vw, 3rem); }
-  .hero__trust { display: none; }
+  .hero__title { font-size: clamp(1.68rem, 6.88vw, 2.4rem); }
   .hero__art { width: min(96vw, 54svh, 520px); }
 }
 
@@ -1607,13 +1617,16 @@ textarea.input { resize: vertical; min-height: 120px; }
    only its width. */
 @media (max-height: 760px) {
   /* Slimmer header, so the art still clears it without spending the vertical
-     budget it needs. */
+     budget it needs. Was padding on .header__inner, back when the pill and
+     the layout row were the same element; the pill's height is fixed now, so
+     this shrinks that directly instead - held to 48px, just enough to still
+     clear the .btn button's own 40px. */
   .header { top: var(--space-3); }
-  .header__inner { padding-block: var(--space-1); }
+  .header__pill { height: 48px; }
 
   .hero {
     padding-block: calc(var(--space-16) + var(--space-6)) var(--space-4);
   }
-  .hero__title { font-size: clamp(2rem, 3.6vw, 3rem); }
+  .hero__title { font-size: clamp(1.6rem, 2.88vw, 2.4rem); }
   .hero__art { width: min(48vw, 66svh, 700px); }
 }

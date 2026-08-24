@@ -1,12 +1,12 @@
 "use client";
 
 import Reveal from "../Reveal";
-import HeroEnergy from "../HeroEnergy";
+import HeroParticles from "../HeroParticles";
 import { useContact } from "../ContactContext";
 import { site } from "@/lib/site";
 
 /**
- * The hero: copy on the left, a trust strip along the foot.
+ * The hero: copy on the left, the module stack and particle field on the right.
  *
  * `clone` matters because app/page.tsx renders this section twice for the
  * scroll loop: only the primary copy may carry the #top anchor, and only the
@@ -20,13 +20,6 @@ export default function Hero({ clone }: { clone?: boolean }) {
     <section className="hero" id={clone ? undefined : "top"} data-theme-key="hero">
       <div className="hero__grid container">
         <div className="hero__copy">
-          <Reveal>
-            <p className="hero__eyebrow">
-              <span className="hero__eyebrow-dot" />
-              {site.hero.eyebrow}
-            </p>
-          </Reveal>
-
           <Reveal delay={80}>
             <Title className="hero__title">
               {/* The trailing space is not a typo. These are block spans, so
@@ -48,10 +41,6 @@ export default function Hero({ clone }: { clone?: boolean }) {
           </Reveal>
 
           <Reveal delay={160}>
-            <p className="hero__lede">{site.hero.lede}</p>
-          </Reveal>
-
-          <Reveal delay={240}>
             <div className="hero__actions">
               <button type="button" className="hero__cta" onClick={open}>
                 {site.hero.primary}
@@ -81,7 +70,7 @@ export default function Hero({ clone }: { clone?: boolean }) {
         </div>
 
         <div className="hero__art">
-          <HeroEnergy />
+          <HeroParticles />
           <img
             className="hero__art-image"
             src="/assets/hero/module.webp"
@@ -91,18 +80,6 @@ export default function Hero({ clone }: { clone?: boolean }) {
             loading="eager"
           />
         </div>
-      </div>
-
-      <div className="hero__trust container">
-        <p className="hero__trust-lead">{site.hero.trustLead}</p>
-        <ul className="hero__trust-list">
-          {site.trustSlots.slice(0, 5).map((slot, i) => (
-            <li key={i} className="hero__trust-item">
-              <span className="hero__trust-mark" aria-hidden="true" />
-              {slot}
-            </li>
-          ))}
-        </ul>
       </div>
     </section>
   );

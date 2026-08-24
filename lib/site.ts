@@ -24,17 +24,14 @@ export const site = {
   },
 
   hero: {
-    eyebrow: "Digital transformation. Real impact.",
     /* The headline breaks across four lines by design - the last two carry the
        gradient, so they are held separately rather than being found by a
        word count at render time. */
-    titleLead: ["Your business", "already has a", "system."],
+    titleLead: ["Your business", "already has a system."],
     titleAccent: ["It just isn't", "connected."],
-    lede: "Your people know how the business works. Your registers, spreadsheets, messages and software each hold a piece of it. Potentiaa brings those pieces together into a system built around the way your business actually works.",
     primary: "Explore Solutions",
     secondary: "See how it works",
     hint: ["Move your mouse", "to explore"],
-    trustLead: "Trusted by ambitious businesses",
   },
 
   intro: {
