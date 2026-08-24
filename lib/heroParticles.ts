@@ -78,6 +78,63 @@ const GRADIENT: Array<{ t: number; rgb: [number, number, number] }> = [
 const LUT_SIZE = 256;
 
 /**
+ * The ramp at `t`, 0..1, as unit rgb. The one place the stops above get
+ * interpolated - buildGradientLut() bakes this into a table for the frame
+ * loop, and sampleGradientCss() below dresses it for CSS.
+ */
+function gradientAt(t: number): [number, number, number] {
+  const clamped = Math.max(0, Math.min(1, t));
+  let a = GRADIENT[0];
+  let b = GRADIENT[GRADIENT.length - 1];
+  for (let s = 0; s < GRADIENT.length - 1; s++) {
+    if (clamped >= GRADIENT[s].t && clamped <= GRADIENT[s + 1].t) {
+      a = GRADIENT[s];
+      b = GRADIENT[s + 1];
+      break;
+    }
+  }
+  const span = b.t - a.t || 1;
+  const k = (clamped - a.t) / span;
+  return [
+    a.rgb[0] + (b.rgb[0] - a.rgb[0]) * k,
+    a.rgb[1] + (b.rgb[1] - a.rgb[1]) * k,
+    a.rgb[2] + (b.rgb[2] - a.rgb[2]) * k,
+  ];
+}
+
+/**
+ * The same ramp the particles are coloured from, as a CSS colour for the DOM
+ * side of the effect (the flow cards).
+ *
+ * Exported so the cards and the swarm cannot drift apart: a card at position
+ * `t` along the flow is tinted from the identical stops the particle at that
+ * end of the formation is, rather than from hand-matched hex that would need
+ * re-matching every time the palette moves.
+ *
+ * `alpha` below 1 returns `rgba()` - card borders want the hue at a fraction
+ * of its strength, not a washed-out approximation of it.
+ *
+ * `lighten` mixes toward white, and TEXT NEEDS IT. The ramp opens on
+ * --midnight-700, which is chosen to work as light summed additively against
+ * its neighbours in the swarm; set as a foreground colour on a --midnight-950
+ * page it is very nearly the background. The first card's note measured
+ * rgb(10, 36, 112) on rgb(2, 10, 36) - present, but not readable. Mixing
+ * toward white keeps the hue progression legible across the whole ramp
+ * instead of only its warm half.
+ */
+export function sampleGradientCss(
+  t: number,
+  { alpha = 1, lighten = 0 }: { alpha?: number; lighten?: number } = {},
+): string {
+  const [r, g, b] = gradientAt(t);
+  const k = Math.max(0, Math.min(1, lighten));
+  const mix = (v: number) => v + (1 - v) * k;
+  const to255 = (v: number) => Math.round(Math.max(0, Math.min(1, v)) * 255);
+  const [rr, gg, bb] = [to255(mix(r)), to255(mix(g)), to255(mix(b))];
+  return alpha >= 1 ? `rgb(${rr}, ${gg}, ${bb})` : `rgba(${rr}, ${gg}, ${bb}, ${alpha})`;
+}
+
+/**
  * The formation, turned 45 degrees clockwise in the screen plane.
  *
  * Done as an object rotation rather than a CSS transform on the canvas. A CSS
@@ -121,6 +178,16 @@ const REPEL_STRENGTH = 5.6;
 /** How fast the effect fades in on enter and out on leave, per frame. */
 const REPEL_EASE = 0.09;
 
+/**
+ * THE LABEL GLOW - the floating service callouts (components/HeroLabels)
+ * brighten the particles nearest them on hover, rather than pushing them
+ * away. Same influence-point machinery as the cursor repel, run a second
+ * time with its own radius/strength/ease and no displacement term.
+ */
+const GLOW_RADIUS = 20;
+const GLOW_STRENGTH = 1.1;
+const GLOW_EASE = 0.08;
+
 export interface ParticlesSwarmOptions {
   count: number;
   /** World-space sprite size. Smaller reads as dust, larger as plasma. */
@@ -131,21 +198,10 @@ export interface ParticlesSwarmOptions {
 function buildGradientLut(): Float32Array {
   const lut = new Float32Array(LUT_SIZE * 3);
   for (let i = 0; i < LUT_SIZE; i++) {
-    const t = i / (LUT_SIZE - 1);
-    let a = GRADIENT[0];
-    let b = GRADIENT[GRADIENT.length - 1];
-    for (let s = 0; s < GRADIENT.length - 1; s++) {
-      if (t >= GRADIENT[s].t && t <= GRADIENT[s + 1].t) {
-        a = GRADIENT[s];
-        b = GRADIENT[s + 1];
-        break;
-      }
-    }
-    const span = b.t - a.t || 1;
-    const k = (t - a.t) / span;
-    lut[i * 3] = a.rgb[0] + (b.rgb[0] - a.rgb[0]) * k;
-    lut[i * 3 + 1] = a.rgb[1] + (b.rgb[1] - a.rgb[1]) * k;
-    lut[i * 3 + 2] = a.rgb[2] + (b.rgb[2] - a.rgb[2]) * k;
+    const [r, g, b] = gradientAt(i / (LUT_SIZE - 1));
+    lut[i * 3] = r;
+    lut[i * 3 + 1] = g;
+    lut[i * 3 + 2] = b;
   }
   return lut;
 }
@@ -286,6 +342,16 @@ export class ParticlesSwarm {
   /** The repel centre, in the particles' own (pre-rotation) frame. */
   private repelX = 0;
   private repelY = 0;
+
+  // ---- Label glow state ---------------------------------------------------
+  /** Set by setGlow(), read once a frame in updateInfluences(). */
+  private glowActive = false;
+  private glowClientX = 0;
+  private glowClientY = 0;
+  /** Eased 0..1, same reasoning as `influence` above. */
+  private glowInfluence = 0;
+  private glowX = 0;
+  private glowY = 0;
 
   /**
    * Stored on window rather than on the container: the container is
@@ -475,6 +541,18 @@ export class ParticlesSwarm {
     cancelAnimationFrame(this.raf);
   }
 
+  /**
+   * Called every frame by a hovered HeroLabels badge with its own current
+   * centre - the label drifts along a CSS motion path, so "current" changes
+   * continuously while it's hovered, not just once on mouseenter. Called once
+   * more with active=false on mouseleave to let the glow fade back out.
+   */
+  setGlow(active: boolean, clientX: number, clientY: number) {
+    this.glowActive = active;
+    this.glowClientX = clientX;
+    this.glowClientY = clientY;
+  }
+
   dispose() {
     this.stop();
     this.disposed = true;
@@ -495,58 +573,98 @@ export class ParticlesSwarm {
   }
 
   /**
-   * Put the cursor into the particles' coordinate frame, and ease the strength.
+   * A screen point (e.g. clientX/Y from a mouse or a hovered label's own
+   * getBoundingClientRect) into the particles' object-space frame - null if
+   * it falls outside the container.
    *
-   * THE LAYOUT READ. Placing the repel needs the container's live viewport box,
-   * and there is no way to know that without asking. The cost is held down
-   * three ways: it is at most one read per FRAME rather than one per pointer
-   * event; it is skipped entirely until the mouse has moved at all; and it is
-   * skipped again once the pointer has been away from the swarm and still for a
-   * moment, which is the state a reading page spends most of its time in. It
-   * cannot be cached across frames instead - the page scrolls under a transform
-   * and the box moves with it, so a stale rect would leave the pocket behind.
-   *
-   * The unprojection is the perspective one and not a scale: at the z = 0 plane
-   * the camera sees 2*tan(fov/2)*distance of world height, and the cursor lands
-   * proportionally within that. Then the inverse of the formation's own
-   * rotation, because the positions being pushed are pre-rotation.
+   * The unprojection is the perspective one and not a scale: at the z = 0
+   * plane the camera sees 2*tan(fov/2)*distance of world height, and the
+   * point lands proportionally within that. Then the inverse of the
+   * formation's own rotation, because the positions being tested against are
+   * pre-rotation.
    */
-  private updatePointer() {
-    let inside = false;
+  private unproject(clientX: number, clientY: number, rect: DOMRect): { x: number; y: number } | null {
+    const px = (clientX - rect.left) / rect.width;
+    const py = (clientY - rect.top) / rect.height;
+    if (px < 0 || px > 1 || py < 0 || py > 1) return null;
 
-    const idle = this.influence < 0.001 && performance.now() - this.lastPointerMove > 400;
-    if (this.pointerEnabled && this.pointerSeen && !idle) {
+    const halfHeight = Math.tan((this.camera.fov * Math.PI) / 360) * this.camera.position.z;
+    const worldX = (px * 2 - 1) * halfHeight * this.camera.aspect;
+    const worldY = -(py * 2 - 1) * halfHeight;
+    return {
+      x: worldX * ROT_COS + worldY * ROT_SIN,
+      y: -worldX * ROT_SIN + worldY * ROT_COS,
+    };
+  }
+
+  /**
+   * Resolves the cursor repel and the label glow into the particles' frame,
+   * and eases both strengths. One method rather than two, because both need
+   * the same live container rect and the point of combining them is to
+   * share that one read instead of paying for it twice.
+   *
+   * THE LAYOUT READ. There is no way to place either effect without asking
+   * the container where it currently is, and that cost is held down three
+   * ways: at most one read per FRAME rather than one per pointer event or
+   * per hover frame; skipped entirely once neither effect has anything live
+   * to resolve (no recent pointer move AND no active glow); and skipped again
+   * once an effect has been fully faded out and idle for a moment, which is
+   * the state a reading page spends most of its time in. It cannot be cached
+   * across frames instead - the page scrolls under a transform and the box
+   * moves with it, so a stale rect would leave either effect behind.
+   */
+  private updateInfluences() {
+    const pointerIdle = this.influence < 0.001 && performance.now() - this.lastPointerMove > 400;
+    const wantsPointer = this.pointerEnabled && this.pointerSeen && !pointerIdle;
+    const glowIdle = !this.glowActive && this.glowInfluence < 0.001;
+
+    let pointerInside = false;
+    let glowInside = false;
+
+    if (wantsPointer || !glowIdle) {
       const rect = this.container.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
-        const px = (this.pointerClientX - rect.left) / rect.width;
-        const py = (this.pointerClientY - rect.top) / rect.height;
-        inside = px >= 0 && px <= 1 && py >= 0 && py <= 1;
-
-        if (inside) {
-          const halfHeight = Math.tan((this.camera.fov * Math.PI) / 360) * this.camera.position.z;
-          const worldX = (px * 2 - 1) * halfHeight * this.camera.aspect;
-          const worldY = -(py * 2 - 1) * halfHeight;
-          this.repelX = worldX * ROT_COS + worldY * ROT_SIN;
-          this.repelY = -worldX * ROT_SIN + worldY * ROT_COS;
+        if (wantsPointer) {
+          const p = this.unproject(this.pointerClientX, this.pointerClientY, rect);
+          if (p) {
+            pointerInside = true;
+            this.repelX = p.x;
+            this.repelY = p.y;
+          }
+        }
+        if (this.glowActive) {
+          const p = this.unproject(this.glowClientX, this.glowClientY, rect);
+          if (p) {
+            glowInside = true;
+            this.glowX = p.x;
+            this.glowY = p.y;
+          }
         }
       }
     }
 
-    // On leave the centre is left where it was and only the strength decays, so
-    // the pocket closes in place rather than sliding off to wherever the cursor
-    // went.
-    this.influence += ((inside ? 1 : 0) - this.influence) * REPEL_EASE;
+    // On leave, each centre is left where it was and only its strength
+    // decays, so the effect closes in place rather than sliding off to
+    // wherever the pointer or label went.
+    this.influence += ((pointerInside ? 1 : 0) - this.influence) * REPEL_EASE;
+    this.glowInfluence += ((glowInside ? 1 : 0) - this.glowInfluence) * GLOW_EASE;
   }
 
   private renderFrame(time: number) {
     const { count, scale, separation, position, color } = this;
 
-    this.updatePointer();
+    this.updateInfluences();
     const repelling = this.influence > 0.001;
     const repelX = this.repelX;
     const repelY = this.repelY;
     const repelStrength = REPEL_STRENGTH * this.influence;
     const repelRadius2 = REPEL_RADIUS * REPEL_RADIUS;
+
+    const glowing = this.glowInfluence > 0.001;
+    const glowX = this.glowX;
+    const glowY = this.glowY;
+    const glowStrength = GLOW_STRENGTH * this.glowInfluence;
+    const glowRadius2 = GLOW_RADIUS * GLOW_RADIUS;
 
     // The whole frame's trigonometry, once - see the header.
     const foldPhaseCos = Math.cos(time * 0.2);
@@ -632,6 +750,21 @@ export class ParticlesSwarm {
       // Depth fade off the particle's own z, replacing the fog.
       const depth = 0.4 + 0.6 * (position[o + 2] * invScale * 0.5 + 0.5);
 
+      // Brighten toward a hovered label. Measured against the EASED position
+      // (what's actually on screen this frame) rather than this frame's raw
+      // target, so it lights up the particles the viewer can see near the
+      // label, not the ones a half-step of easing away from it.
+      let glowBoost = 0;
+      if (glowing) {
+        const gdx = position[o] - glowX;
+        const gdy = position[o + 1] - glowY;
+        const gd2 = gdx * gdx + gdy * gdy;
+        if (gd2 < glowRadius2) {
+          const gfall = 1 - Math.sqrt(gd2) / GLOW_RADIUS;
+          glowBoost = gfall * gfall * glowStrength;
+        }
+      }
+
       // Additive, so this is a multiplier and not a lightness: values over 1
       // clip to a white-hot core where several spikes overlap, which is the
       // point of them.
@@ -642,7 +775,7 @@ export class ParticlesSwarm {
       // formation's apparent brightness was skirt, not particle. Cutting to a
       // hard disc removed that for nothing the eye reads as light, and the
       // levels have to come up to put it back.
-      const level = (0.464 + wave * 0.272 + spike * 1.92 + isTract * 0.24) * depth;
+      const level = (0.464 + wave * 0.272 + spike * 1.92 + isTract * 0.24 + glowBoost) * depth;
       const hot = spike * 0.6;
 
       color[o] = this.baseR[i] * level + hot;

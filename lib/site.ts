@@ -12,6 +12,16 @@
  * No metrics, client names or testimonials are invented anywhere in this file.
  */
 
+/**
+ * Said twice on the page, so it lives in one place.
+ *
+ * The flow section shows this beat - the six hands a job passes through - and
+ * `helping.beats[0]` tells the same beat in prose further down. They are the
+ * same claim and must read identically; a const rather than two string
+ * literals is what stops one being reworded without the other.
+ */
+const LIVES_IN_YOUR_HEAD = "It all works. It just lives in your head.";
+
 export const site = {
   name: "Potentiaa",
   tagline: "Unlock. Transform. Grow.",
@@ -32,6 +42,36 @@ export const site = {
     primary: "Explore Solutions",
     secondary: "See how it works",
     hint: ["Move your mouse", "to explore"],
+  },
+
+  /**
+   * The flow cards - the hands one job passes through in a business that has
+   * no system joining them up.
+   *
+   * ORDER IS MEANING, not decoration. These are read as a sequence: the
+   * enquiry enters at `Customer` and the answer is wanted back at `Owner`,
+   * and the whole point of the section is that today it travels that far by
+   * hand. The cards are tinted along the brand ramp by their index, so first
+   * is deep blue and last is coral - see lib/heroParticles sampleGradientCss,
+   * which is the same ramp the particles themselves are coloured from.
+   *
+   * `note` is set in the mono face deliberately: it is the artefact the step
+   * leaves behind (a line in a register, a message, a request), not prose.
+   */
+  flow: [
+    { title: "Customer", note: "enquiry" },
+    { title: "Reception", note: "writes it down" },
+    { title: "Staff", note: "does the work" },
+    { title: "Records", note: "register updated" },
+    { title: "Accounts", note: "asks again" },
+    { title: "Owner", note: "wants a report" },
+  ],
+
+  /** The section the flow cards settle into as the hero scrolls away. */
+  flowSection: {
+    eyebrow: "Where the time goes",
+    title: LIVES_IN_YOUR_HEAD,
+    body: "One enquiry, six pairs of hands, and nothing between them but memory. Every step here is someone doing their job properly - the cost is in the handover, not the work.",
   },
 
   intro: {
@@ -115,7 +155,7 @@ export const site = {
       {
         scene: "scene-paperwork",
         stage: "Before",
-        title: "It all works. It just lives in your head.",
+        title: LIVES_IN_YOUR_HEAD,
         body: "Three notebooks, a spreadsheet, and the one person who knows where everything is. Nothing is broken - it simply cannot grow.",
         aside: "Most owners think they need software. Often they need one process fixed.",
       },

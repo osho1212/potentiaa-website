@@ -1,5 +1,6 @@
 @import "../styles/tokens.css";
 @import "../styles/motion.css";
+@import "../styles/glass-surface.css";
 
 /* ---------------------------------------------------------------
    Reset & base
@@ -598,6 +599,145 @@ button { font: inherit; cursor: pointer; }
   filter: drop-shadow(var(--shadow-art-lg));
 }
 
+/* ---- The flow cards ----------------------------------------------------
+   Six cards drifting around the particle swarm - see components/HeroLabels
+   for the content and the hover-glow wiring, and lib/site.ts `flow` for why
+   their order is meaning rather than decoration.
+
+   Each card carries --flow-tint / -soft / -faint, set inline by the component
+   from lib/heroParticles' own colour ramp. Sampling the particles' ramp rather
+   than picking hex here is what keeps a card and the particles beside it the
+   same hue when the palette moves.
+
+   MOTION IS NOT HERE. The cards used to ride `offset-path` ellipses declared
+   in this file; they are now positioned from JS every frame - see the note in
+   components/HeroLabels on why a CSS motion path could not survive the scroll
+   transition. Nothing in this block may set `transform` on .hero__label: JS
+   writes it each frame and would overwrite whatever CSS put there, including
+   a `:hover` scale. The hover SCALE is eased in the component; what stays
+   here is only what JS does not touch - border, glow, colour. */
+
+.hero__labels {
+  position: absolute;
+  inset: -18%;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.hero__label {
+  /* Laid out centred in the container; JS translates out from there, so the
+     transform it writes is relative to the centre rather than a corner. */
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: max-content;
+  height: max-content;
+  will-change: transform;
+
+  /* Sized from lib/flowLayout CARD, which is also what the seat inset is
+     derived from - so every card is provably inside the glass. */
+  width: 196px;
+  height: 76px;
+  cursor: default;
+  pointer-events: auto;
+}
+
+/* The refractive shell - components/GlassSurface, used only here. The card's
+   own hue rides on top of it as a border and a glow; the glass itself stays
+   neutral, because tinting a lens tints what you see THROUGH it. */
+.hero__label-glass {
+  border: 1px solid var(--flow-tint-faint, var(--glass-border));
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+    0 18px 40px -24px rgba(0, 0, 0, 0.9);
+  /* No `transform` here - JS writes it on the parent every frame. */
+  transition: border-color var(--duration-base) var(--ease-standard),
+              box-shadow var(--duration-base) var(--ease-standard);
+}
+
+.hero__label:hover .hero__label-glass {
+  border-color: var(--flow-tint-soft);
+  /* The card's own hue, not a generic glow - so hovering it reads as the same
+     light the particles beside it pick up. */
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+    0 0 32px -6px var(--flow-tint-soft),
+    0 18px 40px -24px rgba(0, 0, 0, 0.9);
+}
+
+/* The rail: a stripe of the card's own hue down its leading edge, which is
+   what ties the plate to the line running through it. */
+.hero__label-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  z-index: 2;
+  background: linear-gradient(180deg, transparent, var(--flow-tint), transparent);
+}
+
+/* A numbered plate: the index in its own column, the step's name and the
+   artefact it leaves stacked beside it. Overrides GlassSurface's own centred
+   flex content box, which is built for a single centred label. */
+.hero__label .glass-surface__content {
+  display: block;
+  padding: 0;
+}
+
+.hero__label-inner {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: var(--space-4);
+  row-gap: 2px;
+  height: 100%;
+  padding: 0 var(--space-5) 0 var(--space-5);
+  white-space: nowrap;
+}
+
+/* Spans both rows, so the name and its artefact sit against one number. */
+.hero__label-index {
+  grid-row: span 2;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--flow-tint);
+  opacity: 0.85;
+  letter-spacing: var(--tracking-wide);
+}
+
+.hero__label-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  color: var(--text-on-dark);
+  line-height: 1.25;
+}
+
+/* Mono, because this is the artefact the step leaves behind - a line in a
+   register, a message, a request - and not prose. */
+.hero__label-note {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-on-dark-secondary);
+  line-height: 1.3;
+}
+
+/* The six ellipses that used to live here are now ORBITS in
+   components/HeroLabels, carried over unchanged. Reduced motion is handled
+   there too: the cards are placed once at their resting phase and the loop
+   never starts, so they stay spread out rather than stacking. */
+
+@media (max-width: 900px) {
+  /* The art itself becomes a dim background behind stacked copy here - see
+     .hero__art below. Orbiting cards over that copy would just be clutter.
+
+     The stream goes with them, but that rule cannot live here: this block sits
+     ABOVE .flow-stage__stream's own declaration, and at equal specificity the
+     later rule wins - so `display: none` here lost to `display: block` there.
+     It is declared after that rule instead. */
+  .hero__labels { display: none; }
+}
+
 /* ---- The energy field -------------------------------------------------- */
 
 /* Far bigger than the picture and centred on it, because the strands have to
@@ -660,6 +800,186 @@ button { font: inherit; cursor: pointer; }
   z-index: 1;
   pointer-events: none;
 }
+
+/* ---- The flow stage ---------------------------------------------------
+   The hero and the flow section, wrapped so the swarm and the cards can be
+   pinned across both. See components/sections/FlowStage for why there are two
+   pins and why both are declared before the hero. */
+
+.flow-stage {
+  position: relative;
+  /* --flow-t, 0..1, is written here every scroll frame by FlowStage. Declared
+     so it has a value before the first frame and on the no-JS path. */
+  --flow-t: 0;
+}
+
+/* The pinned layers. Each spans the viewport and cancels its own layout space,
+   so the hero still starts at the top of the stage rather than a screen below
+   it - the negative margin is what makes a sticky layer weightless: it still
+   sticks across the parent's whole scroll range, but contributes no height.
+
+   Declared BEFORE the hero in source order so they begin sticking at the top
+   of the stage; placed after, they would not start until a whole viewport
+   later. z-index then decides which side of the page content each one lands
+   on, which source order cannot.
+
+   Only these are pinned. The swarm stays inside `.hero__art` and scrolls away
+   with the hero; see components/sections/FlowStage. */
+.flow-stage__pin {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  margin-bottom: -100svh;
+  pointer-events: none;
+}
+
+/* The glass, BELOW --z-content (10) so the flow section's heading and body
+   sit on it rather than under it. */
+.flow-stage__pin--under { z-index: 9; }
+
+/* The stream and the cards, above the page content: the cards overlap the
+   hero's headline by design and have to stay hoverable. Held below --z-stack
+   (30) so the module stack still passes in front where the helix carries it
+   forward. */
+.flow-stage__pin--over { z-index: 11; }
+
+/* The swarm and the cards' resting box - `.hero__art`'s, so they sit exactly
+   where they did when they were children of it.
+
+   Position and size are set from JS, by MEASURING `.hero__art` rather than by
+   restating its layout here. Its box is the product of a container width, a
+   grid column, `justify-self: end`, two negative margins and a transform, all
+   of which change at two breakpoints - a second copy of that arithmetic was
+   written first and landed 221px left and 381px high of the real thing. The
+   measured box cannot drift, because it is the real thing.
+
+   The measurement is one rect read per resize, not per frame. Reading the
+   TRANSFORMED box is deliberate: `.hero__art` carries a scale(0.9), and the
+   children's percentage insets compound with it identically either way. */
+.flow-stage__art { position: absolute; }
+
+/* The glass the flow lands on.
+
+   Sized to the staircase's own band (see STAIR in lib/flowLayout) with room
+   around it, so the six plates read as sitting ON something rather than
+   floating over the page.
+
+   Driven entirely from CSS: --flow-t and --flow-release are published on the
+   stage every scroll frame, and inherit down to here. The panel therefore
+   needs no place in any frame loop of its own.
+
+   `opacity` needs no clamp - values outside 0..1 are clamped by the property
+   itself, so the calc can go negative for the whole first part of the scroll
+   and simply stay invisible. */
+.flow-stage__panel {
+  position: absolute;
+  /* The whole section's ground, not a shelf under the cards: the heading and
+     the body sit on this too. Held wider than .container's 1200px so the copy
+     lands comfortably inside it rather than against its edge. */
+  left: 3%;
+  right: 3%;
+  top: 5%;
+  bottom: 4%;
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+  opacity: calc((var(--flow-t, 0) - 0.4) * 2.6);
+  transform: translateY(var(--flow-release, 0px));
+
+  /* Lit from within, in the brand ramp: blue rising from the corner the flow
+     starts in, coral over the corner it ends in, magenta pooling between them.
+     The order is not decorative - it is the same ramp the cards and the
+     particles are tinted from, so the panel reads as the light those are
+     made of rather than as a tinted sheet of glass. */
+  background:
+    radial-gradient(90% 120% at 6% 100%, rgba(38, 93, 255, 0.42) 0%, transparent 62%),
+    radial-gradient(80% 110% at 96% 4%, rgba(255, 106, 91, 0.34) 0%, transparent 60%),
+    radial-gradient(70% 90% at 52% 58%, rgba(250, 69, 146, 0.24) 0%, transparent 66%),
+    rgba(0, 27, 94, 0.2);
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  border: 1px solid transparent;
+  box-shadow:
+    /* The emitted light - thrown outward in the ramp's own colours, so the
+       panel lights the page around it instead of sitting on it. */
+    0 0 90px -10px rgba(38, 93, 255, 0.4),
+    0 0 140px -20px rgba(250, 69, 146, 0.3),
+    0 0 190px -40px rgba(255, 106, 91, 0.26),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+    0 40px 80px -60px rgba(0, 0, 0, 1);
+}
+
+/* The lit rim. A `border` cannot take a gradient, and the usual solid-colour
+   workaround needs a flat backdrop to sit on - this panel has the page and the
+   depth field behind it. Masking a gradient box down to its edge keeps the
+   middle transparent, the same technique the hero's secondary CTA uses. */
+.flow-stage__panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(38, 93, 255, 0.85) 0%,
+    rgba(250, 69, 146, 0.7) 48%,
+    rgba(255, 106, 91, 0.8) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  /* Goes with the flow it holds - see the cards' own breakpoint. */
+  .flow-stage__panel { display: none; }
+}
+
+/* The connecting stream, filling the pin and sitting under the cards - the
+   line runs through the stations, not over them. Sized in JS to the pin's own
+   box; see components/HeroFlowStream. */
+.flow-stage__stream {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+/* Goes with the cards it joins up - below 900px they are hidden, and a line
+   through absent stations is a line to nowhere. Declared here rather than in
+   the cards' own breakpoint block because that block sits above the rule
+   directly above this one, and at equal specificity source order decides.
+
+   Hiding the canvas also stops its loop: its IntersectionObserver watches the
+   canvas itself, and a display:none element never intersects. */
+@media (max-width: 900px) {
+  .flow-stage__stream { display: none; }
+}
+
+/* The flow section. One viewport tall, which is also the distance the pinned
+   layer travels over - the stage is hero + this, and the pin stays put for
+   exactly that distance.
+
+   The copy is a HEADER here, not a column. It used to take a 34rem column on
+   the left with the flow squeezed into what was left, which made the two
+   compete; above the flow it frames the thing instead of sharing the width
+   with it, and hands the whole width to the staircase. */
+.flow-section {
+  position: relative;
+  z-index: var(--z-content);
+  min-height: 100svh;
+  display: grid;
+  align-content: start;
+  padding-top: clamp(var(--space-12), 9svh, var(--space-20));
+}
+
+.flow-section__grid { display: block; }
+
+/* Held to a readable measure. The flow owns everything below it. */
+.flow-section__copy { max-width: 46ch; }
+
+.flow-section__body { margin-top: var(--space-5); }
 
 /* ---- The hero's ground ------------------------------------------------ */
 

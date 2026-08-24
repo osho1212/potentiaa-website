@@ -1,5 +1,5 @@
 import SiteShell from "@/components/SiteShell";
-import Hero from "@/components/sections/Hero";
+import FlowStage from "@/components/sections/FlowStage";
 import Intro from "@/components/sections/Intro";
 import Work from "@/components/sections/Work";
 import Helping from "@/components/sections/Helping";
@@ -17,7 +17,7 @@ import CtaFooter from "@/components/sections/CtaFooter";
 function Lap({ clone }: { clone?: boolean }) {
   return (
     <>
-      <Hero clone={clone} />
+      <FlowStage clone={clone} />
       <Intro clone={clone} />
       <Work clone={clone} />
       <Helping clone={clone} />

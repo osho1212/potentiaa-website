@@ -1,0 +1,88 @@
+/* =====================================================================
+   GlassSurface - refractive glass, from React Bits (reactbits.dev).
+   Paired with components/GlassSurface.tsx.
+
+   Imported from app/globals.css with the other sheets rather than from the
+   component file: Next's App Router restricts plain-CSS imports, and every
+   other style on this site is reached that way.
+
+   TWO DEVIATIONS FROM UPSTREAM, both because this site is dark-only:
+
+   1. The fallback is re-tinted. Upstream's is rgba(255,255,255,.25) - a light
+      frosted panel - with the dark variant behind `prefers-color-scheme:
+      dark`. This page is --midnight-950 whatever the OS is set to, so a
+      visitor on a light-mode machine in Safari or Firefox (both of which take
+      the fallback by design; neither supports an SVG filter in
+      backdrop-filter) would have got near-white cards on a near-black page.
+      The dark treatment is now unconditional.
+
+   2. `light-dark()` is dropped for the same reason - it resolves to the light
+      half unless `color-scheme` is declared, which is the wrong half here.
+   ===================================================================== */
+
+.glass-surface {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: opacity 0.26s ease-out;
+}
+
+.glass-surface__filter {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  z-index: -1;
+}
+
+.glass-surface__content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: inherit;
+  position: relative;
+  z-index: 1;
+}
+
+/* The real thing: the displacement map drives backdrop-filter, so what sits
+   behind the element is bent outward at the rim like a lens. */
+.glass-surface--svg {
+  background: hsl(0 0% 100% / var(--glass-frost, 0));
+  backdrop-filter: var(--filter-id, url(#glass-filter)) saturate(var(--glass-saturation, 1));
+  box-shadow:
+    0 0 2px 1px rgba(255, 255, 255, 0.35) inset,
+    0 0 10px 4px rgba(255, 255, 255, 0.15) inset,
+    0 4px 16px rgba(0, 0, 0, 0.25),
+    0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* Safari, Firefox, and anything without SVG-filter support in
+   backdrop-filter. Dark unconditionally - see the note at the top. */
+.glass-surface--fallback {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px) saturate(1.6) brightness(1.15);
+  -webkit-backdrop-filter: blur(12px) saturate(1.6) brightness(1.15);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 0 rgba(255, 255, 255, 0.08),
+    0 8px 32px 0 rgba(0, 0, 0, 0.35);
+}
+
+@supports not (backdrop-filter: blur(10px)) {
+  .glass-surface--fallback {
+    background: rgba(10, 22, 60, 0.72);
+  }
+}
+
+.glass-surface:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

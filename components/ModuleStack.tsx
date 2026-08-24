@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FRAME_COUNT, FRAME_SIZE, framePath, WAYPOINTS } from "@/lib/frames";
 import { scrollState } from "@/lib/scrollState";
+import { moduleBerth } from "@/lib/moduleBerth";
 import { themeAt } from "@/lib/sectionTheme";
 import LogoMark from "./LogoMark";
 
@@ -597,6 +598,31 @@ export default function ModuleStack() {
         // Toward the front, so the docked module is never hazed or blurred.
         target.depth += (1 - target.depth) * dock;
         target.dock = dock;
+      }
+
+      // MIX THE FLOW BERTH IN, AFTER THE DOCK.
+      //
+      // The flow section calls the module out of the navbar and onto its glass
+      // - see lib/moduleBerth. This has to come after the dock block rather
+      // than instead of it, because by the time the section is on screen the
+      // helix has long since handed over and `dock` is pinned at 1; mixing
+      // over the docked pose is what makes the module GROW OUT of the mark in
+      // the header rather than cut to a new position.
+      //
+      // `dock` is driven back toward 0 with it, which is what returns the flat
+      // logo to the navbar - the header crossfades on exactly this value, so
+      // leaving it at 1 would fly the module out and leave a hole behind it.
+      const berth = reduced ? null : moduleBerth;
+      if (berth && berth.strength > 0.001) {
+        const b = berth.strength;
+        const berthScale = berth.size / container.offsetWidth;
+        target.x += (berth.x - target.x) * b;
+        target.y += (berth.y - target.y) * b;
+        target.scale += (berthScale - target.scale) * b;
+        target.rotate += (0 - target.rotate) * b;
+        target.opacity += (1 - target.opacity) * b;
+        target.depth += (1 - target.depth) * b;
+        target.dock += (0 - target.dock) * b;
       }
 
       if (!flight || reduced) {

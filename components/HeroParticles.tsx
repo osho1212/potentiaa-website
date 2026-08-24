@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { ParticlesSwarm } from "@/lib/heroParticles";
+
+/** What HeroLabels gets through the ref - just enough to drive the hover glow. */
+export interface HeroParticlesHandle {
+  glow(active: boolean, clientX: number, clientY: number): void;
+}
 
 /**
  * The 3D formation around the hero artwork - replaced the traced 2D energy
@@ -9,9 +14,27 @@ import { ParticlesSwarm } from "@/lib/heroParticles";
  * container, lifecycle and accessibility wiring, mirroring the old field's:
  * skipped under prefers-reduced-motion, paused off-screen, resized off a
  * ResizeObserver on its own container rather than the window.
+ *
+ * Exposes a ref handle so a sibling (HeroLabels) can reach into the running
+ * swarm on hover - through a mutable ref to the instance rather than the
+ * instance itself, since the swarm is created and disposed inside an effect
+ * and can be re-created (React Strict Mode's mount/cleanup/mount in dev,
+ * or the component unmounting under prefers-reduced-motion) while the
+ * forwarded handle has to keep working across that.
  */
-export default function HeroParticles() {
+const HeroParticles = forwardRef<HeroParticlesHandle>(function HeroParticles(_props, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const swarmRef = useRef<ParticlesSwarm | null>(null);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      glow(active, clientX, clientY) {
+        swarmRef.current?.setGlow(active, clientX, clientY);
+      },
+    }),
+    [],
+  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -20,8 +43,6 @@ export default function HeroParticles() {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) return;
 
-    // Affordable at this count only because the frame loop is trig-free and
-    // there is no post-processing chain - see lib/heroParticles.
     // Smaller sprites and more of them - finer sampling of the same shape,
     // which is what stops the formation reading as haze. The count is only
     // affordable because the frame loop is trig-free and there is no
@@ -31,6 +52,7 @@ export default function HeroParticles() {
       count: narrow ? 13600 : 40800,
       particleSize: narrow ? 1.1 : 0.95,
     });
+    swarmRef.current = swarm;
 
     const sizeObserver = new ResizeObserver((entries) => {
       const box = entries[0]?.contentRect;
@@ -47,9 +69,12 @@ export default function HeroParticles() {
     return () => {
       sizeObserver.disconnect();
       intersectionObserver.disconnect();
+      swarmRef.current = null;
       swarm.dispose();
     };
   }, []);
 
   return <div ref={containerRef} className="hero__art-particles" aria-hidden="true" />;
-}
+});
+
+export default HeroParticles;

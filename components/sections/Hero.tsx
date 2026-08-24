@@ -1,18 +1,34 @@
 "use client";
 
+import type { RefObject } from "react";
 import Reveal from "../Reveal";
 import HeroParticles from "../HeroParticles";
+import type { HeroParticlesHandle } from "../HeroParticles";
 import { useContact } from "../ContactContext";
 import { site } from "@/lib/site";
 
 /**
- * The hero: copy on the left, the module stack and particle field on the right.
+ * The hero: copy on the left, the module render and the particle swarm on the
+ * right.
+ *
+ * The swarm lives HERE and scrolls away with this section - it is part of the
+ * hero. Only the flow cards are pinned across into the section below, from
+ * components/sections/FlowStage.
+ *
+ * `particlesRef` is owned by FlowStage and threaded down, because the pinned
+ * cards drive this swarm's hover glow and the two are no longer siblings.
  *
  * `clone` matters because app/page.tsx renders this section twice for the
  * scroll loop: only the primary copy may carry the #top anchor, and only the
  * primary may hold the document's h1.
  */
-export default function Hero({ clone }: { clone?: boolean }) {
+export default function Hero({
+  clone,
+  particlesRef,
+}: {
+  clone?: boolean;
+  particlesRef?: RefObject<HeroParticlesHandle | null>;
+}) {
   const { open } = useContact();
   const Title = clone ? "p" : "h1";
 
@@ -70,7 +86,7 @@ export default function Hero({ clone }: { clone?: boolean }) {
         </div>
 
         <div className="hero__art">
-          <HeroParticles />
+          <HeroParticles ref={particlesRef} />
           <img
             className="hero__art-image"
             src="/assets/hero/module.webp"

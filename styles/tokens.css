@@ -121,6 +121,10 @@
   /* ---- Type ---- */
   --font-display: var(--font-sora), "Segoe UI", system-ui, sans-serif;
   --font-body: var(--font-manrope), "Segoe UI", system-ui, sans-serif;
+  /* System stack rather than a webfont: mono is used for machine artefacts -
+     the note under a flow card, a value a system wrote down - never for
+     reading copy, so it is not worth a network request. */
+  --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
 
   --fs-xs: 12px;
   --fs-sm: 14px;
