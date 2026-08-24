@@ -625,101 +625,197 @@ button { font: inherit; cursor: pointer; }
 }
 
 .hero__label {
-  /* Laid out centred in the container; JS translates out from there, so the
-     transform it writes is relative to the centre rather than a corner. */
+  /* Laid out centred in the container; JS translates out from there. */
   position: absolute;
   inset: 0;
   margin: auto;
-  width: max-content;
-  height: max-content;
-  will-change: transform;
-
-  /* Sized from lib/flowLayout CARD, which is also what the seat inset is
-     derived from - so every card is provably inside the glass. */
-  width: 196px;
-  height: 76px;
+  will-change: transform, width, height;
+  transform-style: preserve-3d;
   cursor: default;
   pointer-events: auto;
 }
 
-/* The refractive shell - components/GlassSurface, used only here. The card's
-   own hue rides on top of it as a border and a glow; the glass itself stays
-   neutral, because tinting a lens tints what you see THROUGH it. */
+/* The refractive shell - GlassSurface. Neutral lens with brand hue rim */
 .hero__label-glass {
-  border: 1px solid var(--flow-tint-faint, var(--glass-border));
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 18, 46, 0.42);
+  border: 1px solid var(--flow-tint-soft, var(--glass-border));
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+    0 0 16px -2px var(--flow-tint-faint),
     0 18px 40px -24px rgba(0, 0, 0, 0.9);
-  /* No `transform` here - JS writes it on the parent every frame. */
   transition: border-color var(--duration-base) var(--ease-standard),
               box-shadow var(--duration-base) var(--ease-standard);
+  position: relative;
+  overflow: hidden;
 }
 
 .hero__label:hover .hero__label-glass {
-  border-color: var(--flow-tint-soft);
-  /* The card's own hue, not a generic glow - so hovering it reads as the same
-     light the particles beside it pick up. */
+  border-color: var(--flow-tint);
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
-    0 0 32px -6px var(--flow-tint-soft),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.35),
+    0 0 36px 2px var(--flow-tint-soft),
     0 18px 40px -24px rgba(0, 0, 0, 0.9);
 }
 
-/* The rail: a stripe of the card's own hue down its leading edge, which is
-   what ties the plate to the line running through it. */
+/* 3D Cube Facet Shimmer and Bevel highlights */
+.hero__cube-shimmer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.28) 0%, transparent 65%),
+              linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, transparent 50%, rgba(0, 0, 0, 0.28) 100%);
+  opacity: calc(max(0, 1 - var(--k, 0) * 1.8));
+  z-index: 2;
+}
+
+.hero__cube-edge-glint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), var(--flow-tint), transparent);
+  opacity: calc(max(0, 1 - var(--k, 0) * 1.5));
+  z-index: 3;
+}
+
+/* The card rail: leading edge stripe that links to the pipeline */
 .hero__label-glass::after {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
   width: 3px;
-  z-index: 2;
+  z-index: 5;
   background: linear-gradient(180deg, transparent, var(--flow-tint), transparent);
+  opacity: calc(max(0, (var(--k, 0) - 0.25) * 1.33));
 }
 
-/* A numbered plate: the index in its own column, the step's name and the
-   artefact it leaves stacked beside it. Overrides GlassSurface's own centred
-   flex content box, which is built for a single centred label. */
 .hero__label .glass-surface__content {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   padding: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .hero__label-inner {
-  display: grid;
-  grid-template-columns: auto 1fr;
+  display: flex;
   align-items: center;
-  column-gap: var(--space-4);
-  row-gap: 2px;
+  width: 100%;
   height: 100%;
-  padding: 0 var(--space-5) 0 var(--space-5);
-  white-space: nowrap;
+  padding: 0 8px;
+  position: relative;
+  z-index: 4;
 }
 
-/* Spans both rows, so the name and its artefact sit against one number. */
+/* Icon badge: Centered in cube mode with vibrant brand glow, docks left in card mode */
+.hero__label-icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 12px;
+  background: radial-gradient(circle, var(--flow-tint-faint) 0%, rgba(12, 22, 54, 0.7) 80%);
+  border: 1.5px solid var(--flow-tint-soft);
+  color: #ffffff;
+  margin: auto;
+  box-shadow:
+    0 0 16px 2px var(--flow-tint-soft),
+    inset 0 0 10px 0 var(--flow-tint-faint);
+  transform: scale(calc(1.05 - var(--k, 0) * 0.12));
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+
+.hero__label-icon-glow {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--flow-tint-soft) 0%, var(--flow-tint-faint) 45%, transparent 75%);
+  filter: blur(5px);
+  pointer-events: none;
+  opacity: 0.95;
+  z-index: 0;
+  transition: opacity 0.25s, transform 0.25s;
+}
+
+.hero__label:hover .hero__label-icon-glow {
+  opacity: 1;
+  transform: scale(1.3);
+  filter: blur(7px);
+}
+
+.hero__label:hover .hero__label-icon-badge {
+  border-color: var(--flow-tint);
+  box-shadow:
+    0 0 26px 4px var(--flow-tint),
+    inset 0 0 14px 2px var(--flow-tint-soft);
+  transform: scale(calc(1.12 - var(--k, 0) * 0.12));
+}
+
+/* Luminous brand-glowing SVG icon */
+.hero__label-icon {
+  width: 20px;
+  height: 20px;
+  stroke: var(--flow-tint);
+  stroke-width: 2.2px;
+  filter: drop-shadow(0 0 5px var(--flow-tint)) drop-shadow(0 0 12px var(--flow-tint-soft));
+  transition: filter 0.25s, stroke 0.25s;
+}
+
+.hero__label:hover .hero__label-icon {
+  stroke: #ffffff;
+  filter: drop-shadow(0 0 6px var(--flow-tint)) drop-shadow(0 0 16px var(--flow-tint));
+}
+
+/* Text details: Fades and slides in seamlessly as card expands */
+.hero__label-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: calc(max(0, (var(--k, 0) - 0.25) * 1.33));
+  transform: translateX(calc((1 - var(--k, 0)) * 12px));
+  pointer-events: none;
+}
+
+.hero__label-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
 .hero__label-index {
-  grid-row: span 2;
   font-family: var(--font-mono);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
   color: var(--flow-tint);
-  opacity: 0.85;
+  opacity: 0.9;
   letter-spacing: var(--tracking-wide);
+  font-weight: var(--fw-semibold);
 }
 
 .hero__label-title {
   font-family: var(--font-display);
-  font-size: var(--fs-md);
+  font-size: var(--fs-sm);
   font-weight: var(--fw-medium);
   color: var(--text-on-dark);
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
-/* Mono, because this is the artefact the step leaves behind - a line in a
-   register, a message, a request - and not prose. */
 .hero__label-note {
   font-family: var(--font-mono);
-  font-size: var(--fs-xs);
+  font-size: 11px;
   color: var(--text-on-dark-secondary);
-  line-height: 1.3;
+  line-height: 1.25;
+  margin-top: 2px;
 }
 
 /* The six ellipses that used to live here are now ORBITS in

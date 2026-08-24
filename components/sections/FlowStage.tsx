@@ -8,6 +8,7 @@ import type { HeroParticlesHandle } from "../HeroParticles";
 import HeroLabels from "../HeroLabels";
 import HeroFlowStream from "../HeroFlowStream";
 import type { FlowProgress } from "../HeroLabels";
+import type { LiveCardState } from "@/lib/flowLayout";
 import { onScrollFrame } from "@/lib/scrollState";
 import { moduleBerth } from "@/lib/moduleBerth";
 
@@ -57,6 +58,7 @@ export default function FlowStage({ clone }: { clone?: boolean }) {
   const particlesRef = useRef<HeroParticlesHandle>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const flowRef = useRef<FlowProgress>({ t: 0, offsetY: 0, releaseY: 0 });
+  const liveCardsRef = useRef<LiveCardState[]>([]);
 
   /**
    * Park the pinned art on `.hero__art`'s box by measuring it.
@@ -220,9 +222,9 @@ export default function FlowStage({ clone }: { clone?: boolean }) {
 
       <div className="flow-stage__pin flow-stage__pin--over">
         {/* Under the cards: the line runs THROUGH the stations, behind them. */}
-        <HeroFlowStream flowRef={flowRef} />
+        <HeroFlowStream flowRef={flowRef} liveCardsRef={liveCardsRef} />
         <div className="flow-stage__art">
-          <HeroLabels particlesRef={particlesRef} flowRef={flowRef} />
+          <HeroLabels particlesRef={particlesRef} flowRef={flowRef} liveCardsRef={liveCardsRef} />
         </div>
       </div>
 

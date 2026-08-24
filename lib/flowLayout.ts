@@ -29,6 +29,12 @@ const BAND_TOP = 0.5;
 const INSET = 18;
 
 /**
+ * The cube box in resting hero orbit.
+ * Compact 3D isometric glass cube aspect ratio.
+ */
+export const CUBE = { w: 58, h: 58, radius: 16 };
+
+/**
  * The card box. Uniform across all six, which is both the right look for a
  * row of stations and what makes containment provable: the seat inset below
  * is half of this, so every card's full extent is inside the panel by
@@ -37,7 +43,20 @@ const INSET = 18;
  * GlassSurface needs explicit pixel dimensions too - it builds its
  * displacement map from them - so a fixed box is required either way.
  */
-export const CARD = { w: 196, h: 76 };
+export const CARD = { w: 196, h: 76, radius: 14 };
+
+/**
+ * Live positioned card state for particle trails and stream coalescence.
+ */
+export interface LiveCardState {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  k: number; // 0..1 morph progress for this card
+  tint: number; // 0..1 ramp index
+  active: boolean;
+}
 
 /**
  * The staircase's corners, in the pinned layer's pixels.
