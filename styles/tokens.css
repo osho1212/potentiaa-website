@@ -209,7 +209,7 @@
      stay because they are content breakpoints - they mark where those two
      specific layouts break, which is the right reason to have one. */
 
-  --container-max: 1200px;
+  --container-max: 100%;
 
   /* ---- The header, and the line everything must clear ---- */
 

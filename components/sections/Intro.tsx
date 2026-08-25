@@ -1,44 +1,55 @@
 import Reveal from "../Reveal";
 import Marquee from "../Marquee";
+import MagicBento from "../MagicBento";
+import IntroCubes from "../IntroCubes";
 import { site } from "@/lib/site";
 
 export default function Intro({ clone }: { clone?: boolean }) {
+  const bentoItems = site.intro.problems.map((p) => ({
+    index: p.index,
+    title: p.quote,
+    description: p.diagnosis,
+  }));
+
   return (
-    <section className="section" id={clone ? undefined : "intro"} data-theme-key="intro">
+    <section className="section intro-section" id={clone ? undefined : "intro"} data-theme-key="intro">
       <div className="container">
         <Marquee />
 
-        <div className="intro__grid" style={{ marginTop: "var(--space-16)" }}>
-          <div>
-            <Reveal>
-              <p className="eyebrow">{site.intro.eyebrow}</p>
-            </Reveal>
-            <Reveal delay={80}>
-              {/* An h2, not a p. This section had no heading at all, so the
-                  document went h1 -> h3 x4 -> h2 and a screen-reader user
-                  skipping by heading landed inside the promises with nothing
-                  above them to say what they were. This line is already the
-                  section's de facto heading; it just was not marked as one.
-                  Visual weight is unchanged - .intro__statement carries it. */}
-              <h2 className="intro__statement">{site.intro.statement}</h2>
-            </Reveal>
-          </div>
-
-          <div>
-            <Reveal delay={160}>
-              <p className="lede">{site.intro.body}</p>
-            </Reveal>
-
-            <div className="intro__stats">
-              {site.intro.promises.map((promise, index) => (
-                <Reveal variant="scale" key={promise.title} delay={200 + index * 70}>
-                  <div>
-                    <h3 className="service__title">{promise.title}</h3>
-                    <p className="intro__stat-label">{promise.body}</p>
-                  </div>
-                </Reveal>
-              ))}
+        <div className="intro__container-card">
+          <IntroCubes />
+          <div className="intro__content">
+            <div className="intro__header">
+              <Reveal>
+                <p className="eyebrow intro__eyebrow">{site.intro.eyebrow}</p>
+              </Reveal>
+              <Reveal delay={80}>
+                <h2 className="intro__title">{site.intro.title}</h2>
+              </Reveal>
             </div>
+
+            <Reveal delay={120}>
+              <MagicBento
+                items={bentoItems}
+                theme="light"
+                textAutoHide={false}
+                enableStars={true}
+                enableSpotlight={true}
+                enableBorderGlow={true}
+                enableTilt={true}
+                enableMagnetism={true}
+                clickEffect={true}
+                spotlightRadius={280}
+                particleCount={8}
+                glowColor="79, 70, 229"
+              />
+            </Reveal>
+
+            <Reveal delay={280}>
+              <div className="intro__punchline-card">
+                <p className="intro__punchline">{site.intro.punchline}</p>
+              </div>
+            </Reveal>
           </div>
         </div>
       </div>

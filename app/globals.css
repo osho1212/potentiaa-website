@@ -53,9 +53,20 @@ button { font: inherit; cursor: pointer; }
 
 .container {
   width: 100%;
-  max-width: var(--container-max);
-  margin-inline: auto;
-  padding-inline: var(--space-6);
+  max-width: 100%;
+  padding-inline: 100px;
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .container {
+    padding-inline: clamp(40px, 6vw, 80px);
+  }
+}
+
+@media (max-width: 1023px) {
+  .container {
+    padding-inline: clamp(var(--space-4), 4vw, var(--space-8));
+  }
 }
 
 .section {
@@ -157,10 +168,23 @@ button { font: inherit; cursor: pointer; }
 .header {
   position: fixed;
   top: var(--space-5);
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
   z-index: var(--z-header);
-  width: min(calc(100% - var(--space-8)), var(--container-max));
+  width: 100%;
+  padding-inline: 100px;
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .header {
+    padding-inline: clamp(40px, 6vw, 80px);
+  }
+}
+
+@media (max-width: 1023px) {
+  .header {
+    padding-inline: clamp(var(--space-4), 4vw, var(--space-8));
+  }
 }
 
 .header__inner {
@@ -570,18 +594,30 @@ button { font: inherit; cursor: pointer; }
 .hero__grid {
   position: relative;
   display: grid;
-  /* The copy takes a fixed measure and the object takes the rest. Not 1fr 1fr:
-     the headline is set at a size that only reads at about 46 characters, and
-     an equal split would have re-broken it at every viewport. */
   grid-template-columns: minmax(0, 34rem) minmax(0, 1fr);
   align-items: center;
   gap: var(--space-8);
+  width: 100%;
+}
 
-  /* Pulled in from .container's shared var(--space-6): the hero's copy sits
-     closer to the page edge than the narrower body sections that padding is
-     tuned for. Scoped here rather than changed on .container, which every
-     section on the page shares. */
-  padding-left: var(--space-3);
+@media (min-width: 1280px) {
+  .hero__grid.container {
+    padding-left: 100px !important;
+    padding-right: 500px !important;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .hero__grid.container {
+    padding-left: clamp(40px, 5vw, 80px) !important;
+    padding-right: clamp(140px, 18vw, 280px) !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .hero__grid.container {
+    padding-inline: clamp(var(--space-4), 4vw, var(--space-8)) !important;
+  }
 }
 
 .hero__copy {
@@ -1231,15 +1267,20 @@ button { font: inherit; cursor: pointer; }
 
 .flow-stage {
   position: relative;
-  /* --flow-t, 0..1, is written here every scroll frame by FlowStage. Declared
-     so it has a value before the first frame and on the no-JS path. */
   --flow-t: 0;
+  --flow-panel-inset: 100px;
+}
 
-  /* How far the glass is held off the edge of the screen. Declared here rather
-     than written into .flow-stage__panel because the COPY has to know it too -
-     it sits on the glass, so whatever bounds the glass bounds it. Kept in sync
-     with PANEL in lib/flowLayout, which seats the cards from the same figure. */
-  --flow-panel-inset: 3%;
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .flow-stage {
+    --flow-panel-inset: clamp(40px, 6vw, 80px);
+  }
+}
+
+@media (max-width: 1023px) {
+  .flow-stage {
+    --flow-panel-inset: clamp(var(--space-4), 4vw, var(--space-8));
+  }
 }
 
 /* The pinned layers. Each spans the viewport and cancels its own layout space,
@@ -1458,63 +1499,28 @@ button { font: inherit; cursor: pointer; }
   min-height: 115svh;
   display: grid;
   align-content: start;
-  /* Tied to the glass, not to the viewport. The copy sits ON the panel, so
-     when the panel's top edge moved down to clear the header this had to move
-     with it - a viewport-relative padding left the eyebrow floating above the
-     glass it is meant to be printed on.
-
-     +100px on top of the header clearance, by request - lower on the glass
-     than the header alone requires. */
-  padding-top: calc(var(--below-header) + var(--space-6) + 100px);
+  padding-top: calc(var(--below-header) + var(--space-6) + 60px);
+  padding-inline: calc(var(--flow-panel-inset) + clamp(var(--space-6), 3.5vw, var(--space-12)));
 }
 
-@media (max-width: 767px) {
-  .flow-section {
-    padding-top: calc(var(--below-header) + var(--space-4));
-  }
+.flow-section .container {
+  padding-inline: 0 !important;
+  max-width: 100% !important;
+  margin-inline: 0 !important;
 }
 
-/* The copy sits at ONE spot on the glass, at every scroll position.
-
-   --flow-copy-shift cancels the document's own scrolling and leaves the panel's
-   movement, so this is welded to the glass rather than sliding up through it on
-   the way in. See the block that publishes it in FlowStage.
-
-   It therefore has to fade in like the glass too. Locked to the panel, it is
-   sitting at the top of the viewport from the very start of the lap - over the
-   hero, a screen before its own section - so it needs a ramp of its own to keep
-   it off the hero's headline. Out of the flow of its own section it can no
-   longer be `position: static`; nothing else about the block changes.
-
-   This used to be the SAME ramp as the panel's, borrowed so the two appeared
-   together. They are deliberately no longer in step: the panel is the section's
-   frame and comes up early, while this is text and still waits. The number
-   below is the panel's original ramp, kept here because it was always the right
-   one for copy. */
 .flow-section__grid {
   display: block;
-
-  /* BOUNDED BY THE GLASS, NOT BY THE GENERIC CONTAINER.
-
-     .container caps at 1200px and centres; the panel insets 3% of the viewport.
-     Those two only agree above about 1226px wide. Below it the container is
-     effectively full width with 24px of padding, while 3% keeps growing - so
-     between roughly 800px and 1226px the heading and body sat OUTSIDE the glass
-     they are supposed to be printed on. Measured at 1152px: copy at 24px,
-     panel edge at 34.6px, ten pixels of the copy hanging off the frame.
-
-     Capping to the panel's own width fixes it at every size without touching
-     the wide layout: over 1226px the 1200px cap is the smaller of the two and
-     still wins, so the centred measure on a large screen is unchanged. */
-  max-width: min(var(--container-max), calc(100% - var(--flow-panel-inset) * 2));
+  width: 100%;
+  max-width: 100%;
   transform: translate3d(0, var(--flow-copy-shift, 0px), 0);
   will-change: transform, opacity;
   backface-visibility: hidden;
   opacity: calc((var(--flow-t, 0) - 0.4) * 2.6);
 }
 
-/* Held to a readable measure. The flow owns everything below it. */
-.flow-section__copy { max-width: 46ch; }
+/* Held to a readable measure strictly inside the glass panel */
+.flow-section__copy { max-width: min(44ch, 100%); }
 
 .flow-section__body { margin-top: var(--space-5); }
 
@@ -2576,6 +2582,123 @@ textarea.input { resize: vertical; min-height: 120px; }
   /* The pill has to grow with the button it holds, including the slimmed-down
      one the short-viewport block below sets. */
   .header__pill { height: 60px; }
+}
+
+/* ===============================================================
+   Section 3: Diagnostic Workflow Problems Grid
+   =============================================================== */
+
+.intro-section {
+  position: relative;
+  padding-block: var(--space-20) var(--space-16);
+}
+
+.intro__container-card {
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: clamp(20px, 3vw, 32px);
+  padding: clamp(var(--space-8), 4.5vw, var(--space-16));
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  position: relative;
+  overflow: hidden;
+}
+
+.intro-cubes-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.intro-cube-shard {
+  position: absolute;
+  top: 0;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.intro__content {
+  position: relative;
+  z-index: 1;
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.intro__header {
+  max-width: 860px;
+}
+
+.intro__eyebrow {
+  color: #2563eb !important; /* 7.5:1 contrast against #ffffff (WCAG AAA) */
+  font-weight: 700 !important;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-2);
+}
+
+.intro__title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3.8vw, 48px);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: var(--tracking-tight);
+  color: #090d16; /* 18:1 contrast against #ffffff (WCAG AAA) */
+  margin-top: var(--space-2);
+  text-wrap: balance;
+}
+
+/* Bottom Conclusion / Punchline Banner */
+.intro__punchline-card {
+  margin-top: var(--space-2);
+  padding: var(--space-6) var(--space-8);
+  background: linear-gradient(135deg, #090d16 0%, #1e1b4b 100%);
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.intro__punchline {
+  font-family: var(--font-display);
+  font-size: clamp(19px, 2.4vw, 30px);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-tight);
+  color: #ffffff; /* 16:1 contrast against #090d16 (WCAG AAA) */
+  background: linear-gradient(135deg, #ffffff 30%, #93c5fd 70%, #f472b6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@media (max-width: 860px) {
+  .intro-section {
+    padding-block: var(--space-12) var(--space-8);
+  }
+
+  .intro__container-card {
+    padding: var(--space-6) var(--space-4);
+    border-radius: 20px;
+  }
+
+  .intro__content {
+    gap: var(--space-5);
+  }
+
+  .intro__punchline-card {
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .intro__punchline {
+    font-size: clamp(16px, 4.8vw, 20px);
+    line-height: 1.25;
+  }
 }
 
 /* ---------------------------------------------------------------

@@ -22,7 +22,13 @@
  * top edge cannot constrain them. Left, right and bottom still can, and still
  * do.
  */
-export const PANEL = { left: 0.03, right: 0.03, bottom: 0.04 };
+export function panelInsetPx(pinW: number): number {
+  if (pinW >= 1280) return 100;
+  if (pinW >= 1024) return Math.max(40, Math.min(pinW * 0.06, 80));
+  return Math.max(16, Math.min(pinW * 0.04, 32));
+}
+
+export const PANEL = { bottom: 0.04 };
 
 /**
  * Where the flow's band starts, below the section's header copy.
@@ -63,7 +69,7 @@ function columnMetrics(pinH: number) {
 }
 
 /** Breathing room between a card's edge and the glass it sits on. */
-const INSET = 18;
+export const INSET = 12;
 
 /**
  * The cube box in resting hero orbit.
@@ -77,8 +83,7 @@ export const CUBE = { w: 58, h: 58, radius: 16 };
  * is half of this, so every card's full extent is inside the panel by
  * construction rather than by having been eyeballed at one viewport size.
  *
- * GlassSurface needs explicit pixel dimensions too - it builds its
- * displacement map from them - so a fixed box is required either way.
+ * GlassSurface needs explicit pixel dimensions too - so a fixed box is required.
  */
 export const CARD = { w: 196, h: 76, radius: 14 };
 
@@ -95,36 +100,13 @@ export function isNarrow(pinW: number): boolean {
 }
 
 /**
- * The card box, which is not a constant on a phone.
- *
- * Wide: the fixed 196x76 above - six of those fit across a desktop panel.
- *
- * Narrow: as wide as the panel allows and only as tall as its own share of the
- * column. Height is DERIVED from the spacing rather than fixed, because a fixed
- * height is what would make six cards overlap on a short phone: the band on a
- * 568px screen is barely half the one on an 844px screen, and the same 76px box
- * cannot sit in both. Deriving it means the column tightens instead of
- * colliding, at any height, without a breakpoint per device.
+ * The card box, wide vs narrow.
  */
 export function cardBox(pinW: number, pinH: number) {
   if (!isNarrow(pinW)) return CARD;
   const { h } = columnMetrics(pinH);
-
-  /**
-   * THE SAME WIDTH AS THE DESKTOP CARD, not as much as the panel allows.
-   *
-   * This used to stretch to min(usable, 320), which on a phone meant a card
-   * far wider than anything inside it. `.hero__label-icon-badge` carries
-   * `margin: auto`, so all that slack was absorbed as space BETWEEN the badge
-   * and the label - the icon floating in from the left, the text pushed to the
-   * right rail, and a lake of nothing in the middle. Desktop never showed it
-   * because 196px is already about what the content measures.
-   *
-   * Holding to CARD.w fixes the internal spacing at its source rather than
-   * patching the layout inside, and the width it frees up is what gives the
-   * staircase below somewhere to travel.
-   */
-  const usable = (1 - PANEL.left - PANEL.right) * pinW - INSET * 2;
+  const insetX = panelInsetPx(pinW);
+  const usable = pinW - insetX * 2 - INSET * 2;
   return { w: Math.min(CARD.w, usable), h, radius: 12 };
 }
 
@@ -146,11 +128,12 @@ export interface LiveCardState {
  * bottom and the answer is wanted at the top.
  */
 function bounds(pinW: number, pinH: number) {
+  const insetX = panelInsetPx(pinW);
   const padX = CUBE.w / 2 + INSET + 40;
   const padY = CUBE.h / 2 + INSET + 50;
   return {
-    xMin: PANEL.left * pinW + padX,
-    xMax: (1 - PANEL.right) * pinW - padX,
+    xMin: insetX + padX,
+    xMax: pinW - insetX - padX,
     // yMax is the FIRST seat (lowest on screen), yMin the last.
     yMax: (1 - PANEL.bottom) * pinH - padY,
     yMin: BAND_TOP * pinH + padY,
@@ -187,10 +170,11 @@ export function seatAt(i: number, count: number, pinW: number, pinH: number): Po
    * module exists.
    */
   if (isNarrow(pinW)) {
+    const insetX = panelInsetPx(pinW);
     const { top, h, spacing } = columnMetrics(pinH);
     // Staircase trajectory: 01 Customer at top-left, 06 Owner at bottom-right
-    const xMin = PANEL.left * pinW + INSET + CUBE.w / 2 + 10;
-    const xMax = (1 - PANEL.right) * pinW - INSET - CUBE.w / 2 - 10;
+    const xMin = insetX + INSET + CUBE.w / 2 + 10;
+    const xMax = pinW - insetX - INSET - CUBE.w / 2 - 10;
     const x = xMax > xMin ? xMin + (xMax - xMin) * k : pinW / 2;
 
     return { x, y: top + h / 2 + spacing * i };

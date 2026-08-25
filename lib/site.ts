@@ -75,26 +75,39 @@ export const site = {
   },
 
   intro: {
-    eyebrow: "Small modules. Big potential.",
-    statement:
-      "Most small businesses are not held back by their people. They are held back by the spreadsheet, the notebook and the three apps that do not talk to each other.",
-    body: "We start with the one process that is costing you the most, build a system around it, then connect the next one. Three modules become a business that runs itself.",
-    promises: [
+    eyebrow: "Operational Bottlenecks",
+    title: "If your business works like this, we should talk.",
+    punchline: "These aren't software problems. They're workflow problems.",
+    problems: [
       {
-        title: "Built for one business - yours",
-        body: "No generic template you have to bend your operations around.",
+        index: "01",
+        quote: "“We already have software. People still use WhatsApp.”",
+        diagnosis: "Different information lives in different places, so employees keep switching between them.",
       },
       {
-        title: "Runs on the phone you already own",
-        body: "Billing, stock and orders in your pocket, not chained to a back-office PC.",
+        index: "02",
+        quote: "“The owner has to call someone to know what is happening.”",
+        diagnosis: "There is no simple place to see the current state of the business.",
       },
       {
-        title: "We stay on after launch",
-        body: "Maintenance and changes are part of the deal, not a separate invoice.",
+        index: "03",
+        quote: "“We write it down first and enter it into a computer later.”",
+        diagnosis: "The same information gets recorded more than once.",
       },
       {
-        title: "Plain answers, plain pricing",
-        body: "You will always know what is being built, why, and what it costs.",
+        index: "04",
+        quote: "“If one person is absent, nobody knows where things are.”",
+        diagnosis: "Important knowledge lives with individuals rather than inside the business.",
+      },
+      {
+        index: "05",
+        quote: "“We have records, but getting a useful report takes hours.”",
+        diagnosis: "Information exists, but isn’t easily connected or accessible.",
+      },
+      {
+        index: "06",
+        quote: "“Everyone has their own way of doing things.”",
+        diagnosis: "The business works because experienced employees know what to do – not because the process is clearly connected.",
       },
     ],
   },
