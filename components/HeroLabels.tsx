@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { RefObject } from "react";
 import type { HeroParticlesHandle } from "./HeroParticles";
 import { sampleGradientCss } from "@/lib/heroParticles";
-import { CARD, CUBE, seatAt, type LiveCardState } from "@/lib/flowLayout";
+import { CUBE, cardBox, isNarrow, seatAt, type LiveCardState } from "@/lib/flowLayout";
 import { site } from "@/lib/site";
 import GlassSurface from "./GlassSurface";
 
@@ -179,6 +179,23 @@ export default function HeroLabels({
       const releaseY = flow ? flow.releaseY : 0;
       const window_ = Math.max(0.01, 1 - STAGGER * (count - 1));
 
+      // The card the cubes morph INTO is not the same box on a phone as on a
+      // desktop - see cardBox. Read once per frame rather than per card, since
+      // every card morphs into the same box.
+      const box = cardBox(pinW, pinH);
+
+      /**
+       * The orbit is drawn in, not just the seats.
+       *
+       * ORBITS reach 0.48 of the container each way, which on a desktop is a
+       * wide, lazy sweep around the artwork. On a phone the container is the
+       * artwork - about 374px - and the same fraction swings a 58px cube clean
+       * off the side of the screen: measured at -62px, fully outside the
+       * viewport, for two of the six. Pulling the radii in keeps all six on
+       * screen for the whole lap without changing the shape of the motion.
+       */
+      const orbitScale = isNarrow(pinW) ? 0.6 : 1;
+
       for (let i = 0; i < count; i++) {
         const el = cardRefs.current[i];
         if (!el) continue;
@@ -190,8 +207,10 @@ export default function HeroLabels({
         const u = i / count + (dir * time) / timing.duration;
         const phi = u * Math.PI * 2;
 
-        const orbitX = (orbit.cx - 0.5) * boxW + orbit.rx * boxW * Math.sin(phi);
-        const orbitY = (orbit.cy - 0.5) * boxH - orbit.ry * boxH * Math.cos(phi) + offsetY;
+        const orbitX =
+          (orbit.cx - 0.5) * boxW + orbit.rx * boxW * orbitScale * Math.sin(phi);
+        const orbitY =
+          (orbit.cy - 0.5) * boxH - orbit.ry * boxH * orbitScale * Math.cos(phi) + offsetY;
 
         let x = orbitX;
         let y = orbitY;
@@ -211,9 +230,9 @@ export default function HeroLabels({
         // Expand width smoothly
         const widthT = ease(morphK * 1.3);
         const heightT = ease(morphK * 1.3);
-        const curW = CUBE.w + (CARD.w - CUBE.w) * widthT;
-        const curH = CUBE.h + (CARD.h - CUBE.h) * heightT;
-        const curRadius = CUBE.radius + (CARD.radius - CUBE.radius) * morphK;
+        const curW = CUBE.w + (box.w - CUBE.w) * widthT;
+        const curH = CUBE.h + (box.h - CUBE.h) * heightT;
+        const curRadius = CUBE.radius + (box.radius - CUBE.radius) * morphK;
 
         // 3D pitch/yaw/roll that tilts the cube in orbit and flattens out on card seat
         const cubeTilt = 1 - morphK;

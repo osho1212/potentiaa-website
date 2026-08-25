@@ -1,6 +1,7 @@
 "use client";
 
 import LogoMark from "./LogoMark";
+import MobileNav from "./MobileNav";
 import { useContact } from "./ContactContext";
 import { site } from "@/lib/site";
 
@@ -27,6 +28,8 @@ export default function Header() {
               </a>
             ))}
           </nav>
+
+          <MobileNav />
 
           <div className="header__actions">
             <button type="button" className="btn btn--primary" onClick={open}>

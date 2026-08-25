@@ -333,7 +333,7 @@ export default function ModuleStack() {
      * `draw` already walks backwards to the nearest decoded frame, so a sparse
      * set needs no other change: it simply lands on the neighbour.
      */
-    const narrow = window.matchMedia("(max-width: 720px)").matches;
+    const narrow = window.matchMedia("(max-width: 767px)").matches;
     const step = reduced ? FRAME_COUNT : narrow ? 3 : 1;
 
     for (let i = 0; i < FRAME_COUNT; i += 1) {

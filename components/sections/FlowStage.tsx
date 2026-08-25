@@ -93,26 +93,96 @@ const BERTH = { x: 0.77, y: 0.25, size: 320 };
 const ASSEMBLE = 0.85;
 
 /**
- * All four are fractions of the FLOW SECTION's own height, and that height is
- * now two viewports, not one - the second is the runway the frame holds still
- * in. So a given distance on screen is half the `passed` it used to be, and
- * these are halved with it.
+ * All four are fractions of the FLOW SECTION's own height, which is a viewport
+ * and a half - one to carry the section in, a half of runway for the assembled
+ * frame to hold still in. They were last derived when that height was TWO
+ * viewports and have been re-derived here, because a fraction of the section is
+ * a different distance on screen once the section changes length.
  *
- * ARRIVE is still the snap, one wheel notch wide. HOLD now covers the whole
- * standstill: the section lands at 0, the hold runs out at 0.5, and nothing -
- * panel, copy, cards or module - moves by a pixel in between.
+ * ARRIVE is the snap, and it is timed to the FLOW rather than to itself: the
+ * module is the logo, and it should land on the glass at the moment the six
+ * cards finish assembling on it, not before. It was landing early - the snap
+ * completed 568px into the approach against a flow that was not whole until
+ * 672px, so the logo sat parked on the panel for another 103px of scrolling
+ * while the staircase was still arriving underneath it.
  *
- * LEAVE starts after that, once the frame is genuinely leaving. The berth
- * rides the panel, so from 0.5 the module is carried upward at scroll speed;
- * it sits at 0.305 of the viewport down and stands 0.138 tall, so it reaches
- * the top edge at 0.65 and is clear by 0.72. The handover is timed to that -
- * the module holds its place in the frame until the frame has taken it off
- * screen, and only then rejoins the helix.
+ * Solved rather than nudged. The cards finish at ASSEMBLE of the span, so the
+ * snap has to end (ASSEMBLE - 1) of a span before the section lands, which as a
+ * fraction of the section is (ASSEMBLE - 1) / R, where R is the section's
+ * height in viewports. Both come from svh, so the ratio is exact at every
+ * viewport - and it is now computed rather than written down; see berthEdges.
+ *
+ * ARRIVE_FROM is the start of the scroll, not a notch before the end. This used
+ * to be a snap 0.06 of a viewport wide: the module rode the helix for the whole
+ * hero and was then yanked onto the berth over the last 47px. Landing on the
+ * right frame did not stop it reading as a jump, because 47px is about half a
+ * wheel notch and everything happened inside it.
+ *
+ * It now leaves for the berth the moment the reader starts scrolling. In passed
+ * terms scroll zero is -span/H, which is -1/R, so the module blends off the
+ * helix and onto the glass across the entire approach and is simply there when
+ * the flow completes. Same landing frame, same landing spot; the travel is the
+ * whole hero instead of the last inch of it.
+ *
+ * Adjusted here rather than in ASSEMBLE deliberately. Making the flow faster
+ * would have closed the original gap, but the flow finishing earlier means more
+ * of the hero is still on screen when it completes - and the hero being gone by
+ * then is a requirement of its own. Moving the arrival costs nothing.
+ *
+ * HOLD covers the standstill. The section lands at 0 and the runway runs out at
+ * 0.5 / 1.5 = 0.333, and nothing - panel, copy, cards or module - moves by a
+ * pixel in between.
+ *
+ * LEAVE starts after that, once the frame is genuinely leaving. The berth rides
+ * the panel, so from 0.333 the module is carried upward at scroll speed; it
+ * sits at 0.305 of the viewport down and stands 0.138 tall, so over a 1.5
+ * viewport section it reaches the top edge at 0.537 and is clear by 0.629. The
+ * two constants keep the same margins around those they had before - a little
+ * early on the hold, a little late on the leave - so the module still holds its
+ * place in the frame until the frame has taken it off screen, and only then
+ * rejoins the helix.
  */
-const ARRIVE_FROM = -0.17;
-const ARRIVE_TO = -0.14;
-const HOLD_UNTIL = 0.62;
-const LEAVE_BY = 0.8;
+
+/**
+ * How far the module travels after the frame starts leaving, in viewports,
+ * before the berth hands it back to the helix. It sits 0.305 of a viewport
+ * below the top edge and stands 0.138 tall, so it touches the top edge at 0.305
+ * and is clear at 0.443; the handover starts a little before the first and ends
+ * a little after the second, so the swap is never visible.
+ */
+const HANDOVER_START = 0.24;
+const HANDOVER_END = 0.6;
+
+/**
+ * The four berth edges, solved from the geometry instead of written down.
+ *
+ * These were four hardcoded fractions of the section's height, and that made
+ * the section's height impossible to change safely: every one of them means a
+ * different distance on screen once the section is a different length, so
+ * shortening the hold silently sent the module home early. They were
+ * re-derived by hand twice for exactly that reason.
+ *
+ * R is the section's height in viewports - 1.15 at 115svh - and every edge
+ * below is a distance in viewports divided by it. Change the min-height in
+ * globals.css and these follow on their own.
+ */
+function berthEdges(sectionHeight: number, span: number) {
+  const R = Math.max(1, sectionHeight / Math.max(1, span));
+
+  // The snap ends exactly where the cards finish, so the logo lands on a flow
+  // that is already whole. See the note on ASSEMBLE.
+  const arriveTo = (ASSEMBLE - 1) / R;
+  const release = (R - 1) / R;
+
+  return {
+    // Scroll zero, expressed in the section's own units: the module starts for
+    // the berth on the reader's first wheel notch rather than near the end.
+    arriveFrom: -1 / R,
+    arriveTo,
+    holdUntil: release + HANDOVER_START / R,
+    leaveBy: release + HANDOVER_END / R,
+  };
+}
 
 function smoothstep(edge0: number, edge1: number, x: number): number {
   const c = Math.max(0, Math.min(1, (x - edge0) / Math.max(1e-6, edge1 - edge0)));
@@ -345,9 +415,10 @@ export default function FlowStage({ clone }: { clone?: boolean }) {
          * place in the composition and nothing ever crosses it. It leaves the
          * top of the frame with the flow it belongs to.
          */
+        const edge = berthEdges(f.height, span);
         moduleBerth.strength =
-          smoothstep(ARRIVE_FROM, ARRIVE_TO, passed) *
-          (1 - smoothstep(HOLD_UNTIL, LEAVE_BY, passed));
+          smoothstep(edge.arriveFrom, edge.arriveTo, passed) *
+          (1 - smoothstep(edge.holdUntil, edge.leaveBy, passed));
         moduleBerth.x = box.left + box.width * BERTH.x;
         moduleBerth.y = box.top + box.height * BERTH.y;
         moduleBerth.size = Math.min(BERTH.size, box.width * 0.26);

@@ -126,15 +126,31 @@
      reading copy, so it is not worth a network request. */
   --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
 
+  /* READING SIZES ARE FIXED, DISPLAY SIZES ARE FLUID.
+
+     The four steps up to --fs-lg carry body copy, labels and UI text, and a
+     viewport-scaled value there would shrink reading text on exactly the
+     screens that can least afford it - 16px is a floor, not a starting point.
+     They stay put.
+
+     The four above it only ever set headings, which is where a fixed px scale
+     actually hurts: a 64px display line has to be broken by hand at every
+     width, which is what the per-breakpoint font-size overrides scattered
+     through globals.css were doing. Each fluid step below is tuned to hit its
+     old value at 1280px and its floor at 320px.
+
+     Each keeps a rem term rather than being pure vw: a viewport-only font size
+     ignores the user's text-zoom setting, which fails WCAG 1.4.4. */
   --fs-xs: 12px;
   --fs-sm: 14px;
   --fs-base: 16px;
   --fs-md: 18px;
   --fs-lg: 22px;
-  --fs-xl: 28px;
-  --fs-2xl: 36px;
-  --fs-3xl: 48px;
-  --fs-4xl: 64px;
+
+  --fs-xl:  clamp(1.5rem,   1.417rem + 0.417vw, 1.75rem);  /* 24 -> 28 */
+  --fs-2xl: clamp(1.75rem,  1.583rem + 0.833vw, 2.25rem);  /* 28 -> 36 */
+  --fs-3xl: clamp(2rem,     1.667rem + 1.667vw, 3rem);     /* 32 -> 48 */
+  --fs-4xl: clamp(2.5rem,   2rem     + 2.5vw,   4rem);     /* 40 -> 64 */
 
   --lh-tight: 1.1;
   --lh-snug: 1.25;
@@ -169,6 +185,29 @@
   --radius-lg: 20px;
   --radius-xl: 28px;
   --radius-full: 999px;
+
+  /* ---- Breakpoints ----
+
+     WRITTEN AS LITERALS, NOT READ FROM HERE. A custom property cannot be used
+     in a media condition - `@media (max-width: var(--bp-md))` is invalid CSS -
+     and there is no PostCSS step in this project to compile `@custom-media`
+     down. So this block is the register, and globals.css repeats the numbers.
+     Changing one means changing both.
+
+       380px   small phones only, where the nav pill runs out of room
+       640px   the narrow end of the phone range
+       767px   phone / tablet - two-up layouts stop fitting side by side.
+               Deliberately 767 and not 768, so iPad portrait sits on the
+               WIDE side of it and keeps the real nav.
+       900px   tablet / laptop - three-up grids and the flow stage give up
+       960px   the explainer only, which needs the room a little sooner
+       1080px  the hero only, where the copy and the object stop sitting
+               beside each other
+
+     Six, down from the eight this file grew: 720/760/780 were three names for
+     one moment and are now 767; 860 and 900 likewise, now 900. 960 and 1080
+     stay because they are content breakpoints - they mark where those two
+     specific layouts break, which is the right reason to have one. */
 
   --container-max: 1200px;
 

@@ -2,6 +2,7 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { ParticlesSwarm } from "@/lib/heroParticles";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 
 /** What HeroLabels gets through the ref - just enough to drive the hover glow. */
 export interface HeroParticlesHandle {
@@ -36,18 +37,25 @@ const HeroParticles = forwardRef<HeroParticlesHandle>(function HeroParticles(_pr
     [],
   );
 
+  /* Both re-evaluated on change, not read once at mount - see lib/useMediaQuery.
+     Crossing either boundary rebuilds the swarm at the right size, which is what
+     the tiering was always meant to do. matchMedia fires only when the boundary
+     is actually crossed, so dragging a window across it costs one rebuild. */
+  const narrow = useMediaQuery("(max-width: 900px)");
+  const reduced = useMediaQuery("(prefers-reduced-motion: reduce)");
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // Neither answer is in yet; build nothing rather than build the wrong one.
+    if (narrow === null || reduced === null) return;
     if (reduced) return;
 
     // Smaller sprites and more of them - finer sampling of the same shape,
     // which is what stops the formation reading as haze. The count is only
     // affordable because the frame loop is trig-free and there is no
     // post-processing chain; see lib/heroParticles.
-    const narrow = window.matchMedia("(max-width: 900px)").matches;
     const swarm = new ParticlesSwarm(container, {
       count: narrow ? 13600 : 40800,
       particleSize: narrow ? 1.1 : 0.95,
@@ -72,7 +80,7 @@ const HeroParticles = forwardRef<HeroParticlesHandle>(function HeroParticles(_pr
       swarmRef.current = null;
       swarm.dispose();
     };
-  }, []);
+  }, [narrow, reduced]);
 
   return <div ref={containerRef} className="hero__art-particles" aria-hidden="true" />;
 });
