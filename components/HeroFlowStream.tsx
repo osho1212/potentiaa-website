@@ -15,11 +15,11 @@ import { site } from "@/lib/site";
  * 3. Renders bright pulsing station nodes at each card seat in the staircase.
  */
 
-/** Pipeline stream particle count along the connected line. */
-const STREAM_COUNT = 420;
+/** Pipeline stream particle count along the connected line (rich dense cloud). */
+const STREAM_COUNT = 960;
 
 /** Max trail motes in the dynamic particle comet pool. */
-const TRAIL_POOL_SIZE = 240;
+const TRAIL_POOL_SIZE = 60;
 
 /** Laps per second along the whole line. */
 const SPEED = 0.055;
@@ -81,9 +81,9 @@ export default function HeroFlowStream({
     const drift = new Float32Array(STREAM_COUNT);
     for (let i = 0; i < STREAM_COUNT; i++) {
       u0[i] = i / STREAM_COUNT;
-      offset[i] = (Math.random() * 2 - 1) * (Math.random() * 0.6 + 0.4);
-      size[i] = 0.7 + Math.random() * 1.1;
-      drift[i] = 0.6 + Math.random() * 0.8;
+      offset[i] = (Math.random() * 2 - 1) * (Math.random() * 0.7 + 0.3);
+      size[i] = 0.8 + Math.random() * 1.6;
+      drift[i] = 0.5 + Math.random() * 0.9;
     }
 
     const bands: string[] = [];
@@ -171,22 +171,18 @@ export default function HeroFlowStream({
           const card = liveCards[c];
           if (!card || !card.active) continue;
 
-          // Spawn new motes behind moving card while in motion
-          const speed = Math.hypot(card.vx, card.vy);
-          const isFlying = card.k > 0.02 && card.k < 0.98;
-          const spawnCount = isFlying ? (speed > 1 ? 3 : 2) : 1;
-
-          for (let s = 0; s < spawnCount; s++) {
+          const isFlying = card.k > 0.05 && card.k < 0.95;
+          if (isFlying) {
             const mote = trailPool[nextTrailIdx];
             nextTrailIdx = (nextTrailIdx + 1) % TRAIL_POOL_SIZE;
 
-            mote.x = card.x + (Math.random() - 0.5) * (isFlying ? 18 : 10);
-            mote.y = card.y + (Math.random() - 0.5) * (isFlying ? 18 : 10);
-            mote.vx = -card.vx * (0.25 + Math.random() * 0.3) + (Math.random() - 0.5) * 0.8;
-            mote.vy = -card.vy * (0.25 + Math.random() * 0.3) + (Math.random() - 0.5) * 0.8;
-            mote.maxLife = isFlying ? 0.75 + Math.random() * 0.6 : 0.4 + Math.random() * 0.3;
+            mote.x = card.x + (Math.random() - 0.5) * 12;
+            mote.y = card.y + (Math.random() - 0.5) * 12;
+            mote.vx = -card.vx * 0.2 + (Math.random() - 0.5) * 0.5;
+            mote.vy = -card.vy * 0.2 + (Math.random() - 0.5) * 0.5;
+            mote.maxLife = 0.4 + Math.random() * 0.3;
             mote.life = mote.maxLife;
-            mote.size = 1.0 + Math.random() * (isFlying ? 2.2 : 1.4);
+            mote.size = 1.2 + Math.random() * 1.4;
             mote.cardIndex = c;
           }
         }
@@ -199,15 +195,15 @@ export default function HeroFlowStream({
           mote.life -= dt;
           mote.x += mote.vx;
           mote.y += mote.vy;
-          mote.vx *= 0.96;
-          mote.vy *= 0.96;
+          mote.vx *= 0.94;
+          mote.vy *= 0.94;
 
           const progress = mote.life / mote.maxLife;
-          const alpha = Math.sin(progress * Math.PI) * 0.65;
-          if (alpha <= 0.01) continue;
+          const alpha = Math.sin(progress * Math.PI) * 0.5;
+          if (alpha <= 0.02) continue;
 
           ctx.fillStyle = nodeGlowColors[mote.cardIndex] || bands[0];
-          ctx.globalAlpha = Math.min(1, alpha);
+          ctx.globalAlpha = alpha;
           ctx.beginPath();
           ctx.arc(mote.x, mote.y + (t >= 1 ? releaseY : 0), mote.size * progress, 0, Math.PI * 2);
           ctx.fill();
@@ -226,62 +222,45 @@ export default function HeroFlowStream({
       ctx.save();
       ctx.translate(0, releaseY);
 
-      // A. Connecting Base Line
-      ctx.globalCompositeOperation = "source-over";
-      ctx.beginPath();
-      const segments = Math.max(1, count - 1);
-      const head = reveal * segments;
-      const start = seatAt(0, count, width, height);
-      ctx.moveTo(start.x, start.y);
-      for (let i = 1; i <= segments; i++) {
-        if (head >= i) {
-          const p = seatAt(i, count, width, height);
-          ctx.lineTo(p.x, p.y);
-        } else {
-          const p = pathAt(reveal, count, width, height);
-          ctx.lineTo(p.x, p.y);
-          break;
-        }
-      }
-      ctx.strokeStyle = `rgba(130, 165, 255, ${(0.22 * presence).toFixed(3)})`;
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-
-      // B. Pipeline Stream Particles
+      // Pipeline Stream Particles (Pure Dense Particle Cloud)
       ctx.globalCompositeOperation = "lighter";
       const stream = reduced ? 0 : time * SPEED;
 
-      for (let i = 0; i < STREAM_COUNT; i++) {
-        let u = u0[i] + stream * drift[i];
-        u -= Math.floor(u);
+      const a = seatAt(0, count, width, height);
+      const b = seatAt(count - 1, count, width, height);
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len;
+      const ny = dx / len;
 
-        if (u > reveal) continue;
+      for (let bIdx = 0; bIdx < BANDS; bIdx++) {
+        ctx.fillStyle = bands[bIdx];
+        const bandMinU = bIdx / BANDS;
+        const bandMaxU = (bIdx + 1) / BANDS;
 
-        const p = pathAt(u, count, width, height);
-        const near = nodeProximity(u, count);
+        for (let i = 0; i < STREAM_COUNT; i++) {
+          let u = u0[i] + stream * drift[i];
+          u -= Math.floor(u);
+          if (u > reveal || u < bandMinU || u >= bandMaxU) continue;
 
-        const spread = SPREAD_NODE + (SPREAD_MID - SPREAD_NODE) * near;
-        const a = seatAt(0, count, width, height);
-        const b = seatAt(count - 1, count, width, height);
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const len = Math.hypot(dx, dy) || 1;
-        const nx = -dy / len;
-        const ny = dx / len;
+          const p = pathAt(u, count, width, height);
+          const near = nodeProximity(u, count);
+          const spread = SPREAD_NODE + (SPREAD_MID - SPREAD_NODE) * near;
+          const px = p.x + nx * offset[i] * spread;
+          const py = p.y + ny * offset[i] * spread;
+          const brightness = (0.35 + 0.65 * (1 - near)) * presence;
+          const radius = size[i] * (1 + (1 - near) * 0.9);
 
-        const px = p.x + nx * offset[i] * spread;
-        const py = p.y + ny * offset[i] * spread;
-
-        const brightness = (0.35 + 0.65 * (1 - near)) * presence;
-        ctx.fillStyle = bands[Math.min(BANDS - 1, (u * BANDS) | 0)];
-        ctx.globalAlpha = Math.min(1, brightness);
-        const radius = size[i] * (1 + (1 - near) * 0.9);
-        ctx.beginPath();
-        ctx.arc(px, py, radius, 0, Math.PI * 2);
-        ctx.fill();
+          ctx.globalAlpha = Math.min(1, brightness);
+          ctx.beginPath();
+          ctx.arc(px, py, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
       // C. Station Glowing Node Rings at Each Seated Card
+      const segments = Math.max(1, count - 1);
       for (let i = 0; i < count; i++) {
         const stationProgress = i / segments;
         if (reveal < stationProgress) continue;

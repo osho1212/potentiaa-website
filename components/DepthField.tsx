@@ -87,48 +87,40 @@ export default function DepthField() {
 
     let raf = 0;
 
+    let prevAccent = "";
+    let prevP = -1;
+
     const tick = () => {
       const p = reduced ? 0 : scrollState.progress;
-      const viewport = window.innerHeight;
+      if (Math.abs(p - prevP) > 0.00005) {
+        prevP = p;
+        const viewport = window.innerHeight;
 
-      // The colour of the moment. Read from real section geometry rather than
-      // from lap progress: the sections are not equal heights, so progress
-      // would drift out of step with what is actually on screen, and the two
-      // laps make any progress-based lookup ambiguous at the seam.
-      const theme = themeAt(viewport * 0.5);
-      const accent = mixRgb(theme.from.accent, theme.to.accent, theme.t);
+        const theme = themeAt(viewport * 0.5);
+        const accent = mixRgb(theme.from.accent, theme.to.accent, theme.t);
 
-      nodes.forEach((node, i) => {
-        const shard = SHARDS[i];
-        // Wrap distance: far enough that the shard is fully off-screen at the
-        // moment it recycles.
-        const span = viewport + shard.size * 2;
-        const offset = ((shard.phase + p * shard.speed) % 1 + 1) % 1;
-        const y = offset * span - shard.size * 2;
-        node.style.transform =
-          `translateY(${y}px) rotate(${p * shard.turns * 360}deg)`;
+        if (accent !== prevAccent) {
+          prevAccent = accent;
+          root.style.setProperty("--field-accent", accent);
+          if (washRef.current) {
+            washRef.current.style.background =
+              `radial-gradient(115% 85% at 50% 0%, ${accent} 0%, transparent 62%)`;
+          }
+        }
 
-        // Every shard takes the section's accent, so the field changes colour
-        // as one thing. It is written every frame rather than on a section
-        // boundary because `accent` is continuously interpolated - stepping it
-        // at the boundary is what would make the page read as seven rooms
-        // instead of one graded space.
-        node.style.background = accent;
-      });
+        nodes.forEach((node, i) => {
+          const shard = SHARDS[i];
+          const span = viewport + shard.size * 2;
+          const offset = ((shard.phase + p * shard.speed) % 1 + 1) % 1;
+          const y = (offset * span - shard.size * 2).toFixed(1);
+          const rot = (p * shard.turns * 360).toFixed(1);
+          node.style.transform = `translate3d(0, ${y}px, 0) rotate(${rot}deg)`;
+        });
 
-      glows.forEach((glow, i) => {
-        // Glows only need to breathe; a sine is periodic in p by construction.
-        const drift = Math.sin((p + i * 0.33) * Math.PI * 2) * 60;
-        glow.style.transform = `translateY(${drift}px)`;
-        glow.style.background = accent;
-      });
-
-      // The ambient wash. A single very low-alpha tint over the whole viewport,
-      // which is what actually removes the monotone: without it the page is one
-      // flat near-black everywhere and only the small objects change colour.
-      if (washRef.current) {
-        washRef.current.style.background =
-          `radial-gradient(115% 85% at 50% 0%, ${accent} 0%, transparent 62%)`;
+        glows.forEach((glow, i) => {
+          const drift = (Math.sin((p + i * 0.33) * Math.PI * 2) * 60).toFixed(1);
+          glow.style.transform = `translate3d(0, ${drift}px, 0)`;
+        });
       }
 
       raf = requestAnimationFrame(tick);

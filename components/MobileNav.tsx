@@ -1,30 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useContact } from "./ContactContext";
 import { site } from "@/lib/site";
-
-/**
- * The navigation for anything too narrow to hold the nav pill.
- *
- * Below the nav breakpoint the header used to set `.header__nav { display:
- * none }` and stop there, which left every phone with no way to reach "What we
- * build", "Services" or "How it works" at all - the links were not collapsed,
- * they were deleted. This restores them behind a toggle.
- *
- * PORTALLED TO BODY, deliberately. The button belongs inside
- * `.header__pill--nav`, but that pill carries `backdrop-filter`, and a filter
- * of any kind makes an element the containing block for `position: fixed`
- * descendants. A drawer rendered in place would be fixed to the pill - a 160px
- * box in the top-right corner - rather than to the viewport. The portal is what
- * keeps the markup where it reads best and the layout where it belongs.
- *
- * Kept MOUNTED while closed so the panel can transition out as well as in, and
- * held out of the tab order with `inert` for exactly as long as it is hidden.
- * The focus trap, the scroll lock and the Lenis stop are the same three the
- * contact dialog does - see components/ContactModal for why each is needed.
- */
+import OptionWheel from "./OptionWheel";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -39,15 +19,21 @@ export default function MobileNav() {
   const panelRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
 
+  const navItems = useMemo(
+    () => [
+      { label: "Home", href: "#top" },
+      ...site.nav,
+    ],
+    []
+  );
+
+  const labels = useMemo(() => navItems.map((n) => n.label), [navItems]);
+
   // Portals need a DOM to land in, and there is none during the server render.
   useEffect(() => setMounted(true), []);
 
   /**
    * Close on the way back up to the wide layout.
-   *
-   * A `change` listener rather than a one-shot `.matches` read: rotating a
-   * phone or dragging a window wider would otherwise leave the drawer open and
-   * scroll-locked over a layout that has its nav pill back.
    */
   useEffect(() => {
     const mq = window.matchMedia(NARROW);
@@ -89,8 +75,6 @@ export default function MobileNav() {
     document.addEventListener("keydown", onKeyDown);
     document.body.dataset.scrollLocked = "true";
 
-    // `body { overflow: hidden }` is invisible to Lenis, which scrolls a
-    // transform rather than the document. See ContactModal.
     const lenis = (window as unknown as { __lenisInstance?: { stop(): void; start(): void } })
       .__lenisInstance;
     lenis?.stop();
@@ -101,10 +85,31 @@ export default function MobileNav() {
       document.removeEventListener("keydown", onKeyDown);
       delete document.body.dataset.scrollLocked;
       lenis?.start();
-      // Back to the control that opened it, not to the top of the document.
       toggleRef.current?.focus();
     };
   }, [isOpen]);
+
+  const handleSelect = useCallback(
+    (index: number) => {
+      const item = navItems[index];
+      if (!item) return;
+
+      setIsOpen(false);
+
+      if (item.href.startsWith("#")) {
+        const targetId = item.href.slice(1);
+        if (targetId === "top") {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
+        const el = document.getElementById(targetId) || document.querySelector(item.href);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
+        }
+      }
+    },
+    [navItems]
+  );
 
   const drawer = (
     <div className="nav-drawer" data-open={isOpen} inert={!isOpen}>
@@ -117,36 +122,56 @@ export default function MobileNav() {
       />
 
       <div
-        className="nav-drawer__panel"
+        className="nav-drawer__panel nav-drawer__panel--wheel"
         id="mobile-nav"
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="Site menu"
       >
-        <nav className="nav-drawer__nav" aria-label="Primary">
-          {site.nav.map((item) => (
-            <a
-              key={item.href}
-              className="nav-drawer__link"
-              href={item.href}
-              onClick={() => setIsOpen(false)}
-            >
-              {item.label}
-            </a>
-          ))}
-        </nav>
-
+        {/* Top-left close button */}
         <button
           type="button"
-          className="btn btn--primary nav-drawer__cta"
-          onClick={() => {
-            setIsOpen(false);
-            openContact();
-          }}
+          className="nav-drawer__close-topleft"
+          aria-label="Close menu"
+          onClick={() => setIsOpen(false)}
         >
-          Get in touch
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
         </button>
+
+        <div className="nav-drawer__wheel-container">
+          <OptionWheel
+            items={labels}
+            defaultSelected={0}
+            side="left"
+            fontSize={2.2}
+            spacing={1.45}
+            curve={1.15}
+            tilt={8}
+            blur={1.8}
+            fade={0.3}
+            smoothing={220}
+            inset={24}
+            onSelect={handleSelect}
+          />
+        </div>
+
+        {/* Floating Get in Touch button on the right side */}
+        <div className="nav-drawer__floating-cta-wrap">
+          <button
+            type="button"
+            className="btn btn--primary nav-drawer__floating-cta"
+            onClick={() => {
+              setIsOpen(false);
+              setTimeout(() => openContact(), 250);
+            }}
+          >
+            Get in touch
+          </button>
+        </div>
       </div>
     </div>
   );

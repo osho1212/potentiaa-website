@@ -258,170 +258,88 @@ export default function FlowStage({ clone }: { clone?: boolean }) {
     let assembling: boolean | null = null;
 
     let span = 1;
-    const measureSpan = () => {
+    let panelRect = { left: 0, top: 0, width: 0, height: 0 };
+    const panel = stage.querySelector<HTMLElement>(".flow-stage__panel");
 
-      if (!section) {
-        span = Math.max(1, stage.getBoundingClientRect().height - window.innerHeight);
-        return;
-      }
+    const measureSpan = () => {
       const s = stage.getBoundingClientRect();
-      const f = section.getBoundingClientRect();
-      span = Math.max(1, f.top - s.top);
+      if (!section) {
+        span = Math.max(1, s.height - window.innerHeight);
+      } else {
+        const f = section.getBoundingClientRect();
+        span = Math.max(1, f.top - s.top);
+      }
+
+      if (panel) {
+        const p = panel.getBoundingClientRect();
+        // Baseline panel box without release transform
+        panelRect = {
+          left: p.left,
+          top: p.top - (flowRef.current?.releaseY || 0),
+          width: p.width,
+          height: p.height,
+        };
+      }
     };
+
+    let prevFlowT = -1;
+    let prevReleaseY = -99999;
+    let prevCopyShift = -99999;
 
     const update = () => {
       if (!visible) return;
       const rect = stage.getBoundingClientRect();
       const scrolled = -rect.top;
-      // One read, shared by the copy's shift and the berth's `passed` below.
       const f = section?.getBoundingClientRect();
-      /**
-       * ASSEMBLED BEFORE THE COPY LANDS, not at the same instant as it.
-       *
-       * `t` used to run to 1 exactly as the section's top reached the top of
-       * the viewport - which is also the moment the copy parks. So the last of
-       * the cards was still seating itself at the very frame the frame was
-       * supposed to be settled, and the flow read as still hovering into place
-       * under finished text.
-       *
-       * Finishing at ASSEMBLE of the runway leaves a gap between the two: the
-       * cards land, and only then does the copy arrive on top of a flow that is
-       * already whole.
-       */
+
       const t = Math.min(1, Math.max(0, scrolled / (span * ASSEMBLE)));
 
       flowRef.current.t = t;
-      // Zero until the pin engages, then how far the hero has slid under it.
-      // The cards add this back to their orbit so they stay on the swarm as it
-      // scrolls away, rather than detaching the moment the pin takes hold.
       flowRef.current.offsetY = Math.min(0, rect.top);
-      /**
-       * THE HOLD, then the release.
-       *
-       * Zero for the whole of the hold - the frame is assembled and completely
-       * still - and then how far past it the reader has gone, which is what
-       * hands the finished flow back to the page so it leaves with its own
-       * section instead of hanging over the next one.
-       *
-       * The hold is measured off the section rather than declared here: it is
-       * however much taller than one viewport the stylesheet made it. At
-       * `min-height: 100svh` this is 0 and the release begins the instant the
-       * section lands, which is what it used to do - the frame had no runway to
-       * be still in, so panel, copy, cards and module all began leaving as soon
-       * as they arrived. The stylesheet owns the number; this just reads it, so
-       * the two cannot disagree.
-       */
       const hold = Math.max(0, (section?.offsetHeight ?? 0) - window.innerHeight);
-      flowRef.current.releaseY = Math.min(0, span + hold - scrolled);
+      const releaseY = Math.min(0, span + hold - scrolled);
+      flowRef.current.releaseY = releaseY;
 
-      stage.style.setProperty("--flow-t", t.toFixed(4));
+      // Batch CSS writes and skip if unchanged
+      const tFixed = t.toFixed(4);
+      if (tFixed !== prevFlowT.toString()) {
+        prevFlowT = t as unknown as number;
+        stage.style.setProperty("--flow-t", tFixed);
+      }
 
-      /**
-       * THE GLASS IS TOO EXPENSIVE TO WEAR IN FLIGHT.
-       *
-       * Each card's `backdrop-filter` is an SVG chain - a generated
-       * displacement map, three feDisplacementMap passes for the per-channel
-       * split, then a blur - and the browser can only cache that while neither
-       * the card nor what is behind it moves. Through the assembly BOTH move
-       * every frame: six cards travelling from orbit to seat over a swarm that
-       * is animating, a panel that is fading up and a stream that is drawing.
-       * So all six re-snapshot and re-filter their backdrop every frame, each
-       * one reading the panel's already-blurred output beneath it.
-       *
-       * Measured across this exact window, that is 45.6% of frames over budget
-       * against 6.9% with backdrop-filter gone - by far the largest cost left
-       * in the transition, and much larger than the swarm or the trail.
-       *
-       * So the lens comes off for the flight and goes back on the moment the
-       * cards are seated, which is also the moment it starts being worth
-       * anything: a lens effect on an object crossing the screen at speed is
-       * detail nobody can resolve, and the same effect on six cards sitting
-       * still is the whole look of the section.
-       *
-       * NOT the panel, which was measured and is the opposite - dropping the
-       * panel's blur made things WORSE (p90 58.1ms against 29.4), because the
-       * cards' filter then samples the raw busy backdrop instead of a flat
-       * pre-blurred one. The panel is partly paying for itself.
-       */
       const flying = t < 1;
       if (flying !== assembling) {
         assembling = flying;
         stage.classList.toggle("flow-stage--assembling", flying);
       }
-      // Published so the glass panel can ride the release from CSS alone,
-      // rather than needing its own place in the frame loop.
-      stage.style.setProperty("--flow-release", `${flowRef.current.releaseY.toFixed(1)}px`);
-      /**
-       * THE COPY IS PRINTED ON THE GLASS, so it is positioned FROM the glass.
-       *
-       * The panel lives in the pinned layer and the copy lives in the document,
-       * which means that until the section lands they are moving at different
-       * speeds: the panel is held at the top of the viewport, fading in, while
-       * the copy is still climbing the page towards it. The reader watches the
-       * text slide up through a stationary frame and settle - moving inside the
-       * glass, which is exactly what it must never do.
-       *
-       * `position: sticky` cannot fix that. Sticky only ever holds an element
-       * BACK from where the document would put it, so before the section
-       * arrives the copy is always below its resting place, and the slide is
-       * still there.
-       *
-       * So the copy is not positioned by the document at all. This shift is the
-       * difference between where the document puts it and where the panel is,
-       * which cancels the document exactly: `release` carries it out with the
-       * glass, and subtracting the section's own top removes every other bit of
-       * scrolling. What is left is one fixed spot on the panel, at every scroll
-       * position, in both directions.
-       */
-      if (f) {
-        stage.style.setProperty(
-          "--flow-copy-shift",
-          `${(flowRef.current.releaseY - f.top).toFixed(1)}px`,
-        );
+
+      const releaseFixed = releaseY.toFixed(1);
+      if (releaseFixed !== prevReleaseY.toString()) {
+        prevReleaseY = releaseY as unknown as number;
+        stage.style.setProperty("--flow-release", `${releaseFixed}px`);
       }
 
-      /**
-       * Call the module stack out of the navbar and onto the glass: fast in,
-       * parked for the length of the section, then handed back to the helix.
-       *
-       * Position is measured off the panel, not computed from the same
-       * percentages the panel is laid out with: one source, so a change to
-       * the panel's inset moves the berth with it.
-       */
-      const panel = stage.querySelector<HTMLElement>(".flow-stage__panel");
-      if (panel && f) {
-        const passed = -f.top / Math.max(1, f.height);
+      if (f) {
+        const copyShift = (releaseY - f.top).toFixed(1);
+        if (copyShift !== prevCopyShift.toString()) {
+          prevCopyShift = copyShift as unknown as number;
+          stage.style.setProperty("--flow-copy-shift", `${copyShift}px`);
+        }
+      }
 
-        const box = panel.getBoundingClientRect();
+      // Only consider passed once releaseY has carried the glass panel and cubes completely off the top of the viewport
+      const passed = releaseY < -window.innerHeight * 1.15 || rect.bottom < -window.innerHeight;
+      stage.classList.toggle("flow-stage--passed", passed);
 
-        /**
-         * THE BERTH IS ON THE PANEL, so it travels with the panel.
-         *
-         * The raw rect, deliberately - it carries `--flow-release`, which is
-         * how the finished flow leaves with its own section, and the module is
-         * part of that flow now.
-         *
-         * A version of this pinned the berth in the VIEWPORT instead, by
-         * undoing that transform, so the module held one fixed point on screen
-         * for the whole section. It did hold - measured over 661 frames of real
-         * scrolling, zero pixels of drift - and it was still wrong, because
-         * holding still on screen while the panel and the six cards scroll up
-         * past you is not staying put, it is descending through the staircase.
-         * The module snapped in clear of the flow and ended up buried in the
-         * Accounts card.
-         *
-         * Riding the panel is what "stay where it was snapped" actually means:
-         * the cards move by `--flow-release` too, so the module keeps its exact
-         * place in the composition and nothing ever crosses it. It leaves the
-         * top of the frame with the flow it belongs to.
-         */
+      if (panel && f && panelRect.width > 0) {
+        const passedFraction = -f.top / Math.max(1, f.height);
         const edge = berthEdges(f.height, span);
         moduleBerth.strength =
-          smoothstep(edge.arriveFrom, edge.arriveTo, passed) *
-          (1 - smoothstep(edge.holdUntil, edge.leaveBy, passed));
-        moduleBerth.x = box.left + box.width * BERTH.x;
-        moduleBerth.y = box.top + box.height * BERTH.y;
-        moduleBerth.size = Math.min(BERTH.size, box.width * 0.26);
+          smoothstep(edge.arriveFrom, edge.arriveTo, passedFraction) *
+          (1 - smoothstep(edge.holdUntil, edge.leaveBy, passedFraction));
+        moduleBerth.x = panelRect.left + panelRect.width * BERTH.x;
+        moduleBerth.y = panelRect.top + releaseY + panelRect.height * BERTH.y;
+        moduleBerth.size = Math.min(BERTH.size, panelRect.width * 0.26);
       }
     };
 
@@ -438,17 +356,17 @@ export default function FlowStage({ clone }: { clone?: boolean }) {
     // for the programmatic jump that closes the loop seam. See lib/scrollState.
     const unsubscribe = onScrollFrame(update);
 
-    // The off-screen lap must not pay for the rect read.
+    // Keep updating until the stage has fully scrolled away
     const observer = new IntersectionObserver(
       ([entry]) => {
         visible = entry.isIntersecting;
-        if (visible) update();
-        // Let go of the module on the way out. There are two of these stages
-        // and one module: a copy that scrolled away still holding a berth
-        // would drag it off-screen after itself.
-        else moduleBerth.strength = 0;
+        if (visible) {
+          update();
+        } else {
+          moduleBerth.strength = 0;
+        }
       },
-      { rootMargin: "10%" },
+      { rootMargin: "60% 0px 60% 0px" },
     );
     observer.observe(stage);
 

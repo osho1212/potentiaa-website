@@ -243,17 +243,13 @@ function buildGradientLut(): Float32Array {
  *
  * So it is spent where it buys something and not where it does not.
  */
-const SUPERSAMPLE = 1.5;
+const SUPERSAMPLE = 1.0;
 
 /**
  * Ceiling on the delivered ratio, after the supersample.
- *
- * 2 rather than 3. Nothing could reach 3 any more without a dpr 3 display,
- * and that is precisely the case that least needs it and least affords it -
- * a phone, whose fill rate is the lowest here and whose pixels are the
- * smallest.
+ * Capped at 1.5 for optimal GPU memory and fill rate headroom.
  */
-const MAX_PIXEL_RATIO = 2;
+const MAX_PIXEL_RATIO = 1.5;
 
 /**
  * The particle shape, computed per fragment instead of sampled from a sprite.
@@ -275,16 +271,101 @@ const MAX_PIXEL_RATIO = 2;
  * stipple, but held to a fraction so it lights the gaps without fogging them.
  */
 const PARTICLE_VERTEX_SHADER = /* glsl */ `
-  attribute vec3 aColor;
+  attribute vec3 aDirection;
+  attribute vec3 aFold;
+  attribute vec2 aFire;
+  attribute vec4 aJit;
+  attribute vec2 aWave;
+  attribute vec3 aBaseColor;
+  attribute float aTract;
+
+  uniform float uTime;
   uniform float uSize;
   uniform float uScale;
+  uniform vec3 uRepel;
+  uniform vec3 uGlow;
+
   varying vec3 vColor;
 
   void main() {
-    vColor = aColor;
-    vec4 mv = modelViewMatrix * vec4(position, 1.0);
-    // Perspective size attenuation, as PointsMaterial does it: uScale is half
-    // the drawing buffer height, so uSize is in world units, not pixels.
+    float foldPhaseCos = cos(uTime * 0.2);
+    float foldPhaseSin = sin(uTime * 0.2);
+    float firePhaseCos = cos(uTime * 2.5);
+    float firePhaseSin = sin(uTime * 2.5);
+    float wavePhaseCos = cos(uTime * 1.5);
+    float wavePhaseSin = sin(uTime * 1.5);
+    float jitACos = cos(uTime * 5.0);
+    float jitASin = sin(uTime * 5.0);
+    float jitBCos = cos(uTime * 6.2);
+    float jitBSin = sin(uTime * 6.2);
+    float jitCCos = cos(uTime * 4.1);
+    float jitCSin = sin(uTime * 4.1);
+
+    float fold = 0.75 + aFold.x * (aFold.y * foldPhaseCos - aFold.z * foldPhaseSin);
+    float radius = 45.0 * fold;
+
+    float x = radius * aDirection.x;
+    float y = radius * aDirection.y;
+    float z = radius * aDirection.z;
+
+    x += (x >= 0.0 ? 1.0 : -1.0) * 5.0;
+
+    if (aTract > 0.5) {
+      x *= 0.15;
+      y *= 0.8;
+      z *= 0.5;
+    }
+
+    if (uRepel.z > 0.001) {
+      vec2 diff = vec2(x, y) - uRepel.xy;
+      float d2 = dot(diff, diff);
+      float r2 = 24.0 * 24.0;
+      if (d2 < r2 && d2 > 0.0001) {
+        float d = sqrt(d2);
+        float falloff = 1.0 - d / 24.0;
+        float push = (falloff * falloff * uRepel.z) / d;
+        x += diff.x * push;
+        y += diff.y * push;
+      }
+    }
+
+    float jiggle = aTract > 0.5 ? 0.0 : 0.3;
+    float jX = (aJit.x * jitACos + aJit.y * jitASin) * jiggle;
+    float jY = (aJit.z * jitBCos - aJit.w * jitBSin) * jiggle;
+    float jZ = (jitCSin * aJit.y - jitCCos * aJit.x) * jiggle;
+
+    vec3 pos = vec3(x + jX, y + jY, z + jZ);
+
+    float s = aFire.x * firePhaseCos + aFire.y * firePhaseSin;
+    float spike = 0.0;
+    if (s > 0.0) {
+      float s2 = s * s;
+      float s4 = s2 * s2;
+      float s8 = s4 * s4;
+      float s16 = s8 * s8;
+      float s32 = s16 * s16;
+      spike = s32 * s8;
+    }
+
+    float wave = (aWave.x * wavePhaseCos - aWave.y * wavePhaseSin + 1.0) * 0.5;
+    float depth = 0.4 + 0.6 * (pos.z * (1.0 / 45.0) * 0.5 + 0.5);
+
+    float glowBoost = 0.0;
+    if (uGlow.z > 0.001) {
+      vec2 gdiff = pos.xy - uGlow.xy;
+      float gd2 = dot(gdiff, gdiff);
+      float gr2 = 20.0 * 20.0;
+      if (gd2 < gr2) {
+        float gfall = 1.0 - sqrt(gd2) / 20.0;
+        glowBoost = gfall * gfall * uGlow.z;
+      }
+    }
+
+    float level = (0.464 + wave * 0.272 + spike * 1.92 + (aTract > 0.5 ? 0.24 : 0.0) + glowBoost) * depth;
+    float hot = spike * 0.6;
+    vColor = aBaseColor * level + vec3(hot);
+
+    vec4 mv = modelViewMatrix * vec4(pos, 1.0);
     gl_PointSize = uSize * (uScale / -mv.z);
     gl_Position = projectionMatrix * mv;
   }
@@ -319,10 +400,6 @@ export class ParticlesSwarm {
   private readonly geometry: THREE.BufferGeometry;
   private readonly material: THREE.ShaderMaterial;
   private readonly clock = new THREE.Clock();
-
-  /** Live buffers handed to the GPU each frame. */
-  private readonly position: Float32Array;
-  private readonly color: Float32Array;
 
   /** Per-particle constants - see the header on why these exist. */
   private readonly ux: Float32Array;
@@ -490,34 +567,62 @@ export class ParticlesSwarm {
       this.baseB[i] = lut[idx + 2];
     }
 
-    // ---- GPU buffers -----------------------------------------------------
-    this.position = new Float32Array(count * 3);
-    this.color = new Float32Array(count * 3);
+    // ---- GPU buffers (packed once for Vertex Shader) --------------------
+    const dirArray = new Float32Array(count * 3);
+    const foldArray = new Float32Array(count * 3);
+    const fireArray = new Float32Array(count * 2);
+    const jitArray = new Float32Array(count * 4);
+    const waveArray = new Float32Array(count * 2);
+    const baseColorArray = new Float32Array(count * 3);
+    const tractArray = new Float32Array(count);
+    const dummyPos = new Float32Array(count * 3);
+
     for (let i = 0; i < count; i++) {
-      this.position[i * 3] = (Math.random() - 0.5) * 100;
-      this.position[i * 3 + 1] = (Math.random() - 0.5) * 100;
-      this.position[i * 3 + 2] = (Math.random() - 0.5) * 100;
+      dirArray[i * 3 + 0] = this.ux[i];
+      dirArray[i * 3 + 1] = this.uy[i];
+      dirArray[i * 3 + 2] = this.uz[i];
+
+      foldArray[i * 3 + 0] = this.foldAmp[i];
+      foldArray[i * 3 + 1] = this.foldCos[i];
+      foldArray[i * 3 + 2] = this.foldSin[i];
+
+      fireArray[i * 2 + 0] = this.fireSin[i];
+      fireArray[i * 2 + 1] = this.fireCos[i];
+
+      jitArray[i * 4 + 0] = this.jitSin[i];
+      jitArray[i * 4 + 1] = this.jitCos[i];
+      jitArray[i * 4 + 2] = this.jit2Sin[i];
+      jitArray[i * 4 + 3] = this.jit2Cos[i];
+
+      waveArray[i * 2 + 0] = this.waveSin[i];
+      waveArray[i * 2 + 1] = this.waveCos[i];
+
+      baseColorArray[i * 3 + 0] = this.baseR[i];
+      baseColorArray[i * 3 + 1] = this.baseG[i];
+      baseColorArray[i * 3 + 2] = this.baseB[i];
+
+      tractArray[i] = this.tract[i];
     }
 
     this.geometry = new THREE.BufferGeometry();
-    const posAttr = new THREE.BufferAttribute(this.position, 3);
-    const colAttr = new THREE.BufferAttribute(this.color, 3);
-    posAttr.setUsage(THREE.DynamicDrawUsage);
-    colAttr.setUsage(THREE.DynamicDrawUsage);
-    this.geometry.setAttribute("position", posAttr);
-    // Named aColor rather than color: `color` is three's own vertex-colour
-    // attribute and it declares that one itself, so a ShaderMaterial that also
-    // declares it fails to compile.
-    this.geometry.setAttribute("aColor", colAttr);
-    // The swarm never leaves this radius, and letting three compute a bounding
-    // sphere from a buffer this size on every update is not worth the frame.
+    this.geometry.setAttribute("position", new THREE.BufferAttribute(dummyPos, 3));
+    this.geometry.setAttribute("aDirection", new THREE.BufferAttribute(dirArray, 3));
+    this.geometry.setAttribute("aFold", new THREE.BufferAttribute(foldArray, 3));
+    this.geometry.setAttribute("aFire", new THREE.BufferAttribute(fireArray, 2));
+    this.geometry.setAttribute("aJit", new THREE.BufferAttribute(jitArray, 4));
+    this.geometry.setAttribute("aWave", new THREE.BufferAttribute(waveArray, 2));
+    this.geometry.setAttribute("aBaseColor", new THREE.BufferAttribute(baseColorArray, 3));
+    this.geometry.setAttribute("aTract", new THREE.BufferAttribute(tractArray, 1));
+
     this.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), scale * 2);
 
     this.material = new THREE.ShaderMaterial({
       uniforms: {
+        uTime: { value: 0 },
         uSize: { value: opts.particleSize ?? 1.5 },
-        // Half the drawing buffer height; kept current by resize().
         uScale: { value: height * 0.5 },
+        uRepel: { value: new THREE.Vector3(0, 0, 0) },
+        uGlow: { value: new THREE.Vector3(0, 0, 0) },
       },
       vertexShader: PARTICLE_VERTEX_SHADER,
       fragmentShader: PARTICLE_FRAGMENT_SHADER,
@@ -545,9 +650,6 @@ export class ParticlesSwarm {
     this.renderer.setPixelRatio(pixelRatio);
     this.renderer.setSize(width, height, false);
 
-    // Point size is computed in the vertex shader against the DRAWING BUFFER,
-    // not the CSS box - so this has to follow the supersample factor too, or
-    // every particle shrinks by exactly the amount the buffer grew.
     this.material.uniforms.uScale.value = height * pixelRatio * 0.5;
 
     this.camera.aspect = width / height;
@@ -567,12 +669,6 @@ export class ParticlesSwarm {
     cancelAnimationFrame(this.raf);
   }
 
-  /**
-   * Called every frame by a hovered HeroLabels badge with its own current
-   * centre - the label drifts along a CSS motion path, so "current" changes
-   * continuously while it's hovered, not just once on mouseenter. Called once
-   * more with active=false on mouseleave to let the glow fade back out.
-   */
   setGlow(active: boolean, clientX: number, clientY: number) {
     this.glowActive = active;
     this.glowClientX = clientX;
@@ -598,17 +694,6 @@ export class ParticlesSwarm {
     this.renderFrame(this.clock.getElapsedTime());
   }
 
-  /**
-   * A screen point (e.g. clientX/Y from a mouse or a hovered label's own
-   * getBoundingClientRect) into the particles' object-space frame - null if
-   * it falls outside the container.
-   *
-   * The unprojection is the perspective one and not a scale: at the z = 0
-   * plane the camera sees 2*tan(fov/2)*distance of world height, and the
-   * point lands proportionally within that. Then the inverse of the
-   * formation's own rotation, because the positions being tested against are
-   * pre-rotation.
-   */
   private unproject(clientX: number, clientY: number, rect: DOMRect): { x: number; y: number } | null {
     const px = (clientX - rect.left) / rect.width;
     const py = (clientY - rect.top) / rect.height;
@@ -623,22 +708,6 @@ export class ParticlesSwarm {
     };
   }
 
-  /**
-   * Resolves the cursor repel and the label glow into the particles' frame,
-   * and eases both strengths. One method rather than two, because both need
-   * the same live container rect and the point of combining them is to
-   * share that one read instead of paying for it twice.
-   *
-   * THE LAYOUT READ. There is no way to place either effect without asking
-   * the container where it currently is, and that cost is held down three
-   * ways: at most one read per FRAME rather than one per pointer event or
-   * per hover frame; skipped entirely once neither effect has anything live
-   * to resolve (no recent pointer move AND no active glow); and skipped again
-   * once an effect has been fully faded out and idle for a moment, which is
-   * the state a reading page spends most of its time in. It cannot be cached
-   * across frames instead - the page scrolls under a transform and the box
-   * moves with it, so a stale rect would leave either effect behind.
-   */
   private updateInfluences() {
     const pointerIdle = this.influence < 0.001 && performance.now() - this.lastPointerMove > 400;
     const wantsPointer = this.pointerEnabled && this.pointerSeen && !pointerIdle;
@@ -669,148 +738,23 @@ export class ParticlesSwarm {
       }
     }
 
-    // On leave, each centre is left where it was and only its strength
-    // decays, so the effect closes in place rather than sliding off to
-    // wherever the pointer or label went.
     this.influence += ((pointerInside ? 1 : 0) - this.influence) * REPEL_EASE;
     this.glowInfluence += ((glowInside ? 1 : 0) - this.glowInfluence) * GLOW_EASE;
   }
 
   private renderFrame(time: number) {
-    const { count, scale, separation, position, color } = this;
-
     this.updateInfluences();
-    const repelling = this.influence > 0.001;
-    const repelX = this.repelX;
-    const repelY = this.repelY;
-    const repelStrength = REPEL_STRENGTH * this.influence;
-    const repelRadius2 = REPEL_RADIUS * REPEL_RADIUS;
-
-    const glowing = this.glowInfluence > 0.001;
-    const glowX = this.glowX;
-    const glowY = this.glowY;
-    const glowStrength = GLOW_STRENGTH * this.glowInfluence;
-    const glowRadius2 = GLOW_RADIUS * GLOW_RADIUS;
-
-    // The whole frame's trigonometry, once - see the header.
-    const foldPhaseCos = Math.cos(time * 0.2);
-    const foldPhaseSin = Math.sin(time * 0.2);
-    const firePhaseCos = Math.cos(time * this.activity);
-    const firePhaseSin = Math.sin(time * this.activity);
-    const wavePhaseCos = Math.cos(time * 1.5);
-    const wavePhaseSin = Math.sin(time * 1.5);
-    const jitACos = Math.cos(time * 5.0);
-    const jitASin = Math.sin(time * 5.0);
-    const jitBCos = Math.cos(time * 6.2);
-    const jitBSin = Math.sin(time * 6.2);
-    const jitCCos = Math.cos(time * 4.1);
-    const jitCSin = Math.sin(time * 4.1);
-
-    const invScale = 1 / scale;
-
-    for (let i = 0; i < count; i++) {
-      const isTract = this.tract[i];
-
-      // cos(phiC + 0.2t)
-      const fold = 0.75 + this.foldAmp[i] * (this.foldCos[i] * foldPhaseCos - this.foldSin[i] * foldPhaseSin);
-      const radius = scale * fold;
-
-      let x = radius * this.ux[i];
-      let y = radius * this.uy[i];
-      let z = radius * this.uz[i];
-
-      x += (x >= 0 ? 1 : -1) * separation;
-
-      if (isTract) {
-        x *= 0.15;
-        y *= 0.8;
-        z *= 0.5;
-      }
-
-      // Push out of the cursor's pocket. In XY only - the cursor is a point on
-      // the screen plane and has no depth to push along. The guard means the
-      // square root is paid for only by the particles actually inside the
-      // radius, which is a small fraction of them.
-      if (repelling) {
-        const dx = x - repelX;
-        const dy = y - repelY;
-        const d2 = dx * dx + dy * dy;
-        if (d2 < repelRadius2 && d2 > 1e-6) {
-          const d = Math.sqrt(d2);
-          const falloff = 1 - d / REPEL_RADIUS;
-          const push = (falloff * falloff * repelStrength) / d;
-          x += dx * push;
-          y += dy * push;
-        }
-      }
-
-      // sin(seed + activity*t), then ^40 by repeated squaring rather than
-      // Math.pow - the exponent is what makes a firing read as a spike and not
-      // a throb, and it is called once per particle per frame.
-      let s = this.fireSin[i] * firePhaseCos + this.fireCos[i] * firePhaseSin;
-      let spike = 0;
-      if (s > 0) {
-        const s2 = s * s;
-        const s4 = s2 * s2;
-        const s8 = s4 * s4;
-        const s16 = s8 * s8;
-        const s32 = s16 * s16;
-        spike = s32 * s8;
-      }
-
-      // sin(restY*0.1 - 1.5t)
-      const wave = (this.waveSin[i] * wavePhaseCos - this.waveCos[i] * wavePhaseSin + 1) * 0.5;
-
-      const jiggle = isTract ? 0 : 0.3;
-      const jX = (this.jitSin[i] * jitACos + this.jitCos[i] * jitASin) * jiggle;
-      const jY = (this.jit2Cos[i] * jitBCos - this.jit2Sin[i] * jitBSin) * jiggle;
-      const jZ = (jitCSin * this.jitCos[i] - jitCCos * this.jitSin[i]) * jiggle;
-
-      const o = i * 3;
-      // Ease toward the target rather than snapping - this is what makes the
-      // opening frames settle out of the random cloud instead of popping.
-      position[o] += (x + jX - position[o]) * 0.1;
-      position[o + 1] += (y + jY - position[o + 1]) * 0.1;
-      position[o + 2] += (z + jZ - position[o + 2]) * 0.1;
-
-      // Depth fade off the particle's own z, replacing the fog.
-      const depth = 0.4 + 0.6 * (position[o + 2] * invScale * 0.5 + 0.5);
-
-      // Brighten toward a hovered label. Measured against the EASED position
-      // (what's actually on screen this frame) rather than this frame's raw
-      // target, so it lights up the particles the viewer can see near the
-      // label, not the ones a half-step of easing away from it.
-      let glowBoost = 0;
-      if (glowing) {
-        const gdx = position[o] - glowX;
-        const gdy = position[o + 1] - glowY;
-        const gd2 = gdx * gdx + gdy * gdy;
-        if (gd2 < glowRadius2) {
-          const gfall = 1 - Math.sqrt(gd2) / GLOW_RADIUS;
-          glowBoost = gfall * gfall * glowStrength;
-        }
-      }
-
-      // Additive, so this is a multiplier and not a lightness: values over 1
-      // clip to a white-hot core where several spikes overlap, which is the
-      // point of them.
-      //
-      // Lifted to pay for the sharp edge. A particle used to be a soft blob
-      // whose faint outer skirt covered several times the area of its core, and
-      // all of that area was summing with its neighbours' - so most of the
-      // formation's apparent brightness was skirt, not particle. Cutting to a
-      // hard disc removed that for nothing the eye reads as light, and the
-      // levels have to come up to put it back.
-      const level = (0.464 + wave * 0.272 + spike * 1.92 + isTract * 0.24 + glowBoost) * depth;
-      const hot = spike * 0.6;
-
-      color[o] = this.baseR[i] * level + hot;
-      color[o + 1] = this.baseG[i] * level + hot;
-      color[o + 2] = this.baseB[i] * level + hot;
-    }
-
-    this.geometry.attributes.position.needsUpdate = true;
-    this.geometry.attributes.aColor.needsUpdate = true;
+    this.material.uniforms.uTime.value = time;
+    this.material.uniforms.uRepel.value.set(
+      this.repelX,
+      this.repelY,
+      this.influence > 0.001 ? REPEL_STRENGTH * this.influence : 0,
+    );
+    this.material.uniforms.uGlow.value.set(
+      this.glowX,
+      this.glowY,
+      this.glowInfluence > 0.001 ? GLOW_STRENGTH * this.glowInfluence : 0,
+    );
 
     this.renderer.render(this.scene, this.camera);
   }

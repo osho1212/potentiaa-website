@@ -87,12 +87,28 @@ export default function GlassSurface({
   const greenChannelRef = useRef<SVGFEDisplacementMapElement>(null);
   const blueChannelRef = useRef<SVGFEDisplacementMapElement>(null);
   const gaussianBlurRef = useRef<SVGFEGaussianBlurElement>(null);
+  const lastDimensionsRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
 
   useEffect(() => {
-    const generateDisplacementMap = () => {
+    const updateDisplacementMap = () => {
       const rect = containerRef.current?.getBoundingClientRect();
-      const actualWidth = rect?.width || 400;
-      const actualHeight = rect?.height || 200;
+      const actualWidth = Math.round(rect?.width || 200);
+      const actualHeight = Math.round(rect?.height || 80);
+
+      // Only regenerate if dimensions actually changed significantly (> 4px) to prevent thrashing during smooth morphs
+      if (
+        Math.abs(actualWidth - lastDimensionsRef.current.w) < 4 &&
+        Math.abs(actualHeight - lastDimensionsRef.current.h) < 4 &&
+        feImageRef.current?.getAttribute("href")
+      ) {
+        return;
+      }
+      lastDimensionsRef.current = { w: actualWidth, h: actualHeight };
+
+      feImageRef.current?.setAttribute("href", generateDisplacementMap(actualWidth, actualHeight));
+    };
+
+    const generateDisplacementMap = (actualWidth: number, actualHeight: number) => {
       const edgeSize = Math.min(actualWidth, actualHeight) * (borderWidth * 0.5);
 
       const svgContent = `
@@ -117,10 +133,6 @@ export default function GlassSurface({
       return `data:image/svg+xml,${encodeURIComponent(svgContent)}`;
     };
 
-    const updateDisplacementMap = () => {
-      feImageRef.current?.setAttribute("href", generateDisplacementMap());
-    };
-
     updateDisplacementMap();
     (
       [
@@ -141,9 +153,7 @@ export default function GlassSurface({
     const node = containerRef.current;
     if (!node) return;
     const resizeObserver = new ResizeObserver(() => {
-      // Deferred a tick: the observer fires mid-layout, and the map is built
-      // from the box it is reporting on.
-      setTimeout(updateDisplacementMap, 0);
+      updateDisplacementMap();
     });
     resizeObserver.observe(node);
     return () => resizeObserver.disconnect();

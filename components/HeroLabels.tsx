@@ -4,13 +4,13 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { RefObject } from "react";
 import type { HeroParticlesHandle } from "./HeroParticles";
 import { sampleGradientCss } from "@/lib/heroParticles";
-import { CUBE, cardBox, isNarrow, seatAt, type LiveCardState } from "@/lib/flowLayout";
+import { CUBE, isNarrow, seatAt, type LiveCardState } from "@/lib/flowLayout";
 import { site } from "@/lib/site";
 import GlassSurface from "./GlassSurface";
 
 /**
  * The flow cards drifting around the particle swarm as 3D refractive glass cubes,
- * morphing seamlessly into full glass stations upon scrolling into the flow section.
+ * settling gracefully into their flow seats and straightening flat upon completion.
  */
 
 /**
@@ -124,6 +124,7 @@ export default function HeroLabels({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const labelRefs = useRef<Array<HTMLDivElement | null>>([]);
   const hoveredRef = useRef<HTMLElement | null>(null);
   const scalesRef = useRef<number[]>([]);
   const prevCoordsRef = useRef<Array<{ x: number; y: number }>>([]);
@@ -165,6 +166,9 @@ export default function HeroLabels({
       originY = c.top - p.top;
       pinW = p.width;
       pinH = p.height;
+      container.style.setProperty("--card-w", `${CUBE.w}px`);
+      container.style.setProperty("--card-h", `${CUBE.h}px`);
+      container.style.setProperty("--card-radius", `${CUBE.radius}px`);
     };
 
     const seat = (i: number) => {
@@ -179,22 +183,9 @@ export default function HeroLabels({
       const releaseY = flow ? flow.releaseY : 0;
       const window_ = Math.max(0.01, 1 - STAGGER * (count - 1));
 
-      // The card the cubes morph INTO is not the same box on a phone as on a
-      // desktop - see cardBox. Read once per frame rather than per card, since
-      // every card morphs into the same box.
-      const box = cardBox(pinW, pinH);
-
-      /**
-       * The orbit is drawn in, not just the seats.
-       *
-       * ORBITS reach 0.48 of the container each way, which on a desktop is a
-       * wide, lazy sweep around the artwork. On a phone the container is the
-       * artwork - about 374px - and the same fraction swings a 58px cube clean
-       * off the side of the screen: measured at -62px, fully outside the
-       * viewport, for two of the six. Pulling the radii in keeps all six on
-       * screen for the whole lap without changing the shape of the motion.
-       */
-      const orbitScale = isNarrow(pinW) ? 0.6 : 1;
+      // Orbit scales with viewport so the constellation fits on phones without
+      // crashing into the hero copy or flying off screen.
+      const orbitScale = Math.min(boxW, boxH) < 600 ? 0.72 : 1;
 
       for (let i = 0; i < count; i++) {
         const el = cardRefs.current[i];
@@ -225,29 +216,50 @@ export default function HeroLabels({
           }
         }
 
-        // Morph dimensions from 3D Cube to Card
-        const morphK = Math.min(1, Math.max(0, k));
-        // Expand width smoothly
-        const widthT = ease(morphK * 1.3);
-        const heightT = ease(morphK * 1.3);
-        const curW = CUBE.w + (box.w - CUBE.w) * widthT;
-        const curH = CUBE.h + (box.h - CUBE.h) * heightT;
-        const curRadius = CUBE.radius + (box.radius - CUBE.radius) * morphK;
-
-        // 3D pitch/yaw/roll that tilts the cube in orbit and flattens out on card seat
-        const cubeTilt = 1 - morphK;
+        // 3D pitch/yaw/roll that tilts the cube in orbit and straightens to 0deg flat when flow completes
+        const cubeTilt = Math.max(0, 1 - k * 1.2);
         const pitch = Math.sin(phi + i * 1.2) * 14 * cubeTilt;
         const yaw = Math.cos(phi + i * 1.6) * 18 * cubeTilt;
         const roll = Math.sin(phi * 0.8 + i) * 8 * cubeTilt;
 
         const target = hoveredRef.current === el ? HOVER_SCALE : 1;
-        const scale = (scalesRef.current[i] += (target - scalesRef.current[i]) * SCALE_EASE);
+        const hoverScale = (scalesRef.current[i] += (target - scalesRef.current[i]) * SCALE_EASE);
 
-        el.style.width = `${curW.toFixed(1)}px`;
-        el.style.height = `${curH.toFixed(1)}px`;
-        el.style.borderRadius = `${curRadius.toFixed(1)}px`;
-        el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) perspective(900px) rotateX(${pitch.toFixed(2)}deg) rotateY(${yaw.toFixed(2)}deg) rotateZ(${roll.toFixed(2)}deg) scale(${scale.toFixed(4)})`;
-        el.style.setProperty("--k", morphK.toFixed(3));
+        // 100% GPU-composited transform for 3D cube
+        el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) rotateX(${pitch.toFixed(1)}deg) rotateY(${yaw.toFixed(1)}deg) rotateZ(${roll.toFixed(1)}deg) scale(${hoverScale.toFixed(4)})`;
+        el.style.setProperty("--k", k.toFixed(2));
+
+        // Position straight, flat 2D text label at seat
+        const labelEl = labelRefs.current[i];
+        if (labelEl) {
+          const s = seat(i);
+          const narrow = isNarrow(pinW);
+          // Revealed ONLY when flow reaches its final stage (k >= 0.80)
+          const labelOpacity = Math.max(0, Math.min(1, (k - 0.8) * 5.0));
+
+          if (narrow) {
+            // MOBILE VIEW: Top-left to bottom-right staircase
+            // Upper half (0, 1, 2) on left flank -> Place on the RIGHT
+            // Lower half (3, 4, 5) on right flank -> Place on the LEFT
+            const isRightSide = i < 3;
+            const slideOffset = (1 - labelOpacity) * (isRightSide ? 8 : -8);
+
+            labelEl.style.opacity = labelOpacity.toFixed(3);
+            if (isRightSide) {
+              labelEl.style.transform = `translate3d(calc(${s.x + 38 + slideOffset}px), calc(-50% + ${s.y + releaseY}px), 0)`;
+            } else {
+              labelEl.style.transform = `translate3d(calc(-100% + ${s.x - 38 - slideOffset}px), calc(-50% + ${s.y + releaseY}px), 0)`;
+            }
+          } else {
+            // DESKTOP VIEW: Top for index 0, bottom for 1..5
+            const isTop = i === 0;
+            const labelOffsetY = isTop ? -54 : 54;
+            const slideOffset = (1 - labelOpacity) * (isTop ? -6 : 6);
+
+            labelEl.style.opacity = labelOpacity.toFixed(3);
+            labelEl.style.transform = `translate3d(calc(-50% + ${s.x}px), calc(-50% + ${s.y + releaseY + labelOffsetY + slideOffset}px), 0)`;
+          }
+        }
 
         // Record live position for comet particle trails
         if (liveCardsRef?.current) {
@@ -262,38 +274,34 @@ export default function HeroLabels({
             y: pinY,
             vx,
             vy,
-            k: morphK,
+            k,
             tint: cards[i].tint,
             active: true,
           };
         }
       }
-
-      const hovered = hoveredRef.current;
-      if (hovered) {
-        const r = hovered.getBoundingClientRect();
-        particlesRef.current?.glow(true, r.left + r.width / 2, r.top + r.height / 2);
-      }
     };
 
-    let raf = 0;
+    measure();
+
+    let animationFrameId: number;
     let running = false;
     const started = performance.now();
 
     const tick = (now: number) => {
-      raf = requestAnimationFrame(tick);
+      animationFrameId = requestAnimationFrame(tick);
       place((now - started) / 1000);
     };
 
     const start = () => {
       if (running || reduced) return;
       running = true;
-      raf = requestAnimationFrame(tick);
+      animationFrameId = requestAnimationFrame(tick);
     };
     const stop = () => {
       if (!running) return;
       running = false;
-      cancelAnimationFrame(raf);
+      cancelAnimationFrame(animationFrameId);
     };
 
     measure();
@@ -315,14 +323,16 @@ export default function HeroLabels({
     return () => {
       sizeObserver.disconnect();
       intersectionObserver.disconnect();
-      cancelAnimationFrame(raf);
+      cancelAnimationFrame(animationFrameId);
     };
   }, [cards, particlesRef, flowRef, liveCardsRef]);
 
   const handleEnter = useCallback((event: React.MouseEvent<HTMLElement>) => {
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
     hoveredRef.current = event.currentTarget;
-  }, []);
+    const r = event.currentTarget.getBoundingClientRect();
+    particlesRef.current?.glow(true, r.left + r.width / 2, r.top + r.height / 2);
+  }, [particlesRef]);
 
   const handleLeave = useCallback(() => {
     if (hoveredRef.current === null) return;
@@ -332,13 +342,14 @@ export default function HeroLabels({
 
   return (
     <div className="hero__labels" ref={containerRef}>
+      {/* 1. The 3D Glass Cubes */}
       {cards.map((card, i) => (
         <div
           key={card.title}
           ref={(el) => {
             cardRefs.current[i] = el;
           }}
-          className="hero__label"
+          className="hero__label hero__cube"
           style={
             {
               "--flow-tint": sampleGradientCss(card.tint, { lighten: 0.55 }),
@@ -351,7 +362,7 @@ export default function HeroLabels({
           onMouseLeave={handleLeave}
         >
           <GlassSurface
-            className="hero__label-glass"
+            className="hero__label-glass hero__cube-glass"
             width="100%"
             height="100%"
             borderRadius={CUBE.radius}
@@ -365,27 +376,42 @@ export default function HeroLabels({
             backgroundOpacity={0.07}
             saturation={1.28}
           >
-            {/* 3D Cube Facet & Bevel Lighting (prominent when in cube mode, fades as k -> 1) */}
+            {/* 3D Cube Facet & Bevel Lighting */}
             <div className="hero__cube-shimmer" aria-hidden="true" />
             <div className="hero__cube-edge-glint" aria-hidden="true" />
 
             <div className="hero__label-inner">
-              {/* Domain Icon: Centered in cube mode, smoothly docks left in card mode */}
+              {/* Centered Domain Icon */}
               <div className="hero__label-icon-badge" aria-hidden="true">
                 <div className="hero__label-icon-glow" />
                 <FlowIcon index={i} />
               </div>
-
-              {/* Text Body: Fades in smoothly as card expands */}
-              <div className="hero__label-text">
-                <div className="hero__label-header">
-                  <span className="hero__label-index">{String(i + 1).padStart(2, "0")}</span>
-                  <span className="hero__label-title">{card.title}</span>
-                </div>
-                <span className="hero__label-note">{card.note}</span>
-              </div>
             </div>
           </GlassSurface>
+        </div>
+      ))}
+
+      {/* 2. Flat Straight Text Labels (Revealed strictly at the final flow formation) */}
+      {cards.map((card, i) => (
+        <div
+          key={`label-${card.title}`}
+          ref={(el) => {
+            labelRefs.current[i] = el;
+          }}
+          className={`hero__flow-label ${
+            i === 0 ? "hero__flow-label--top" : "hero__flow-label--bottom"
+          } ${i < 3 ? "hero__flow-label--mobile-right" : "hero__flow-label--mobile-left"}`}
+          style={
+            {
+              "--flow-tint": sampleGradientCss(card.tint, { lighten: 0.55 }),
+            } as React.CSSProperties
+          }
+        >
+          <div className="hero__label-header">
+            <span className="hero__label-index">{String(i + 1).padStart(2, "0")}</span>
+            <span className="hero__label-title">{card.title}</span>
+          </div>
+          <span className="hero__label-note">{card.note}</span>
         </div>
       ))}
     </div>

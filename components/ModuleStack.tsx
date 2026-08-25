@@ -449,9 +449,7 @@ export default function ModuleStack() {
      * depth clamp, which is the one number that must not drift.
      */
     const apply = (flight: Flight, bob: number) => {
-      container.style.left = `${flight.x}px`;
-      container.style.top = `${flight.y + bob}px`;
-      container.style.transform = `translate(-50%, -50%) scale(${flight.scale}) rotate(${flight.rotate}deg)`;
+      container.style.transform = `translate3d(${flight.x.toFixed(1)}px, ${(flight.y + bob).toFixed(1)}px, 0) translate(-50%, -50%) scale(${flight.scale.toFixed(4)}) rotate(${flight.rotate.toFixed(2)}deg)`;
 
       const size = cubeSize * flight.scale;
       const box = new DOMRect(

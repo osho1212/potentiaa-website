@@ -214,8 +214,22 @@ button { font: inherit; cursor: pointer; }
 .header__brand {
   display: flex;
   align-items: center;
+  gap: var(--space-1);
+  padding-inline: var(--space-4);
+}
+
+.header__brand-link {
+  display: flex;
+  align-items: center;
   gap: var(--space-3);
-  padding-inline: var(--space-5);
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (max-width: 767px) {
+  .header__brand {
+    padding-inline: var(--space-2) var(--space-4);
+  }
 }
 
 .header__logo {
@@ -263,8 +277,8 @@ button { font: inherit; cursor: pointer; }
 .nav-toggle {
   display: none;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
   border: 0;
   border-radius: var(--radius-full);
@@ -352,89 +366,110 @@ button { font: inherit; cursor: pointer; }
   inset: 0;
   border: 0;
   padding: 0;
-  background: var(--scrim-on-dark);
+  background: rgba(3, 7, 18, 0.44);
+  backdrop-filter: blur(8px) saturate(115%);
+  -webkit-backdrop-filter: blur(8px) saturate(115%);
   opacity: 0;
   transition: opacity var(--duration-slow) var(--ease-standard);
 }
 .nav-drawer[data-open="true"] .nav-drawer__scrim { opacity: 1; }
 
+.nav-drawer__close-topleft {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + var(--space-4));
+  left: var(--space-4);
+  z-index: 50;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  pointer-events: auto !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  transition: background-color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+.nav-drawer__close-topleft:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.16);
+}
+
 .nav-drawer__panel {
   position: absolute;
-  inset-block: 0;
-  right: 0;
-  width: min(84vw, 340px);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-
-  /* Clears the header pill, which stays on screen behind the scrim. */
-  padding: var(--below-header) var(--space-5) var(--space-8);
-
-  background: var(--surface-card-dark);
-  border-left: 1px solid var(--border-on-dark);
-  transform: translateX(100%);
-  transition: transform var(--duration-slow) var(--ease-smooth);
-
-  /* Long menus scroll inside the panel; the page behind it does not. */
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-.nav-drawer[data-open="true"] .nav-drawer__panel { transform: none; }
-
-.nav-drawer__nav {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.nav-drawer__link {
-  display: flex;
-  align-items: center;
-  /* 48px, not the 37px the pill links were: this is a touch surface first. */
-  min-height: 48px;
-  padding-inline: var(--space-4);
-  border-radius: var(--radius-md);
-  font-family: var(--font-display);
-  font-size: var(--fs-md);
-  font-weight: var(--fw-medium);
-  color: var(--text-on-dark-secondary);
-  transition:
-    background-color var(--duration-base) var(--ease-standard),
-    color var(--duration-base) var(--ease-standard);
-}
-@media (hover: hover) and (pointer: fine) {
-  .nav-drawer__link:hover { color: var(--text-on-dark); background: var(--veil-soft); }
-}
-
-.nav-drawer__cta {
-  margin-top: var(--space-5);
+  inset: 0;
   width: 100%;
-  justify-content: center;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: none;
+  pointer-events: none;
+  transform: translateX(-40px);
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+  overflow: hidden;
 }
+.nav-drawer[data-open="true"] .nav-drawer__panel {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.nav-drawer__wheel-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Floating Get in Touch CTA on the right side */
+.nav-drawer__floating-cta-wrap {
+  position: absolute;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 32px);
+  right: var(--space-5);
+  z-index: 40;
+  pointer-events: auto;
+}
+
+.nav-drawer__floating-cta {
+  box-shadow: 0 10px 30px rgba(38, 93, 255, 0.45), 0 0 20px rgba(250, 69, 146, 0.35);
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  font-weight: var(--fw-semibold);
+  font-size: 14px;
+  padding-inline: var(--space-5);
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.nav-drawer__floating-cta:active { transform: scale(0.96); }
 
 /* ---------------------------------------------------------------
    Module stack - the scroll-driven canvas sprite (hero element)
    --------------------------------------------------------------- */
 .module-stack {
-  /* Substantially bigger. At min(36vw, 26vh, 420px) x 0.82 this resolved to
-     roughly 170px on a 1280x800 screen - a token, not a hero element. The helix
-     puts it in front only where the page is empty, so it no longer has to stay
-     small to stay out of the way. */
   --cube-size: min(46vw, 44vh, 620px);
 
   position: fixed;
-  /* left/top are written in px every frame by ModuleStack; the transform
-     carries the -50%/-50% centring so those two numbers are the object's
-     CENTRE rather than its corner. Anchoring to the centre is what lets the
-     depth scale grow it symmetrically instead of pinning one edge. */
-  left: 50vw;
-  top: 50vh;
+  left: 0;
+  top: 0;
   width: var(--cube-size);
   height: var(--cube-size);
-  transform: translate(-50%, -50%);
+  transform: translate3d(50vw, 50vh, 0) translate(-50%, -50%);
   z-index: var(--z-stack);
   pointer-events: none;
-  will-change: transform, left, top;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 .module-stack__canvas {
@@ -500,17 +535,20 @@ button { font: inherit; cursor: pointer; }
 .field__shard {
   position: absolute;
   border-radius: var(--radius-md);
+  background: var(--field-accent, var(--blue-500));
   filter: blur(0.5px);
-  /* Colour and per-shard opacity are written by the component every frame -
-     hue from the section under the sightline, alpha from the shard's depth. */
   will-change: transform;
+  backface-visibility: hidden;
 }
 
 .field__glow {
   position: absolute;
   border-radius: var(--radius-full);
+  background: var(--field-accent, var(--blue-700));
   filter: blur(90px);
   opacity: 0.5;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 /* ---------------------------------------------------------------
@@ -814,22 +852,27 @@ button { font: inherit; cursor: pointer; }
   position: absolute;
   inset: 0;
   margin: auto;
-  will-change: transform, width, height;
+  width: var(--card-w, 58px);
+  height: var(--card-h, 58px);
+  border-radius: var(--card-radius, 16px);
+  will-change: transform;
   transform-style: preserve-3d;
+  backface-visibility: hidden;
   cursor: default;
   pointer-events: auto;
 }
 
-/* The refractive shell - GlassSurface. Neutral lens with brand hue rim */
-.hero__label-glass {
+/* The refractive shell - GlassSurface. Pure 3D glass cube */
+.hero__cube-glass {
   width: 100%;
   height: 100%;
-  background: rgba(10, 18, 46, 0.42);
-  border: 1px solid var(--flow-tint-soft, var(--glass-border));
+  border-radius: inherit;
+  background: rgba(10, 18, 46, 0.45);
+  border: 1.5px solid var(--flow-tint-soft, var(--glass-border));
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
-    0 0 16px -2px var(--flow-tint-faint),
-    0 18px 40px -24px rgba(0, 0, 0, 0.9);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.32),
+    0 0 18px -2px var(--flow-tint-faint),
+    0 18px 36px -18px rgba(0, 0, 0, 0.9);
   transition: border-color var(--duration-base) var(--ease-standard),
               box-shadow var(--duration-base) var(--ease-standard);
   position: relative;
@@ -837,11 +880,11 @@ button { font: inherit; cursor: pointer; }
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .hero__label:hover .hero__label-glass {
+  .hero__label:hover .hero__cube-glass {
     border-color: var(--flow-tint);
     box-shadow:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.35),
-      0 0 36px 2px var(--flow-tint-soft),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
+      0 0 36px 4px var(--flow-tint-soft),
       0 18px 40px -24px rgba(0, 0, 0, 0.9);
   }
 }
@@ -852,9 +895,8 @@ button { font: inherit; cursor: pointer; }
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.28) 0%, transparent 65%),
-              linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, transparent 50%, rgba(0, 0, 0, 0.28) 100%);
-  opacity: calc(max(0, 1 - var(--k, 0) * 1.8));
+  background: radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.32) 0%, transparent 65%),
+              linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 50%, rgba(0, 0, 0, 0.32) 100%);
   z-index: 2;
 }
 
@@ -864,50 +906,39 @@ button { font: inherit; cursor: pointer; }
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), var(--flow-tint), transparent);
-  opacity: calc(max(0, 1 - var(--k, 0) * 1.5));
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), var(--flow-tint), transparent);
   z-index: 3;
-}
-
-/* The card rail: leading edge stripe that links to the pipeline */
-.hero__label-glass::after {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 3px;
-  z-index: 5;
-  background: linear-gradient(180deg, transparent, var(--flow-tint), transparent);
-  opacity: calc(max(0, (var(--k, 0) - 0.25) * 1.33));
 }
 
 .hero__label .glass-surface__content {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   padding: 0;
   width: 100%;
   height: 100%;
+  border-radius: inherit;
 }
 
 .hero__label-inner {
   display: flex;
   align-items: center;
+  justify-content: center;
   width: 100%;
   height: 100%;
-  padding: 0 8px;
   position: relative;
   z-index: 4;
 }
 
-/* Icon badge: Centered in cube mode with vibrant brand glow, docks left in card mode */
+/* Centered luminous brand icon badge */
 .hero__label-icon-badge {
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
   border-radius: 12px;
   background: radial-gradient(circle, var(--flow-tint-faint) 0%, rgba(12, 22, 54, 0.7) 80%);
   border: 1.5px solid var(--flow-tint-soft);
@@ -916,7 +947,6 @@ button { font: inherit; cursor: pointer; }
   box-shadow:
     0 0 16px 2px var(--flow-tint-soft),
     inset 0 0 10px 0 var(--flow-tint-faint);
-  transform: scale(calc(1.05 - var(--k, 0) * 0.12));
   transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
 }
 
@@ -946,7 +976,7 @@ button { font: inherit; cursor: pointer; }
     box-shadow:
       0 0 26px 4px var(--flow-tint),
       inset 0 0 14px 2px var(--flow-tint-soft);
-    transform: scale(calc(1.12 - var(--k, 0) * 0.12));
+    transform: scale(1.08);
   }
 }
 
@@ -967,48 +997,99 @@ button { font: inherit; cursor: pointer; }
   }
 }
 
-/* Text details: Fades and slides in seamlessly as card expands */
-.hero__label-text {
+/* Untilted Flat Flow Screen Station Labels */
+.hero__flow-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max-content;
+  max-width: 190px;
+  height: max-content;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  margin-left: 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  opacity: calc(max(0, (var(--k, 0) - 0.25) * 1.33));
-  transform: translateX(calc((1 - var(--k, 0)) * 12px));
+  align-items: center;
+  text-align: center;
   pointer-events: none;
+  z-index: 8;
+  opacity: 0;
+  will-change: transform, opacity;
+  transform: translate3d(-50%, -50%, 0); /* 100% 2D flat, strictly untilted without 3D rotation */
 }
 
 .hero__label-header {
   display: flex;
   align-items: baseline;
-  gap: var(--space-2);
+  justify-content: center;
+  gap: 6px;
 }
 
 .hero__label-index {
   font-family: var(--font-mono);
-  font-size: var(--fs-xs);
-  color: var(--flow-tint);
+  font-size: 11px;
+  color: #ffffff;
   opacity: 0.9;
   letter-spacing: var(--tracking-wide);
   font-weight: var(--fw-semibold);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
 }
 
 .hero__label-title {
   font-family: var(--font-display);
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-medium);
-  color: var(--text-on-dark);
+  font-size: 13.5px;
+  font-weight: var(--fw-semibold);
+  color: #ffffff;
   line-height: 1.2;
+  white-space: nowrap;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
 }
 
 .hero__label-note {
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-on-dark-secondary);
+  font-size: 10.5px;
+  color: #ffffff;
+  opacity: 0.85;
   line-height: 1.25;
   margin-top: 2px;
+  white-space: nowrap;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
+}
+
+/* Mobile specific left/right flank typography & alignment for staircase */
+@media (max-width: 767px) {
+  .hero__flow-label {
+    max-width: 155px;
+  }
+
+  .hero__flow-label--mobile-right {
+    align-items: flex-start;
+    text-align: left;
+  }
+  .hero__flow-label--mobile-right .hero__label-header {
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .hero__flow-label--mobile-left {
+    align-items: flex-end;
+    text-align: right;
+  }
+  .hero__flow-label--mobile-left .hero__label-header {
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .hero__label-index {
+    font-size: 10.5px;
+  }
+  .hero__label-title {
+    font-size: 13.5px;
+    font-weight: var(--fw-semibold);
+    white-space: nowrap;
+  }
+  .hero__label-note {
+    font-size: 10px;
+    white-space: nowrap;
+  }
 }
 
 /* The six ellipses that used to live here are now ORBITS in
@@ -1181,6 +1262,14 @@ button { font: inherit; cursor: pointer; }
   pointer-events: none;
 }
 
+/* Ensure the sticky pins and cards are cleanly hidden ONLY after having scrolled completely off the top of the viewport */
+.flow-stage--passed .flow-stage__pin {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 /* The glass, BELOW --z-content (10) so the flow section's heading and body
    sit on it rather than under it. */
 .flow-stage__pin--under { z-index: 9; }
@@ -1254,7 +1343,10 @@ button { font: inherit; cursor: pointer; }
   opacity: calc((var(--flow-t, 0) - 0.05) * 2.5);
 
   /* Still leaves with its own section rather than hanging over the next one. */
-  transform: translateY(var(--flow-release, 0px));
+  transform: translate3d(0, var(--flow-release, 0px), 0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  contain: paint layout;
 
   /* Lit from within, in the brand ramp: blue rising from the corner the flow
      starts in, coral over the corner it ends in, magenta pooling between them.
@@ -1376,6 +1468,12 @@ button { font: inherit; cursor: pointer; }
   padding-top: calc(var(--below-header) + var(--space-6) + 100px);
 }
 
+@media (max-width: 767px) {
+  .flow-section {
+    padding-top: calc(var(--below-header) + var(--space-4));
+  }
+}
+
 /* The copy sits at ONE spot on the glass, at every scroll position.
 
    --flow-copy-shift cancels the document's own scrolling and leaves the panel's
@@ -1409,7 +1507,9 @@ button { font: inherit; cursor: pointer; }
      the wide layout: over 1226px the 1200px cap is the smaller of the two and
      still wins, so the centred measure on a large screen is unchanged. */
   max-width: min(var(--container-max), calc(100% - var(--flow-panel-inset) * 2));
-  transform: translateY(var(--flow-copy-shift, 0px));
+  transform: translate3d(0, var(--flow-copy-shift, 0px), 0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
   opacity: calc((var(--flow-t, 0) - 0.4) * 2.6);
 }
 
@@ -1429,13 +1529,26 @@ button { font: inherit; cursor: pointer; }
    down buys the ~120px the column needs. */
 @media (max-width: 767px) {
   .flow-section {
-    padding-top: calc(var(--below-header) + var(--space-4));
+    padding-top: calc(var(--below-header) + var(--space-3));
+  }
+
+  .flow-section__copy .eyebrow {
+    font-size: 11px;
+    margin-bottom: var(--space-1);
+  }
+
+  .flow-section__copy .section-title {
+    font-size: clamp(20px, 5.5vw, 25px);
+    line-height: 1.15;
+    margin-bottom: 0;
   }
 
   .flow-section__body {
-    margin-top: var(--space-3);
-    font-size: var(--fs-sm);
-    line-height: var(--lh-normal);
+    margin-top: var(--space-4);
+    font-size: 13px;
+    line-height: 1.35;
+    max-width: 44ch;
+    opacity: 0.85;
   }
 }
 

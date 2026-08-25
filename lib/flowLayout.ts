@@ -47,7 +47,19 @@ const BAND_TOP = 0.5;
  * two on the screens where a fraction happens to be the better answer.
  */
 function bandTop(pinH: number): number {
-  return Math.max(310, Math.min(0.46 * pinH, 400));
+  return Math.max(285, Math.min(0.36 * pinH, 315));
+}
+
+function columnMetrics(pinH: number) {
+  const top = bandTop(pinH);
+  const bottom = (1 - PANEL.bottom) * pinH - INSET - 16;
+  const available = Math.max(280, bottom - top);
+
+  // Spacing centre to centre across the 6 stations
+  const h = CUBE.h;
+  const spacing = (available - h) / 5;
+
+  return { top, h, spacing };
 }
 
 /** Breathing room between a card's edge and the glass it sits on. */
@@ -116,40 +128,7 @@ export function cardBox(pinW: number, pinH: number) {
   return { w: Math.min(CARD.w, usable), h, radius: 12 };
 }
 
-/** Gap between two stacked cards. */
-const COLUMN_GAP = 10;
 
-/**
- * The column, solved so that six cards land exactly inside the band.
- *
- * SIZE IS DERIVED, NOT PICKED. The band is whatever the panel has left under
- * the copy, and that is 266px on a 568px phone against 448px on a 932px one -
- * no single card height sits in both. So the height falls out of the space: six
- * cards and five gaps share the band, capped at 56px so a tall phone gets
- * generous cards rather than absurd ones, floored at 30px so a short one stays
- * legible.
- *
- * `spacing` is then solved from the FINAL height rather than estimated ahead of
- * it, reserving half a card at each end. Skipping that is what left the last
- * card hanging a few px past the glass at every size.
- */
-function columnMetrics(pinH: number) {
-  const top = bandTop(pinH);
-  const bottom = (1 - PANEL.bottom) * pinH - INSET;
-  const available = Math.max(180, bottom - top);
-
-  // Floor of 34 rather than 30: the icon badge inside the card is 30px on a
-  // phone, and a card shorter than its own badge clips it.
-  const h = Math.max(34, Math.min(56, (available - COLUMN_GAP * 5) / 6));
-  // Centre to centre. First centre sits at top + h/2, last at bottom - h/2.
-  const spacing = (available - h) / 5;
-
-  return { top, h, spacing };
-}
-
-/**
- * Live positioned card state for particle trails and stream coalescence.
- */
 export interface LiveCardState {
   x: number;
   y: number;
@@ -167,8 +146,8 @@ export interface LiveCardState {
  * bottom and the answer is wanted at the top.
  */
 function bounds(pinW: number, pinH: number) {
-  const padX = CARD.w / 2 + INSET;
-  const padY = CARD.h / 2 + INSET;
+  const padX = CUBE.w / 2 + INSET + 40;
+  const padY = CUBE.h / 2 + INSET + 50;
   return {
     xMin: PANEL.left * pinW + padX,
     xMax: (1 - PANEL.right) * pinW - padX,
@@ -209,24 +188,9 @@ export function seatAt(i: number, count: number, pinW: number, pinH: number): Po
    */
   if (isNarrow(pinW)) {
     const { top, h, spacing } = columnMetrics(pinH);
-    const w = Math.min(CARD.w, (1 - PANEL.left - PANEL.right) * pinW - INSET * 2);
-
-    /**
-     * A STAIRCASE HERE TOO, descending rather than rising.
-     *
-     * The seats were a dead-centre column, which read as a list rather than a
-     * journey. Now that the card no longer stretches to fill the panel there is
-     * width left over, and spending it on a lateral drift gives the phone the
-     * same staircase the desktop has - just running the other way, because a
-     * phone is read downwards: 01 Customer at top LEFT, 06 Owner at bottom
-     * RIGHT, so the enquiry still travels the full diagonal of the glass.
-     *
-     * The travel is whatever the card leaves behind, so it widens with the
-     * screen and collapses to a straight column rather than overflowing when
-     * there is nothing to spare.
-     */
-    const xMin = PANEL.left * pinW + INSET + w / 2;
-    const xMax = (1 - PANEL.right) * pinW - INSET - w / 2;
+    // Staircase trajectory: 01 Customer at top-left, 06 Owner at bottom-right
+    const xMin = PANEL.left * pinW + INSET + CUBE.w / 2 + 10;
+    const xMax = (1 - PANEL.right) * pinW - INSET - CUBE.w / 2 - 10;
     const x = xMax > xMin ? xMin + (xMax - xMin) * k : pinW / 2;
 
     return { x, y: top + h / 2 + spacing * i };
