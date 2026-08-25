@@ -14,8 +14,15 @@
  * MUST MATCH .flow-stage__panel in globals.css. The seats below are derived
  * from these rather than being positioned independently, because a card whose
  * corner hangs outside the glass is the one thing this layout may not do.
+ *
+ * `top` is NOT a fraction any more and is not listed here. The panel's top edge
+ * is `--below-header` - a fixed px calc, because what it has to clear is the
+ * fixed header pill, whose height does not scale with the viewport. Nothing in
+ * this file reads it: the seats start at BAND_TOP, half a viewport down, so the
+ * top edge cannot constrain them. Left, right and bottom still can, and still
+ * do.
  */
-export const PANEL = { left: 0.03, right: 0.03, top: 0.05, bottom: 0.04 };
+export const PANEL = { left: 0.03, right: 0.03, bottom: 0.04 };
 
 /**
  * Where the flow's band starts, below the section's header copy.

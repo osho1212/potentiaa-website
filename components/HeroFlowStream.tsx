@@ -119,7 +119,28 @@ export default function HeroFlowStream({
       const r = pin.getBoundingClientRect();
       width = r.width;
       height = r.height;
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      /**
+       * Capped at 1.5, not 2 - a deliberate softening, not a bug fix.
+       *
+       * At `min(dpr, 2)` this buffer was exactly dpr x the viewport, which is
+       * the CORRECT amount of resolution for a sharp canvas - unlike the hero
+       * swarm's old buffer, that was never oversampled the way the swarm's was
+       * once. There was no free win sitting here.
+       *
+       * Cut anyway, on the owner's call: a dpr-2 display was measured spending
+       * a modest but real tail on this canvas - p90 20.8ms against 17.5ms with
+       * it hidden, worst frame 75ms against 50ms - all of it while several
+       * comets are mid-flight and additively blending at once. 1.5 trades some
+       * of that sharpness back for headroom: the buffer's AREA drops from 4x
+       * the viewport to 2.25x, a 44% cut, while dpr-1 displays are untouched
+       * (`min(1, 1.5)` is still 1).
+       *
+       * Soft is the right word for what this costs, not broken - comets and
+       * the connecting line are glow and blur to begin with, which is a much
+       * more forgiving place to lose a fraction of a pixel than the crisp
+       * edges of type or a hard-edged UI panel would be.
+       */
+      dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
       canvas.style.width = `${width}px`;

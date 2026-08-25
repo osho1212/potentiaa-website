@@ -371,25 +371,16 @@ export default function ModuleStack() {
     let dockWritten = -1;
 
     /**
-     * The words currently on screen, refreshed on a slow cadence.
+     * When the slow-cadence layout read last ran.
      *
-     * The module may only come forward where the page is genuinely empty, and
-     * "empty" has to mean the actual text rather than the nominal column: the
-     * container is 1200px of a 1280px viewport, so testing against the column
-     * meant the module could NEVER clear it and the front half of the helix
-     * stopped existing - measured at 0 front frames out of 322.
-     *
-     * Real rects also make it better than a rule could be. Copy does not fill
-     * its column evenly; there are gaps beside short headings, above section
-     * breaks and beside the hero band, and this finds all of them without
-     * anyone having to enumerate them.
-     *
-     * Read every 120ms rather than every frame. Layout only changes on scroll
-     * and resize, both of which are slower than 8fps, and a getBoundingClientRect
-     * sweep of every text node at 60fps is the kind of per-frame layout read
-     * that has to be justified rather than assumed.
+     * It used to also collect the rect of every word on screen, for a clearance
+     * test that decided whether the module was allowed to come forward. That
+     * test went when the owner ruled that overlap is the point and the module
+     * is simply the foreground object - but the sweep feeding it stayed, and
+     * kept running against a function nobody called: 157 nodes, a
+     * getBoundingClientRect each, sixteen times a second. Measured at 0.82ms a
+     * sweep, that was 13.7ms of forced layout per second buying nothing.
      */
-    let textRects: DOMRect[] = [];
     let rectsAt = 0;
 
     /**
@@ -414,9 +405,28 @@ export default function ModuleStack() {
      */
     let heroSpan = HERO_SPAN_FALLBACK;
 
+    /**
+     * The sprite's CSS width - the one number everything else is scaled from.
+     *
+     * Cached, because it is a constant. The container is sized by the
+     * stylesheet and only ever SCALED by a transform, which does not change the
+     * layout box: measured live it read 511 on every frame of a scroll.
+     *
+     * It was read straight from the element four times a frame, and the last of
+     * those sat in `apply`, immediately after writing left/top/transform. A
+     * layout read after a style write forces the browser to flush layout then
+     * and there: measured on this element, 0.292ms against 0.002ms for the
+     * writes alone. Every frame, to re-learn 511.
+     */
+    let cubeSize = container.offsetWidth;
+
     const refreshLayout = (now: number) => {
       if (now - rectsAt < 60) return;
       rectsAt = now;
+
+      // Before the styles for this frame are written, so it is a clean read
+      // rather than a forced reflow. Resize is the only thing that moves it.
+      cubeSize = container.offsetWidth || cubeSize;
 
       logoBox =
         document.querySelector<HTMLElement>(".header__logo")?.getBoundingClientRect() ??
@@ -428,28 +438,6 @@ export default function ModuleStack() {
         heroSpan = Math.min(heroHeight / lap, 0.4);
       }
 
-      textRects = [];
-      const nodes = document.querySelectorAll<HTMLElement>(
-        "h1, h2, h3, p, li, .btn, .tag, .eyebrow",
-      );
-      nodes.forEach((node) => {
-        const box = node.getBoundingClientRect();
-        if (box.height === 0 || box.bottom < 0 || box.top > window.innerHeight) return;
-        if (!node.textContent?.trim()) return;
-        textRects.push(box);
-      });
-    };
-
-    /** Would the module cover a word if it came forward right now? */
-    const wouldCoverText = (box: DOMRect): boolean => {
-      // A margin of grace, so it does not come forward the instant it is
-      // technically clear by a pixel and flip straight back.
-      const pad = 26;
-      return textRects.some(
-        (t) =>
-          Math.min(box.right, t.right + pad) - Math.max(box.left, t.left - pad) > 0 &&
-          Math.min(box.bottom, t.bottom + pad) - Math.max(box.top, t.top - pad) > 0,
-      );
     };
 
     /**
@@ -465,7 +453,7 @@ export default function ModuleStack() {
       container.style.top = `${flight.y + bob}px`;
       container.style.transform = `translate(-50%, -50%) scale(${flight.scale}) rotate(${flight.rotate}deg)`;
 
-      const size = container.offsetWidth * flight.scale;
+      const size = cubeSize * flight.scale;
       const box = new DOMRect(
         flight.x - size / 2,
         flight.y + bob - size / 2,
@@ -569,7 +557,7 @@ export default function ModuleStack() {
       const plane =
         theme.from.plane + (theme.to.plane - theme.from.plane) * eased;
 
-      const target = flightAt(p, container.offsetWidth, room, plane);
+      const target = flightAt(p, cubeSize, room, plane);
 
       // MIX THE DOCK IN.
       //
@@ -588,7 +576,7 @@ export default function ModuleStack() {
       if (dock > 0 && logoBox) {
         const berthX = logoBox.left + logoBox.width / 2;
         const berthY = logoBox.top + logoBox.height / 2;
-        const berthScale = (logoBox.width * DOCK_FILL) / container.offsetWidth;
+        const berthScale = (logoBox.width * DOCK_FILL) / cubeSize;
 
         target.x += (berthX - target.x) * dock;
         target.y += (berthY - target.y) * dock;
@@ -613,9 +601,10 @@ export default function ModuleStack() {
       // logo to the navbar - the header crossfades on exactly this value, so
       // leaving it at 1 would fly the module out and leave a hole behind it.
       const berth = reduced ? null : moduleBerth;
-      if (berth && berth.strength > 0.001) {
-        const b = berth.strength;
-        const berthScale = berth.size / container.offsetWidth;
+      const claim = berth ? berth.strength : 0;
+      if (berth && claim > 0.001) {
+        const b = claim;
+        const berthScale = berth.size / cubeSize;
         target.x += (berth.x - target.x) * b;
         target.y += (berth.y - target.y) * b;
         target.scale += (berthScale - target.scale) * b;
@@ -631,11 +620,41 @@ export default function ModuleStack() {
         // Frame-rate independent damping. This is what the old GSAP `scrub`
         // bought us: the module trails the scroll instead of being welded to
         // it, which is most of why it reads as floating rather than sliding.
+        //
+        // This is the HELIX's rate, and it stays the helix's rate. The berth
+        // does not ask for a faster trail, it asks for no trail at all - see
+        // `follow` below.
         const k = 1 - Math.exp(-delta * 5);
-        flight.x += (target.x - flight.x) * k;
-        flight.y += (target.y - flight.y) * k;
-        flight.scale += (target.scale - flight.scale) * k;
-        flight.rotate += (target.rotate - flight.rotate) * k;
+
+        /**
+         * A BERTH IS A PARK, NOT A PULL.
+         *
+         * Damping the module toward a berth the same way it is damped toward
+         * the helix leaves it permanently chasing: measured mid-scroll, it was
+         * still 128px left and 37px high of a berth it had supposedly been
+         * sitting in since the top of the section, and it only closed that gap
+         * around the halfway mark. What the reader sees is the object sliding
+         * right and down for the first half of the screen - which is exactly
+         * the "it moves with the scroll" this berth exists to stop. A merely
+         * faster rate does not fix it, it only shortens the slide.
+         *
+         * So at full claim the module IS the target: `follow` reaches 1 and
+         * the damping stops existing. It parks.
+         *
+         * That cannot snap, because `claim` also drives the target. The berth
+         * is mixed into the pose by the same number, so as this tightens from
+         * the trail toward exact tracking, the thing being tracked is easing
+         * into place on the same curve - by the time follow is 1 the module is
+         * already there. The motion is owned by the arrival curve rather than
+         * by the frame rate, which is what makes it land in the same place at
+         * any scroll speed.
+         */
+        const follow = k + (1 - k) * claim;
+
+        flight.x += (target.x - flight.x) * follow;
+        flight.y += (target.y - flight.y) * follow;
+        flight.scale += (target.scale - flight.scale) * follow;
+        flight.rotate += (target.rotate - flight.rotate) * follow;
         flight.opacity += (target.opacity - flight.opacity) * k;
         // Depth is NOT damped. It decides which side of the content the module
         // renders on, and easing a z-index swap produces a frame where the
@@ -665,11 +684,35 @@ export default function ModuleStack() {
       // The bob is a floating object's idle. A mark sitting in a navbar is not
       // floating, so it is faded out with the dock - a 10px sine on a 30px
       // logo would read as a bug.
-      const bob = reduced ? 0 : Math.sin(now / 2600) * 10 * (1 - flight.dock);
+      //
+      // Nor is an object PARKED ON A BERTH floating, so it fades out with the
+      // claim too. The flow section's berth holds the module at one fixed
+      // point in the frame for a whole screen of scrolling, and a 20px sine
+      // running through that hold is not read as breathing - it is read as the
+      // thing slowly sliding down while you scroll, which is precisely what
+      // the berth exists to stop. It eases back in with the release, because
+      // the claim it is scaled by is itself eased.
+      const bob =
+        reduced ? 0 : Math.sin(now / 2600) * 10 * (1 - flight.dock) * (1 - claim);
       apply(flight, bob);
 
       // One full turntable per lap: progress 1 lands on frame 0 again.
-      draw(reduced ? 0 : p * FRAME_COUNT);
+      //
+      // Except on a berth, where it holds the FRONT VIEW. The tumble in
+      // /studio is `y = sin(turn) * 1.01, x = sin(2 * turn) * 0.17,
+      // z = sin(turn) * 0.09`, so frame 0 is the one pose with all three
+      // rotations at zero - the mark square to the camera. Every other frame
+      // is the object caught mid-turn, which is right for something flying
+      // past and wrong for something parked: a parked object that is still
+      // scrubbing its own rotation is not parked, it is posing.
+      //
+      // Taken the short way round the turntable and scaled by the claim, so
+      // the pose arrives with the snap and unwinds with the release rather
+      // than cutting. `draw` wraps its argument, so the value may leave 0..90.
+      const scrub = p * FRAME_COUNT;
+      let toFront = (((0 - scrub) % FRAME_COUNT) + FRAME_COUNT) % FRAME_COUNT;
+      if (toFront > FRAME_COUNT / 2) toFront -= FRAME_COUNT;
+      draw(reduced ? 0 : scrub + toFront * claim);
 
       raf = requestAnimationFrame(tick);
     };

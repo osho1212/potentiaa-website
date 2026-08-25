@@ -170,7 +170,7 @@ button { font: inherit; cursor: pointer; }
 .header__pill {
   display: flex;
   align-items: center;
-  height: 56px;
+  height: var(--header-h);
   border-radius: var(--radius-full);
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -974,7 +974,10 @@ button { font: inherit; cursor: pointer; }
      lands comfortably inside it rather than against its edge. */
   left: 3%;
   right: 3%;
-  top: 5%;
+  /* Clears the fixed header instead of running under it. The header takes no
+     layout space, so a percentage from the top of the pinned layer put the
+     glass edge - and the copy sitting on it - beneath the navbar pill. */
+  top: var(--below-header);
   bottom: 4%;
   border-radius: var(--radius-lg);
   pointer-events: none;
@@ -1064,13 +1067,43 @@ button { font: inherit; cursor: pointer; }
 .flow-section {
   position: relative;
   z-index: var(--z-content);
-  min-height: 100svh;
+  /* TWO viewports, and the second one is the point.
+     The first carries the section into place. The second is runway for the
+     assembled frame to stand completely still in while the reader looks at it -
+     without it there is nowhere to hold, and panel, copy, cards and module all
+     begin leaving the instant they arrive. FlowStage measures whatever is over
+     one viewport here and holds the release for exactly that long, so this
+     number alone decides how long the frame rests. */
+  min-height: 200svh;
   display: grid;
   align-content: start;
-  padding-top: clamp(var(--space-12), 9svh, var(--space-20));
+  /* Tied to the glass, not to the viewport. The copy sits ON the panel, so
+     when the panel's top edge moved down to clear the header this had to move
+     with it - a viewport-relative padding left the eyebrow floating above the
+     glass it is meant to be printed on.
+
+     +100px on top of the header clearance, by request - lower on the glass
+     than the header alone requires. */
+  padding-top: calc(var(--below-header) + var(--space-6) + 100px);
 }
 
-.flow-section__grid { display: block; }
+/* The copy sits at ONE spot on the glass, at every scroll position.
+
+   --flow-copy-shift cancels the document's own scrolling and leaves the panel's
+   movement, so this is welded to the glass rather than sliding up through it on
+   the way in. See the block that publishes it in FlowStage.
+
+   It therefore has to fade in like the glass too. Locked to the panel, it is
+   sitting at the top of the viewport from the very start of the lap - over the
+   hero, a screen before its own section - so it borrows the panel's own opacity
+   ramp and appears exactly when the glass under it does. Out of the flow of its
+   own section it can no longer be `position: static`; nothing else about the
+   block changes. */
+.flow-section__grid {
+  display: block;
+  transform: translateY(var(--flow-copy-shift, 0px));
+  opacity: calc((var(--flow-t, 0) - 0.4) * 2.6);
+}
 
 /* Held to a readable measure. The flow owns everything below it. */
 .flow-section__copy { max-width: 46ch; }

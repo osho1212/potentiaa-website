@@ -172,6 +172,19 @@
 
   --container-max: 1200px;
 
+  /* ---- The header, and the line everything must clear ---- */
+
+  /* Both header pills are this tall - fixed rather than padding-derived, so the
+     brand pill and the nav pill agree. Declared here rather than inline in
+     .header__pill because the flow panel has to know it: the header is
+     `position: fixed`, so it takes no layout space and anything sharing the top
+     of the viewport sits UNDER it unless it is told not to. */
+  --header-h: 56px;
+
+  /* The lowest edge the fixed header occupies, plus a gap.
+     Anything pinned to the top of the viewport starts here, not at 0. */
+  --below-header: calc(var(--space-5) + var(--header-h) + var(--space-6));
+
   /* ---- Elevation ---- */
   --shadow-sm: 0 1px 2px rgba(10,20,60,.06), 0 1px 1px rgba(10,20,60,.04);
   --shadow-md: 0 4px 12px rgba(10,20,60,.08), 0 2px 4px rgba(10,20,60,.05);
