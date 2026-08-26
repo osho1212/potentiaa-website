@@ -3,10 +3,12 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import "./OptionWheel.css";
 
+/* Fallback only - MobileNav passes the real labels, built from site.nav. Kept
+   in step with it so the default is not quietly wrong. */
 const DEFAULT_ITEMS = [
   "Home",
   "What we build",
-  "Services",
+  "How we work",
   "How it works",
   "Get in touch",
 ];

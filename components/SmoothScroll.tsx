@@ -140,7 +140,7 @@ export default function SmoothScroll() {
      * The clone used to carry `inert`, which removed it from the tab order AND
      * killed every pointer event inside it. That second effect was the bug: the
      * reader only ever sees the clone copies of the hero, intro, Work and
-     * Helping - measured, not assumed - so the hero's CTAs and the Work cards
+     * Method - measured, not assumed - so the hero's CTAs and the Work cards
      * were not clickable by anyone.
      *
      * `aria-hidden` on the wrapper handles the announcement. This handles the

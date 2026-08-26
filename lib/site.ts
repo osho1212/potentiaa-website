@@ -13,12 +13,13 @@
  */
 
 /**
- * Said twice on the page, so it lives in one place.
+ * The page's central claim, kept in one place.
  *
- * The flow section shows this beat - the six hands a job passes through - and
- * `helping.beats[0]` tells the same beat in prose further down. They are the
- * same claim and must read identically; a const rather than two string
- * literals is what stops one being reworded without the other.
+ * It used to be said twice - the flow section shows the beat, and the old
+ * `helping` section retold it in prose - which is why it is a const rather than
+ * a string literal. `helping` has since been replaced by `method`, so this now
+ * has a single caller. It stays named because the line is the thesis the whole
+ * page argues, and a future second use must not reword it independently.
  */
 const LIVES_IN_YOUR_HEAD = "It all works. It just lives in your head.";
 
@@ -112,106 +113,208 @@ export const site = {
     ],
   },
 
+  /**
+   * Two answers to the same question, behind one switch.
+   *
+   * "What we build" is the capability list; "Who we help" is the same offer read
+   * from the reader's side of the table. They are tabs rather than two sections
+   * because an owner arrives as one or the other - either they know the piece
+   * they are missing, or they know the business they run - and making them
+   * scroll past the half that is not about them is what the switch avoids.
+   *
+   * Both panels carry SIX items on purpose: the grid is 3x2 at desktop and the
+   * two panels have to be the same height, or switching tabs jumps the page.
+   */
   work: {
-    eyebrow: "What we build",
-    title: "Systems that replace the notebook",
-    lede: "Every build starts as a conversation about where your time actually goes.",
-    items: [
+    /**
+     * ONE HEADING FOR BOTH PANELS. It used to retitle itself to whichever tab
+     * was selected, which made the tab press look like it had rewritten the
+     * section rather than filtered it - and left the reader with no fixed name
+     * for the thing they were looking at. "Our offerings" is what both lists
+     * are; the tabs say which cut of it is on screen.
+     */
+    title: "Our Offerings",
+    tabs: [
       {
-        title: "Billing and inventory software",
-        body: "Raise an invoice, cut stock, and see what is running low - from the counter or the road. Built around how you already price and sell.",
-        tags: ["Business App", "GST-ready billing", "Stock alerts"],
-        slot: "Product shot",
-        size: "wide" as const,
+        id: "build",
+        label: "What We Build",
+        lede: "We don't sell a fixed list of software products. We build the pieces your business actually needs.",
+        items: [
+          {
+            icon: "network" as const,
+            title: "Connected Operations",
+            body: "Connect the different people, processes and records involved in getting work done.",
+          },
+          {
+            icon: "database" as const,
+            title: "Digital Records",
+            body: "Replace paper registers and scattered files with structured records that are easier to update, find and use.",
+          },
+          {
+            icon: "wrench" as const,
+            title: "Internal Tools",
+            body: "Build simple applications for the work that existing software doesn't handle well.",
+          },
+          {
+            icon: "cycle" as const,
+            title: "Workflow Automation",
+            body: "Remove repetitive steps such as copying information, sending routine updates, and chasing the same approval twice.",
+          },
+          {
+            icon: "chart" as const,
+            title: "Management Visibility",
+            body: "Give owners and managers a clear view of what is happening without asking three people for an update.",
+          },
+          {
+            icon: "link" as const,
+            title: "System Integration",
+            body: "Connect the tools you already use so information doesn't have to be moved by hand between them.",
+          },
+        ],
       },
       {
-        title: "Marketing websites",
-        body: "A site that explains what you do and brings in enquiries, instead of sitting there as a digital business card.",
-        tags: ["Next.js", "Webflow", "SEO"],
-        slot: "Site mockup",
-        size: "narrow" as const,
-      },
-      {
-        title: "Management apps",
-        body: "Orders, staff, jobs, deliveries. Whatever the moving part is in your business, it gets a screen and a single source of truth.",
-        tags: ["Mobile-first", "Roles", "Reporting"],
-        slot: "App screens",
-        size: "half" as const,
-      },
-      {
-        title: "Consulting and system audits",
-        body: "Sometimes you do not need new software. We map what you run today, find what is leaking time, and tell you the cheapest way to fix it.",
-        tags: ["Process mapping", "Tooling review", "Roadmap"],
-        slot: "Audit board",
-        size: "half" as const,
+        id: "help",
+        label: "Who We Help",
+        lede: "Businesses that already work, run by people who are tired of holding the whole thing together by hand.",
+        items: [
+          {
+            icon: "pulse" as const,
+            title: "Clinics",
+            body: "Reception, doctors, pharmacy, laboratory, billing and management often operate separately.",
+          },
+          {
+            icon: "package" as const,
+            title: "Distributors & Traders",
+            body: "Orders, inventory, dispatch, payments and accounts depend on information moving between people.",
+          },
+          {
+            icon: "headset" as const,
+            title: "Service Businesses",
+            body: "Customer requests, staff assignments, work completion, billing and follow-ups often happen through a mixture of calls, messages and records.",
+          },
+          {
+            icon: "factory" as const,
+            title: "Manufacturers",
+            body: "Production, inventory, procurement, quality checks and accounts need to stay in sync.",
+          },
+          {
+            icon: "graduation" as const,
+            title: "Educational & Training Organisations",
+            body: "Admissions, student records, attendance, assessments, fees and communication often live in separate systems.",
+          },
+          {
+            icon: "bell" as const,
+            title: "Hospitality & Event Businesses",
+            body: "Bookings, staff, inventory, vendors, payments and execution require constant coordination.",
+          },
+        ],
       },
     ],
   },
 
   /**
-   * The one place Zeal is shown helping a PERSON rather than pointing at a menu
-   * (bar.md M9). Deliberately NOT a case study: no client name, no quote, no
-   * numbers. A named business here would read as a testimonial, and inventing a
-   * customer is not something this site gets to do. It is an illustrated
-   * sequence of how the work goes, and nothing in the copy claims otherwise.
+   * The method, as six numbered steps.
    *
-   * `aside` is Zeal's own line. The Brief critic's point was that his
-   * contribution to this site was "exactly zero words", and that a held wrench
-   * saying "maintenance" adds nothing the label did not. Each line says the
-   * thing the copy leaves out.
+   * TWO KINDS OF STEP, and the difference is deliberate rather than an
+   * inconsistency to tidy up. The first three are what we do TO understand the
+   * business, and each one opens to show its own working - the questions asked,
+   * the chain drawn, the shortlist of what might change. Those lists are long
+   * and would bury the sequence if they were always on screen, so they sit
+   * behind "What that involves" and the reader chooses.
+   *
+   * The last three are what we do WITH the business, and each is a single
+   * paragraph that is short enough to simply read. Putting those behind a
+   * disclosure too would be uniformity for its own sake: it would hide three
+   * sentences and cost a click to recover them.
+   *
+   * `accent` marks the last step coral rather than blue - the same ramp the
+   * flow cards and the particles run, where blue is where the work starts and
+   * coral is where it ends up. Improve is not a seventh thing after the six; it
+   * is the point the sequence arrives at, and the colour says so.
    */
-  helping: {
-    eyebrow: "How this actually goes",
-    title: "Someone else's Monday",
-    lede: "Not a case study. Just how the work tends to go.",
-    beats: [
+  method: {
+    eyebrow: "Method",
+    title: "How we work",
+    chain: ["Understand", "Map", "Identify", "Build", "Implement", "Improve"],
+    steps: [
       {
-        scene: "scene-paperwork",
-        stage: "Before",
-        title: LIVES_IN_YOUR_HEAD,
-        body: "Three notebooks, a spreadsheet, and the one person who knows where everything is. Nothing is broken - it simply cannot grow.",
-        aside: "Most owners think they need software. Often they need one process fixed.",
+        n: "01",
+        label: "Understand",
+        title: "We learn how your business actually works.",
+        detail: {
+          lead: "We talk to the people involved in the day-to-day operation. We understand:",
+          chips: [
+            "how work enters the business",
+            "who handles it",
+            "what gets recorded",
+            "where information goes",
+            "what people have to do manually",
+            "where approvals happen",
+            "where information gets lost",
+            "what currently takes too much time",
+          ],
+          close: "We don't assume. We observe.",
+        },
       },
       {
-        scene: "scene-counter",
-        stage: "We build",
-        title: "One system, around the thing costing you most.",
-        body: "We sit with you, follow the work as you actually do it, and build the smallest thing that removes the worst of it.",
-        aside: "If you cannot use it by the end of the week, we built the wrong thing.",
+        n: "02",
+        label: "Map",
+        title: "We map the movement of work and information.",
+        detail: {
+          lead: "We turn your existing process into something we can see clearly. For example:",
+          /* The same journey the flow section animates - see `flow` above. It is
+             one claim told twice on purpose: shown there, named here. */
+          flow: [
+            "Customer request",
+            "Reception",
+            "Staff assignment",
+            "Work completed",
+            "Record updated",
+            "Payment",
+            "Accounts",
+            "Owner report",
+          ],
+          close:
+            "Then we identify the gaps. Where does information disappear? Where is it entered twice? Where does someone have to manually tell someone else? Where does the business depend on one person remembering?",
+        },
       },
       {
-        scene: "scene-running",
-        stage: "After",
-        title: "You run it. Not us.",
-        body: "Billing at the counter, stock on your phone, orders wherever you are. It is your business - we just took the paperwork out of it.",
-        aside: "Maintenance is part of the deal. It is not a second invoice.",
-      },
-    ],
-  },
-
-  services: {
-    eyebrow: "Services",
-    title: "Consult, build, maintain",
-    groups: [
-      {
-        title: "Consulting",
-        items: "Process mapping, system audit, tool selection, cost and time analysis, build-or-buy advice",
-      },
-      {
-        title: "Business software",
-        items: "Billing, inventory, orders, purchase and vendor tracking, staff and role management, reporting",
+        n: "03",
+        label: "Identify",
+        title: "We find the work that shouldn't require so much work.",
+        detail: {
+          lead: "Not every problem needs software. We prioritise the areas where a better system can create a meaningful difference. That might mean:",
+          chips: [
+            "removing repeated data entry",
+            "automatically sharing information between teams",
+            "replacing paper-based records",
+            "creating a central record",
+            "automating routine notifications",
+            "simplifying approvals",
+            "creating management reports",
+            "connecting existing software",
+            "creating a custom internal application",
+          ],
+        },
       },
       {
-        title: "Websites",
-        items: "Marketing sites, landing pages, catalogues, enquiry capture, analytics and SEO groundwork",
+        n: "04",
+        label: "Build",
+        title: "We build around your business.",
+        body: "The solution is designed around your actual workflow. Not around a generic template. Not around what another business does. And not around what happens to be fashionable in technology.",
       },
       {
-        title: "Mobile apps",
-        items: "Android and iOS management apps, offline-first capture, notifications, on-site and field workflows",
+        n: "05",
+        label: "Implement",
+        title: "We introduce it without disrupting the business.",
+        body: "People don't need to become technology experts to use the system. We work with the people who will actually use it, help them adopt the new workflow, and refine the system based on what happens in practice.",
       },
       {
-        title: "Maintenance",
-        items: "Hosting, backups, monitoring, changes as your business changes, training for new staff",
+        n: "06",
+        label: "Improve",
+        title: "The first version isn't the finish line.",
+        body: "Once the system is being used, we can see where further improvements are possible. As your business changes, the system can change with it.",
+        accent: true,
       },
     ],
   },
@@ -244,9 +347,12 @@ export const site = {
     body: "One call, no deck. We will tell you honestly whether software is worth it for you.",
   },
 
+  /* Drives both the header and the mobile wheel - see components/MobileNav,
+     which prepends Home and appends the CTA. An entry here must point at a
+     section that exists, or the anchor scrolls nowhere. */
   nav: [
     { label: "What we build", href: "#work" },
-    { label: "Services", href: "#services" },
+    { label: "How we work", href: "#method" },
     { label: "How it works", href: "#process" },
   ],
 

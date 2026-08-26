@@ -1361,7 +1361,9 @@ button { font: inherit; cursor: pointer; }
      glass edge - and the copy sitting on it - beneath the navbar pill. */
   top: var(--below-header);
   bottom: 4%;
-  border-radius: var(--radius-lg);
+  /* Matches .intro__container-card (section 3's white card) so the glass and
+     the card read as the same shape language. */
+  border-radius: clamp(20px, 3vw, 32px);
   pointer-events: none;
 
   /* THE SECTION'S FRAME, not a effect that arrives with the cards.
@@ -1738,19 +1740,288 @@ button { font: inherit; cursor: pointer; }
 /* ---------------------------------------------------------------
    Work - what we build
    --------------------------------------------------------------- */
+/* ---------------------------------------------------------------
+   Work - "What we build" / "Who we help"
+
+   Stacked head rather than the old two-column one: the tab switcher sits
+   between the title and the lede, so the reader picks which answer they want
+   BEFORE reading the sentence that answers it. A right-hand lede column would
+   have put the switch and the copy it changes side by side, where the causal
+   order is not obvious.
+   --------------------------------------------------------------- */
+/* THE WHOLE SECTION HAS TO CLEAR ONE VIEWPORT, head and both card rows
+   together. Three stacked head rows plus the standard section padding put it
+   at 919px against a 790px viewport, so the head is now two rows - the tabs
+   ride beside the lede rather than under the title - and the section takes a
+   shorter padding step than the page default. */
+.section[data-theme-key="work"] {
+  /* Asymmetric on purpose. The header takes no layout space, so a symmetric
+     pad puts "Our Offerings" underneath the navbar pill exactly when the
+     section is filling the viewport - which is the one moment this section is
+     designed to be read in. --below-header is the same clearance the flow
+     panel uses, so the heading starts where that glass edge starts. The bottom
+     is the short step, since nothing is floating over it. */
+  padding-top: var(--below-header);
+  padding-bottom: clamp(var(--space-6), 3vh, var(--space-10));
+}
+
 .work__head {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.work__title {
+  margin: 0;
+}
+
+/* Lede left, tabs pushed to the far right. The right edge is the container's
+   own content edge, which already sits 100px in from the viewport - see
+   .container - so the tabs line up with the card grid beneath them. */
+.work__head-row {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-8);
+  width: 100%;
   flex-wrap: wrap;
-  margin-bottom: var(--space-12);
+}
+
+.work__lede-wrap {
+  flex: 1 1 32ch;
+  min-width: 0;
+}
+
+.work__tabs-wrap {
+  flex: none;
+  margin-left: auto;
+}
+
+.work__lede {
+  max-width: 52ch;
+  margin: 0;
+}
+
+/* The segmented switch. Brand blue for the selected half - it is the primary
+   interactive accent, and this is the one control in the section. */
+.work__tabs {
+  display: inline-flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--veil-subtle);
+  border: 1px solid var(--border-on-dark);
+}
+
+.work__tab {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-on-dark-secondary);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--tracking-wide);
+  white-space: nowrap;
+  transition:
+    background var(--duration-base) var(--ease-standard),
+    color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .work__tab:hover:not([aria-selected="true"]) {
+    color: var(--text-on-dark);
+    background: var(--veil-soft);
+  }
+}
+
+.work__tab[aria-selected="true"] {
+  background: var(--accent-primary);
+  color: var(--text-on-accent);
+  box-shadow: 0 6px 20px -8px var(--accent-primary);
+}
+
+.work__tab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .work__grid {
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: var(--space-6);
+  grid-template-columns: repeat(3, 1fr);
+  /* Gaps carry the one-viewport budget, not the card padding: the inset is
+     what makes the cards readable, so when the copy grew this gave way first. */
+  gap: var(--space-5);
+}
+
+/* The reveal wrapper is a separate element from the card on purpose: Reveal
+   owns transform on the way in, GSAP owns it for the tilt. Two owners on one
+   property means the reveal loses. See components/sections/Work.tsx. */
+.work-card__reveal {
+  display: flex;
+}
+
+/* THE CARD TURNS OVER ON HOVER - dark plate to white, the same move section 3's
+   bento cards make. Everything inside it is therefore tokenised twice: once for
+   the dark rest state and once for the light hover state, so no text is ever
+   left carrying an on-dark colour against white. The `--ink-*` custom
+   properties are the single switch - the children read them and never name a
+   colour of their own. */
+.work-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  /* --space-7 does not exist on the scale (it steps 6 -> 8), so this was
+     silently resolving to nothing and the cards were rendering with no padding
+     at all. Always a real token. */
+  padding: var(--space-8);
+  border-radius: var(--radius-lg);
+  isolation: isolate;
+  transform-style: preserve-3d;
+  will-change: transform;
+
+  --ink-title: var(--text-on-dark);
+  --ink-body: var(--text-on-dark-secondary);
+  --ink-icon: var(--blue-300);
+  --icon-plate: var(--veil-soft);
+  --glow-x: 50%;
+  --glow-y: 50%;
+  --glow-intensity: 0;
+  --glow-radius: 260px;
+
+  background: var(--surface-card-dark);
+  border: 1px solid var(--border-on-dark);
+  transition:
+    background var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-slow) var(--ease-smooth);
+}
+
+/* The cursor-tracked rim, lifted from .magic-bento-card--border-glow so the two
+   sections glow identically. Masked to the border box: a gradient box with its
+   own middle cut out, which is how a gradient border is done at all. */
+.work-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: inherit;
+  background: radial-gradient(
+    var(--glow-radius) circle at var(--glow-x) var(--glow-y),
+    rgba(var(--glow-color, 79, 70, 229), calc(var(--glow-intensity) * 0.9)) 0%,
+    rgba(var(--glow-color, 79, 70, 229), calc(var(--glow-intensity) * 0.4)) 35%,
+    transparent 65%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: opacity var(--duration-base) var(--ease-standard);
+  z-index: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .work-card:hover {
+    background: var(--white);
+    border-color: rgba(79, 70, 229, 0.45);
+    box-shadow:
+      0 18px 40px -12px rgba(2, 10, 36, 0.55),
+      0 0 26px rgba(var(--glow-color, 79, 70, 229), 0.18);
+
+    /* Measured against #ffffff: title 15.9:1, body 10.8:1 - both clear WCAG
+       AAA, so the copy is more readable hovered than at rest, not less. */
+    --ink-title: var(--midnight-950);
+    --ink-body: var(--gray-700);
+    --ink-icon: var(--blue-600);
+    --icon-plate: var(--blue-50);
+  }
+}
+
+/* Hero icon left, heading to its right, mark in the far corner. The mark is
+   `start`-aligned rather than centred so it holds the corner when a heading
+   wraps to two lines and the row grows. */
+.work-card__top {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: var(--space-4);
+}
+
+.work-card__icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: var(--radius-md);
+  background: var(--icon-plate);
+  color: var(--ink-icon);
+  transition:
+    background var(--duration-base) var(--ease-standard),
+    color var(--duration-base) var(--ease-standard);
+}
+
+.work-card__icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.work-card__title {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-snug);
+  color: var(--ink-title);
+  margin: 0;
+  transition: color var(--duration-base) var(--ease-standard);
+}
+
+.work-card__mark {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  align-self: start;
+  opacity: 0.55;
+  transition: opacity var(--duration-base) var(--ease-standard);
+}
+
+.work-card:hover .work-card__mark {
+  opacity: 1;
+}
+
+.work-card__body {
+  color: var(--ink-body);
+  font-size: var(--fs-base);
+  line-height: var(--lh-relaxed);
+  margin: 0;
+  transition: color var(--duration-base) var(--ease-standard);
+}
+
+@media (max-width: 1023px) {
+  .work__grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .work__grid { grid-template-columns: 1fr; }
+  /* Once the head row wraps, `margin-left: auto` would strand the switch on
+     the right under a left-aligned lede. Full width instead, so it reads as a
+     control bar rather than a stray pill. */
+  .work__tabs-wrap { margin-left: 0; width: 100%; }
+  .work__tabs { display: flex; width: 100%; }
+  .work__tab { flex: 1; padding-inline: var(--space-4); }
+  /* 32px of inset on a 343px card leaves the body too narrow to read well. */
+  .work-card { padding: var(--space-6); }
 }
 
 .card {
@@ -1830,13 +2101,9 @@ button { font: inherit; cursor: pointer; }
   color: var(--text-on-dark-secondary);
 }
 
-/* The head keeps its own inset; the grid's inset is handled by .explainer,
-   which reserves Zeal's column. Was min-width 1100px, which meant the rail
-   simply did not exist at 1024 - the width the critic reviews at - leaving Zeal
-   nowhere to stand. */
-@media (min-width: 960px) {
-  .work__head { margin-left: 260px; }
-}
+/* The 260px head inset that reserved Zeal's rail is gone with him - see the
+   note in components/sections/Work.tsx. Process still sets its own via
+   .explainer. */
 
 @media (max-width: 900px) {
   .card--wide, .card--narrow, .card--half { grid-column: span 12; }
@@ -1847,7 +2114,9 @@ button { font: inherit; cursor: pointer; }
 
    .explainer is the positioned stage: Zeal's reserved column on the left, the
    section's own content on the right, and the leader drawn between the two.
-   Used by Work, Services and Process - see components/ZealExplainer.tsx.
+   Used by Process - see components/ZealExplainer.tsx. (Work and Services were
+   the other two callers; Work dropped him for the tabbed grid, and Services no
+   longer exists.)
    --------------------------------------------------------------- */
 .explainer {
   position: relative;
@@ -1869,10 +2138,12 @@ button { font: inherit; cursor: pointer; }
   min-height: 480px;
   /* Stretched 96px BELOW the content block it sits beside, into the section's
      own bottom padding. Zeal is bottom-anchored inside this box, so the box's
-     height is the entire budget he has to travel through - and in Services it
-     was 498px against a 450px character, 48px of slack for five targets. He
-     physically could not reach the fifth row without leaving the viewport, so
-     "Maintenance" was explained by an empty column. The section already
+     height is the entire budget he has to travel through - and in the old
+     Services section it was 498px against a 450px character, 48px of slack for
+     five targets. He physically could not reach the fifth row without leaving
+     the viewport, so "Maintenance" was explained by an empty column. That
+     section is gone, but the fix stays: it is what gives Process its room too,
+     and removing it would re-strand him there. The section already
      reserves 96px of padding under the stage; this borrows exactly that, so he
      gains room without touching anything below. */
   margin-bottom: -96px;
@@ -2088,121 +2359,383 @@ button { font: inherit; cursor: pointer; }
 }
 
 /* ---------------------------------------------------------------
-   Helping - the section where Zeal is with a person
+   Method - "How we work", six numbered steps on a white card
+
+   Everything below is written for a LIGHT ground. This is the one section
+   besides Intro that inverts, so nothing here may reach for an --*-on-dark
+   token: those all resolve to white-ish and would vanish on paper.
    --------------------------------------------------------------- */
-.beats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-10);
-  margin-top: var(--space-12);
+/* THE CARD HOLDS THE VIEWPORT WHILE THE LIST RUNS THROUGH IT.
+
+   The section is one viewport tall plus `--method-runway`, which is measured in
+   Method.tsx as exactly the list's hidden overflow. The pin is sticky for that
+   whole extra length, so the reader's scroll moves the steps rather than the
+   page, and the page resumes the moment the last step lands. 1:1, so the wheel
+   feels unchanged - only the box that moves is different.
+
+   The section's own padding-block goes to zero: the pin owns the spacing now,
+   and an outer pad would show as a gap the card could not fill. */
+.method-section {
+  padding-block: 0;
 }
 
-.beat { display: grid; align-content: start; }
+.method__runway {
+  --method-runway: 0px;
+  height: calc(100svh + var(--method-runway));
+}
 
-/* The scene keeps its own flat ground rather than being cut out - two figures
-   interacting with a desk read as help; two floating silhouettes do not. */
-/* No box. The scenes used to be `border-radius + overflow:hidden + 1px border`
-   over a sunken panel, which is bar.md M5's stated failure - the character
-   boxed and cropped to a rectangle - and M6's too, since the frame carried its
-   own studio backdrop and put a second ground behind him. The craft critic
-   named both against this one element.
+.method__pin {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: flex;
+  /* Clears the fixed header, which takes no layout space, and leaves a floor
+     under the card so it does not sit edge-to-edge with the next section. */
+  padding-top: var(--below-header);
+  padding-bottom: clamp(var(--space-6), 5vh, var(--space-12));
+}
 
-   The art is cut out now, so the section's own background IS the flat ground
-   and there is no edge left to cross. */
-.beat__scene {
+.method__container {
+  display: flex;
+  min-height: 0;
+}
+
+.method__card {
+  /* Fills whatever the pin leaves after the header clearance and the floor. */
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  color: var(--gray-900);
+  /* Same corner and inset as .intro__container-card, so the two white cards on
+     the page read as the same object rather than two near-misses. */
+  border-radius: clamp(20px, 3vw, 32px);
+  padding: clamp(var(--space-8), 4.5vw, var(--space-16));
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Heading left, steps right. The left column is deliberately narrow - it holds
+   a title and two short lines, and giving it half the card would strand the
+   steps in a column too tight for the chips to wrap sensibly. */
+.method__layout {
+  /* Above .intro-cubes-field, which paints at z-index 0 inside the card. Same
+     relationship .intro__content has to it. */
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.8fr) 1.2fr;
+  gap: clamp(var(--space-8), 5vw, var(--space-16));
+  align-items: stretch;
+  /* Takes the card's remaining height so the scroller can be measured against
+     it. `min-height: 0` because a grid item defaults to min-content and would
+     otherwise refuse to shrink, letting the list push the card taller than the
+     viewport instead of scrolling inside it. */
+  flex: 1;
+  min-height: 0;
+}
+
+.method__head {
+  align-self: start;
+}
+
+.method__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--blue-600);
+  margin-bottom: var(--space-4);
+}
+
+.method__title {
+  font-size: clamp(var(--fs-xl), 4vw, var(--fs-3xl));
+  line-height: var(--lh-snug);
+  color: var(--midnight-950);
   margin-bottom: var(--space-5);
 }
 
-.beat__art { width: 100%; height: auto; display: block; }
+/* The whole sequence on one line. The arrows are decorative - the words are
+   already in order in the DOM - so they are aria-hidden and drawn in the
+   quieter on-dark step, leaving the six words themselves as the emphasis. */
+.method__chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-base);
+  color: var(--gray-600);
+  margin-bottom: var(--space-5);
+}
 
-.beat__stage {
+.method__chain-arrow {
+  margin-right: var(--space-2);
+  color: var(--coral-500);
+}
+
+.method__lede {
+  font-size: var(--fs-base);
+  line-height: var(--lh-relaxed);
+  color: var(--gray-600);
+  max-width: 34ch;
+}
+
+/* The rail and the scroller, side by side. The rail is OUTSIDE the scroller so
+   it holds still while the steps travel past it - a rail that scrolled with the
+   content could not report position, which is the only reason it exists. */
+.method__track {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-6);
+  min-width: 0;
+  min-height: 0;
+}
+
+.method__rail {
+  --rail-progress: 0;
+  position: relative;
+  width: 2px;
+  border-radius: var(--radius-full);
+  background: var(--gray-200);
+}
+
+.method__rail-fill {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: calc(var(--rail-progress) * 100%);
+  border-radius: inherit;
+  background: linear-gradient(180deg, var(--blue-500), var(--coral-500));
+}
+
+/* The travelling marker, parked at the end of the fill. */
+.method__rail-dot {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--rail-progress) * 100%);
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--white);
+  border: 2px solid var(--coral-500);
+  box-shadow: 0 0 0 4px rgba(255, 106, 91, 0.16);
+}
+
+/* `hidden`, not `auto`. The page drives scrollTop every frame while the card is
+   pinned, so a native scrollbar here would be a second driver fighting the
+   first - wheel over the list would move it, and the next frame would undo
+   that. No scrollbar, one source of truth. It is still a scroll container, so
+   focus can move it; see handleFocus in Method.tsx for that case. */
+.method__scroller {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  padding-right: var(--space-4);
+}
+
+.method__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Rules between steps rather than around them. A stepper is one continuous
+   sequence; six bordered boxes would read as six unrelated items. */
+.method__step {
+  padding-block: var(--space-6);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.method__step:first-child { padding-top: 0; }
+.method__step:last-child { border-bottom: 0; padding-bottom: 0; }
+
+.method__n {
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--tracking-wide);
+  line-height: 1;
+  color: var(--blue-600);
+  margin-bottom: var(--space-3);
+}
+
+/* Improve, in coral. The end of the brand ramp, for the step the sequence
+   arrives at - see the note on site.method. */
+.method__step--accent .method__n {
+  color: var(--coral-600);
+}
+
+.method__label {
   font-size: var(--fs-xs);
   font-weight: var(--fw-medium);
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
-  color: var(--blue-300);
+  color: var(--gray-500);
   margin-bottom: var(--space-2);
 }
 
-.beat__title {
-  font-family: var(--font-display);
-  font-size: var(--fs-md);
+.method__step-title {
+  font-size: clamp(var(--fs-md), 1.8vw, var(--fs-lg));
+  line-height: var(--lh-snug);
+  color: var(--midnight-950);
+  margin: 0;
+  max-width: 34ch;
+}
+
+.method__prose,
+.method__lead,
+.method__close {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-relaxed);
+  color: var(--gray-700);
+  max-width: 62ch;
+  margin: var(--space-3) 0 0;
+}
+
+/* The disclosure. A button, so it is a tab stop and announces its own state. */
+.method__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
   font-weight: var(--fw-medium);
-  margin-bottom: var(--space-3);
+  color: var(--blue-600);
+  transition: color var(--duration-base) var(--ease-standard);
 }
 
-.beat__body {
-  font-size: var(--fs-sm);
-  line-height: var(--lh-relaxed);
-  color: var(--text-on-dark-secondary);
-  margin-bottom: var(--space-4);
-}
-
-/* Zeal speaking. Marked as his by the coral rule and the italic, so it reads as
-   an aside from the character rather than more body copy. A left border would
-   break design.md 6, so the mark sits above the line instead. */
-.beat__aside {
-  position: relative;
-  padding-top: var(--space-4);
-  font-size: var(--fs-sm);
-  line-height: var(--lh-relaxed);
-  color: var(--text-on-dark);
-}
-
-.beat__aside::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: var(--space-8);
-  height: 2px;
-  border-radius: var(--radius-full);
-  background: var(--coral-500);
-}
-
-@media (max-width: 900px) {
-  .beats { grid-template-columns: 1fr; gap: var(--space-12); }
-}
-
-/* ---------------------------------------------------------------
-   Services
-   --------------------------------------------------------------- */
-
-.service {
+.method__toggle-mark {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--space-5);
-  padding-block: var(--space-6);
-  border-top: 1px solid var(--border-on-dark);
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--gray-300);
+  font-size: var(--fs-sm);
+  line-height: 1;
+  transition:
+    background var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard),
+    color var(--duration-base) var(--ease-standard);
 }
 
-.service:last-child { border-bottom: 1px solid var(--border-on-dark); }
+@media (hover: hover) and (pointer: fine) {
+  .method__toggle:hover { color: var(--blue-700); }
+  .method__toggle:hover .method__toggle-mark {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--text-on-accent);
+  }
+}
 
-.service__index {
-  font-family: var(--font-display);
+.method__toggle:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+.method__panel[hidden] { display: none; }
+
+.method__chips {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+}
+
+.method__chip {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--gray-200);
+  background: var(--gray-50);
   font-size: var(--fs-sm);
+  color: var(--gray-700);
+}
+
+/* The journey, as one wrapping line of nodes. */
+.method__flow {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) 0;
+  margin: var(--space-3) 0 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--gray-200);
+  background: var(--gray-50);
+}
+
+.method__flow-node {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--fs-xs);
+  color: var(--gray-800);
+}
+
+.method__flow-arrow {
+  margin-inline: var(--space-2);
+  color: var(--blue-500);
+}
+
+.method__close {
+  color: var(--midnight-950);
   font-weight: var(--fw-medium);
-  color: var(--blue-300);
-  padding-top: 4px;
 }
 
-.service__title {
-  font-size: var(--fs-md);
-  margin-bottom: var(--space-2);
-  transition: color var(--duration-slow) var(--ease-standard);
+/* Below the two-column threshold the heading stops being a sidebar, and an
+   inner scroller inside a page scroller becomes a trap on touch - so the
+   steps go back to flowing with the document and the rail is dropped. */
+/* THE PIN COMES OFF BELOW 900px, and the runway with it - the same threshold
+   Method.tsx checks before driving anything, so the two cannot disagree.
+
+   Pinning a full-height card on a phone is the wrong trade twice over: the
+   viewport is short enough that a 100svh card leaves the list a few lines tall,
+   and capturing the scroll on touch is how you build a page people cannot get
+   past. Stacked and flowing normally, the steps are just content. */
+@media (max-width: 900px) {
+  .method-section { padding-block: clamp(var(--space-16), 10vh, var(--space-20)); }
+  .method__runway { height: auto; }
+  .method__pin {
+    position: static;
+    height: auto;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .method__card { flex: none; }
+  .method__layout {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+    flex: none;
+  }
+  .method__lede { max-width: none; }
+  .method__track { grid-template-columns: 1fr; gap: 0; }
+  .method__rail { display: none; }
+  .method__scroller {
+    height: auto;
+    overflow: visible;
+    padding-right: 0;
+  }
 }
 
-/* The row answers the point. design.md 6 rules out coloured left-border
-   accents, so the response is carried by the index colour and text brightness
-   instead - no new chrome, and it still reads instantly. */
-
-
-
-
-.service__items {
-  color: var(--text-on-dark-secondary);
-  font-size: var(--fs-sm);
-  line-height: var(--lh-relaxed);
+@media (max-width: 720px) {
+  .method__flow { padding: var(--space-3); }
 }
 
 /* ---------------------------------------------------------------

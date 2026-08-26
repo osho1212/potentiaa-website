@@ -42,25 +42,26 @@ export type SectionTheme = {
    * rather than weaving on a fixed cycle that has nothing to do with what you
    * are reading.
    *
-   * There are seven sections, which is odd, so the list cannot simply alternate
-   * all the way round - the last entry would meet the first on the same plane
-   * and the loop would lose a transition. `cta` therefore repeats `process`'s
-   * plane and the flip happens across the seam into `hero`, which is the one
-   * boundary where a change is invisible anyway.
+   * There are SIX sections now that `services` is gone, and six is even, so the
+   * list alternates the whole way round and the last entry meets the first on
+   * the opposite plane by construction. It used to be seven: `cta` had to
+   * repeat `process`'s plane to avoid the loop closing on a matching pair, and
+   * the flip was hidden across the seam into `hero`. That workaround is no
+   * longer needed - if a seventh section is ever added back, it returns.
    */
   plane: 1 | -1;
 };
 
 /* Sampled from tokens.css so the journey stays inside the brand palette:
-   midnight-500, blue-500, blue-300, coral-500, magenta-500, coral-600, and
-   back to midnight to close the loop. */
+   midnight-500, blue-500, blue-300, coral-500, coral-600, and back to midnight
+   to close the loop. (magenta-500 left with `services`; the ramp still runs
+   cool to warm and home again without it.) */
 export const SECTION_THEMES: SectionTheme[] = [
   { key: "hero", accent: [46, 76, 166], room: 1.0, plane: 1 },
   { key: "intro", accent: [38, 93, 255], room: 0.86, plane: -1 },
   { key: "work", accent: [126, 155, 255], room: 0.78, plane: 1 },
-  { key: "helping", accent: [255, 106, 91], room: 0.82, plane: -1 },
-  { key: "services", accent: [250, 69, 146], room: 0.78, plane: 1 },
-  { key: "process", accent: [242, 91, 78], room: 0.9, plane: -1 },
+  { key: "method", accent: [255, 106, 91], room: 0.82, plane: -1 },
+  { key: "process", accent: [242, 91, 78], room: 0.9, plane: 1 },
   { key: "cta", accent: [46, 76, 166], room: 0.95, plane: -1 },
 ];
 

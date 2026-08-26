@@ -2,8 +2,7 @@ import SiteShell from "@/components/SiteShell";
 import FlowStage from "@/components/sections/FlowStage";
 import Intro from "@/components/sections/Intro";
 import Work from "@/components/sections/Work";
-import Helping from "@/components/sections/Helping";
-import Services from "@/components/sections/Services";
+import Method from "@/components/sections/Method";
 import Process from "@/components/sections/Process";
 import CtaFooter from "@/components/sections/CtaFooter";
 
@@ -20,8 +19,7 @@ function Lap({ clone }: { clone?: boolean }) {
       <FlowStage clone={clone} />
       <Intro clone={clone} />
       <Work clone={clone} />
-      <Helping clone={clone} />
-      <Services clone={clone} />
+      <Method clone={clone} />
       <Process clone={clone} />
       <CtaFooter clone={clone} />
     </>
@@ -42,7 +40,7 @@ export default function HomePage() {
 
         The wrap keeps the reader inside [0.5 lap, 1.5 lap], which means what
         they actually look at is the SECOND half of primary and the FIRST half
-        of clone. Measured: primary's hero, intro, Work and Helping are never
+        of clone. Measured: primary's hero, intro, Work and Method are never
         once on screen - their reachable window closes before the band opens. So
         every visitor was reading the clone copies of them, and the clone was
         `inert`: the hero's two CTAs could not be clicked, the four Work cards

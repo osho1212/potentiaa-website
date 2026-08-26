@@ -67,11 +67,11 @@ export const WAYPOINTS: Waypoint[] = [
   { at: 0.08, reach: 0.62, scale: 1.1, rise: -0.04 },
   // Intro: opens out as the copy narrows to two columns.
   { at: 0.2, reach: 0.9, scale: 0.95, rise: 0.02 },
-  // Work and Services: the busiest sections. Swing wide and shrink, so the
-  // front half of the helix passes outside the cards entirely.
+  // Work: the busiest section. Swing wide and shrink, so the front half of the
+  // helix passes outside the cards entirely.
   { at: 0.36, reach: 1.0, scale: 0.78, rise: 0.0 },
   { at: 0.52, reach: 1.0, scale: 0.74, rise: -0.02 },
-  // Helping: the scenes are the subject here, so it gives them room.
+  // Method: a long column of numbered steps, so it keeps to the margins.
   { at: 0.66, reach: 0.95, scale: 0.8, rise: 0.03 },
   // Process, then the CTA: the page opens up again on the way out.
   { at: 0.82, reach: 0.8, scale: 0.95, rise: 0.0 },
