@@ -52,11 +52,36 @@ const HeroParticles = forwardRef<HeroParticlesHandle>(function HeroParticles(_pr
     if (narrow === null || reduced === null) return;
     if (reduced) return;
 
-    // Calibrated particle counts & sprite sizes - provides identical dense, luminous
-    // volumetric formation while slashing GPU fragment overdraw and fill rate load by >55%.
+    /* DENSITY, AT NO MEASURED COST. THESE NUMBERS WERE MEASURED, NOT REASONED.
+       The first attempt reasoned it out and was wrong, so the method matters:
+       a GPU timer query (EXT_disjoint_timer_query_webgl2) around this swarm's
+       draw call, 120 samples a run, three runs a config. The noise band on the
+       machine used was 0.055-0.062ms, which is wide enough that anything
+       argued rather than measured here is guesswork.
+           18000 @ 1.05   0.055 / 0.059 / 0.062     <- the band
+           26000 @ 0.875  0.072                     <- same fill, still +22%
+           26000 @ 0.60   0.059 / 0.062 / 0.056     <- inside the band
+       The middle row is the one that killed the obvious theory. Holding
+       count * size^2 constant did NOT hold cost constant, so fragments are not
+       the whole story; but halving the fill at unchanged count brought it back
+       to baseline, so they are most of it. Both rows fit
+           cost ~ 1.6e-6 * count + 2.3e-8 * fragments
+       which at the settings above splits the frame roughly evenly between the
+       two terms. Per-point cost is why the count cannot simply be raised, and
+       why shrinking below ~0.6 stops buying anything: the per-point term takes
+       over and the dots just get fainter for nothing.
+       Solving that for the most particles at the baseline's cost lands here -
+       a third more of them, and predicted 0.053ms against a 0.055-0.062 band.
+       WHAT IT COSTS INSTEAD IS LIGHT. Under additive blending the total light
+       IS the fill rate, so a denser field at the same cost is necessarily a
+       dimmer one - here about 60% of the previous light. That is a trade, not
+       a free lunch, and the knob to trade it back is LUMA in lib/heroParticles,
+       which is pure vertex ALU and costs nothing.
+       Points land near 3-8 device pixels, still clear of the one-pixel floor
+       where dots start dropping out and twinkling. */
     const swarm = new ParticlesSwarm(container, {
-      count: narrow ? 12000 : 18000,
-      particleSize: narrow ? 1.35 : 1.25,
+      count: narrow ? 16000 : 24000,
+      particleSize: narrow ? 0.76 : 0.7,
     });
     swarmRef.current = swarm;
 

@@ -43,6 +43,32 @@
  * left inside the loop is multiplication and addition, and the trig count per
  * frame is a fixed handful regardless of how many particles there are.
  *
+ * THAT LAST SENTENCE WAS NOT TRUE OF THE GPU PORT, AND IS AGAIN NOW.
+ *
+ * Moving the loop into a vertex shader quietly undid the saving. The twelve
+ * cos(uTime * w) / sin(uTime * w) calls sat at the top of main(), which runs
+ * once per VERTEX - so the handful became twelve transcendentals times the
+ * particle count, every frame, all of them computing the identical number.
+ * The CPU version's one true insight, that these terms do not vary per
+ * particle, had been thrown away by the port without anyone noticing.
+ *
+ * They are uniforms now: six vec2 pairs, resolved once a frame in renderFrame
+ * where the original put them.
+ *
+ * BE HONEST ABOUT WHAT THAT BOUGHT: on the machine this was measured on,
+ * nothing. GPU timer queries around the draw put it inside the run-to-run
+ * noise band, because the vertex stage was never what this shader was limited
+ * by. It stays because it is free, it is what the paragraph above claims, and
+ * it fixes a real precision bug on the side - uTime grows without bound and
+ * the sine of a large float32 is badly conditioned, so the phases were slowly
+ * degrading over a long session. Doing them in float64 and shipping the
+ * finished pair removes that. It is not, however, what the density is paid
+ * for. See components/HeroParticles for what actually pays.
+ *
+ * The grain's angle and seed are also fixed per particle, and moving THEM to
+ * an attribute was tried and reverted: it measured no better and cost twelve
+ * bytes per particle of vertex fetch. The shader hash stays.
+ *
  * The one term this cannot be done exactly for is the brightness wave, which
  * reads the particle's CURRENT y rather than a fixed phase. It is evaluated
  * against the resting y instead. The wave is a broad slow band across the
@@ -264,12 +290,108 @@ const MAX_PIXEL_RATIO = 1.5;
  * resolution-independent and the only softness left is the half pixel of
  * antialiasing deliberately put there.
  *
- * The core is flat to 0.55 and closes by 0.72, which at these point sizes is
- * under a pixel of transition - a hard edge with just enough ramp not to crawl.
  * The halo is what is left of the old sprite's skirt: kept, because additive
  * overlap between neighbours is what makes the formation glow rather than
  * stipple, but held to a fraction so it lights the gaps without fogging them.
+ *
+ * THE GRAIN, AND WHY IT IS HERE.
+ *
+ * Every point being the same clean disc firing to the same white peak is what
+ * made the swarm shimmer: 18000 identical discs, jiggling a fraction of a pixel
+ * at 4-6Hz, cross the pixel grid together and the whole field scintillates at
+ * once. That reads as sparkle, not as matter.
+ *
+ * So each particle now carries a texture of its own, seeded off its direction -
+ * a value that is fixed for the life of the particle and free to compute, since
+ * the direction is already an attribute. Two things come off that seed.
+ *
+ * A fixed ellipse, at a fixed angle. The dot stops being a perfect circle and
+ * becomes a grain, and because both the eccentricity and the angle are welded
+ * to the particle, the shape does not crawl across it between frames - it is a
+ * texture on the swarm, not noise over it.
+ *
+ * A fixed temperament, biased low, scaling how hard that particle fires. The
+ * firing pulse is untouched; what changed is that only a minority of the swarm
+ * takes it at full strength now. The flashes still happen, but they happen in
+ * a scatter across the field instead of everywhere at once, which is the
+ * difference between texture and glitter.
+ *
+ * The core ramp is the third part, and the least interesting: widened from
+ * 0.55-0.72 to 0.46-0.84. The old numbers were under a pixel of transition,
+ * which is a hard edge, and a hard edge on a sub-pixel dot that jiggles is
+ * exactly the thing that crawls. A couple of pixels of ramp costs a little
+ * definition and takes the crawl with it.
  */
+/**
+ * THE FILTER - the particle profile, baked once and sampled through the
+ * hardware's own minification instead of evaluated per fragment.
+ *
+ * The analytic edge above is the sharpest thing that can be drawn, and that is
+ * exactly the problem at this density: a perfectly resolved edge on a dot that
+ * jiggles has nothing to average it, so it flickers as it crosses the grid. A
+ * mipmapped sprite has the averaging built in. The GPU reads the derivative of
+ * gl_PointCoord across the point, works out how many texels land under one
+ * pixel, and blends between the two mip levels that bracket it - the dot gets
+ * softer exactly as it gets smaller or moves further away, which is the
+ * behaviour the analytic version could never have.
+ *
+ * WHY 32 AND NOT 128. The sprite is a filter here, not a source of detail, and
+ * the ratio between its size and the point's is the whole story. Points land
+ * around 6-9 device pixels, so at 32 the footprint is roughly two texels to
+ * the pixel - one gentle mip blend, a real filter. At 128 it would be eight,
+ * four levels down the chain, and the dots would arrive as mush. Nothing is
+ * gained by authoring detail that every sampled frame then averages away.
+ *
+ * The profile itself is unchanged - the same flat core, the same ramp, the
+ * same fraction of halo the fragment shader was computing. Only where it is
+ * evaluated moved.
+ */
+const SPRITE_SIZE = 32;
+
+function makeParticleSprite(): THREE.DataTexture {
+  const smoothstep = (edge0: number, edge1: number, x: number) => {
+    const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+    return t * t * (3 - 2 * t);
+  };
+
+  const data = new Uint8Array(SPRITE_SIZE * SPRITE_SIZE * 4);
+  for (let y = 0; y < SPRITE_SIZE; y++) {
+    for (let x = 0; x < SPRITE_SIZE; x++) {
+      // Texel CENTRES, so the profile is symmetric about the sprite's middle.
+      // Sampling the corners instead puts the peak half a texel off and every
+      // dot inherits a permanent lean.
+      const nx = ((x + 0.5) / SPRITE_SIZE - 0.5) * 2;
+      const ny = ((y + 0.5) / SPRITE_SIZE - 0.5) * 2;
+      const d = Math.sqrt(nx * nx + ny * ny);
+
+      let a = 0;
+      if (d < 1) a = 1 - smoothstep(0.46, 0.84, d) + Math.pow(1 - d, 3) * 0.17;
+
+      const i = (y * SPRITE_SIZE + x) * 4;
+      // White throughout - the colour is the vertex stage's job, and additive
+      // blending would tint every dot if it were baked in here. Only the alpha
+      // carries the shape.
+      data[i] = 255;
+      data[i + 1] = 255;
+      data[i + 2] = 255;
+      data[i + 3] = Math.round(Math.max(0, Math.min(1, a)) * 255);
+    }
+  }
+
+  const texture = new THREE.DataTexture(data, SPRITE_SIZE, SPRITE_SIZE, THREE.RGBAFormat);
+  texture.magFilter = THREE.LinearFilter;
+  // The one that matters. Trilinear: bilinear within each mip, blended across
+  // the two levels that bracket the point's actual footprint.
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
+  // The grain transform below can graze the edge of the sprite; clamping stops
+  // that from wrapping a bright texel around to the far side of the dot.
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.needsUpdate = true;
+  return texture;
+}
+
 const PARTICLE_VERTEX_SHADER = /* glsl */ `
   attribute vec3 aDirection;
   attribute vec3 aFold;
@@ -279,7 +401,15 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
   attribute vec3 aBaseColor;
   attribute float aTract;
 
-  uniform float uTime;
+  /* The six per-frame phase pairs, x = cos, y = sin. See the header: these do
+     not vary per particle, so they must not be computed per vertex. */
+  uniform vec2 uFold;
+  uniform vec2 uFire;
+  uniform vec2 uWave;
+  uniform vec2 uJitA;
+  uniform vec2 uJitB;
+  uniform vec2 uJitC;
+
   uniform float uSize;
   uniform float uScale;
   uniform vec3 uRepel;
@@ -287,19 +417,35 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
 
   varying vec3 vColor;
 
+  /* Overall output level of the swarm - one knob for the whole field.
+     Applied to the assembled level rather than to the terms inside it, so the
+     balance between ambient, wave, firing, the tract highlight and the hover
+     glow is preserved exactly and only the total comes down. Back to 1.0 is
+     back to where this was. */
+  const float LUMA = 0.8;
+
+  /* The grain, resolved in the fragment stage: xy is its orientation as a unit
+     vector, z its 0..1 seed. Both constant for the life of the particle. The
+     sin/cos pair is the whole reason this is computed here and interpolated
+     rather than done per fragment - once per point instead of once per pixel. */
+  varying vec3 vGrain;
+
   void main() {
-    float foldPhaseCos = cos(uTime * 0.2);
-    float foldPhaseSin = sin(uTime * 0.2);
-    float firePhaseCos = cos(uTime * 2.5);
-    float firePhaseSin = sin(uTime * 2.5);
-    float wavePhaseCos = cos(uTime * 1.5);
-    float wavePhaseSin = sin(uTime * 1.5);
-    float jitACos = cos(uTime * 5.0);
-    float jitASin = sin(uTime * 5.0);
-    float jitBCos = cos(uTime * 6.2);
-    float jitBSin = sin(uTime * 6.2);
-    float jitCCos = cos(uTime * 4.1);
-    float jitCSin = sin(uTime * 4.1);
+    // Named rather than substituted through the body below, so the diff that
+    // moved these to the CPU did not also rewrite the simulation. The compiler
+    // folds them away.
+    float foldPhaseCos = uFold.x;
+    float foldPhaseSin = uFold.y;
+    float firePhaseCos = uFire.x;
+    float firePhaseSin = uFire.y;
+    float wavePhaseCos = uWave.x;
+    float wavePhaseSin = uWave.y;
+    float jitACos = uJitA.x;
+    float jitASin = uJitA.y;
+    float jitBCos = uJitB.x;
+    float jitBSin = uJitB.y;
+    float jitCCos = uJitC.x;
+    float jitCSin = uJitC.y;
 
     float fold = 0.75 + aFold.x * (aFold.y * foldPhaseCos - aFold.z * foldPhaseSin);
     float radius = 45.0 * fold;
@@ -361,8 +507,17 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
       }
     }
 
-    float level = (0.464 + wave * 0.272 + spike * 1.92 + (aTract > 0.5 ? 0.24 : 0.0) + glowBoost) * depth;
-    float hot = spike * 0.6;
+    float seed = fract(sin(dot(aDirection, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+    float seed2 = fract(seed * 197.31);
+    float grainAngle = seed * 6.2831853;
+    vGrain = vec3(cos(grainAngle), sin(grainAngle), seed2);
+
+    // Squared, so the distribution leans hard toward the low end: most of the
+    // swarm barely flares and a minority carries the firing. See the header.
+    float temper = 0.3 + 0.7 * seed2 * seed2;
+
+    float level = (0.464 + wave * 0.272 + spike * 1.92 * temper + (aTract > 0.5 ? 0.24 : 0.0) + glowBoost) * depth * LUMA;
+    float hot = spike * 0.6 * temper * LUMA;
     vColor = aBaseColor * level + vec3(hot);
 
     vec4 mv = modelViewMatrix * vec4(pos, 1.0);
@@ -373,16 +528,34 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
 
 const PARTICLE_FRAGMENT_SHADER = /* glsl */ `
   precision highp float;
+  uniform sampler2D uSprite;
   varying vec3 vColor;
+  varying vec3 vGrain;
 
   void main() {
-    // 0 at the centre of the point, 1 at its edge.
-    float d = length(gl_PointCoord - vec2(0.5)) * 2.0;
-    if (d > 1.0) discard;
+    // -1..1 across the point, so the grain can be built with dot products.
+    vec2 pc = (gl_PointCoord - vec2(0.5)) * 2.0;
 
-    float core = 1.0 - smoothstep(0.55, 0.72, d);
-    float halo = pow(1.0 - d, 3.0) * 0.16;
-    float a = core + halo;
+    // Into the particle's own frame - one axis along its grain, one across -
+    // then stretched on one and pinched on the other by the same amount. The
+    // dot becomes a small fixed ellipse instead of a circle, and no two
+    // neighbours carry it at the same angle.
+    vec2 g = vec2(dot(pc, vGrain.xy), pc.y * vGrain.x - pc.x * vGrain.y);
+    float ecc = 0.14 * (vGrain.z - 0.5);
+    g *= vec2(1.0 - ecc, 1.0 + ecc);
+
+    // Outside the grain entirely. Squared, to skip the square root - only the
+    // comparison is wanted here, not the distance itself.
+    if (dot(g, g) > 1.0) discard;
+
+    // The profile, sampled rather than evaluated. This is the filter: the
+    // transform above is linear, so the derivatives the GPU needs to pick a
+    // mip level survive it intact and the point is minified properly.
+    float shape = texture2D(uSprite, g * 0.5 + 0.5).a;
+
+    // The last of the texture: a fixed weight per particle, so the field has
+    // near and far grains in it rather than one uniform brightness.
+    float a = shape * (0.8 + 0.2 * vGrain.z);
     if (a < 0.004) discard;
 
     // Additive blending multiplies rgb by alpha, so the colour is passed
@@ -399,6 +572,7 @@ export class ParticlesSwarm {
   private readonly points: THREE.Points;
   private readonly geometry: THREE.BufferGeometry;
   private readonly material: THREE.ShaderMaterial;
+  private readonly sprite: THREE.DataTexture;
   private readonly clock = new THREE.Clock();
 
   /** Per-particle constants - see the header on why these exist. */
@@ -616,9 +790,17 @@ export class ParticlesSwarm {
 
     this.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), scale * 2);
 
+    this.sprite = makeParticleSprite();
+
     this.material = new THREE.ShaderMaterial({
       uniforms: {
-        uTime: { value: 0 },
+        uSprite: { value: this.sprite },
+        uFold: { value: new THREE.Vector2(1, 0) },
+        uFire: { value: new THREE.Vector2(1, 0) },
+        uWave: { value: new THREE.Vector2(1, 0) },
+        uJitA: { value: new THREE.Vector2(1, 0) },
+        uJitB: { value: new THREE.Vector2(1, 0) },
+        uJitC: { value: new THREE.Vector2(1, 0) },
         uSize: { value: opts.particleSize ?? 1.5 },
         uScale: { value: height * 0.5 },
         uRepel: { value: new THREE.Vector3(0, 0, 0) },
@@ -684,6 +866,7 @@ export class ParticlesSwarm {
     this.scene.remove(this.points);
     this.geometry.dispose();
     this.material.dispose();
+    this.sprite.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }
@@ -744,7 +927,18 @@ export class ParticlesSwarm {
 
   private renderFrame(time: number) {
     this.updateInfluences();
-    this.material.uniforms.uTime.value = time;
+
+    // Twelve transcendentals a frame, total, for any particle count - which is
+    // what the header's angle-sum argument was always claiming. Done in float64
+    // and shipped as finished cos/sin pairs, so nothing downstream ever sees
+    // the unbounded time value.
+    const u = this.material.uniforms;
+    u.uFold.value.set(Math.cos(time * 0.2), Math.sin(time * 0.2));
+    u.uFire.value.set(Math.cos(time * 2.5), Math.sin(time * 2.5));
+    u.uWave.value.set(Math.cos(time * 1.5), Math.sin(time * 1.5));
+    u.uJitA.value.set(Math.cos(time * 5.0), Math.sin(time * 5.0));
+    u.uJitB.value.set(Math.cos(time * 6.2), Math.sin(time * 6.2));
+    u.uJitC.value.set(Math.cos(time * 4.1), Math.sin(time * 4.1));
     this.material.uniforms.uRepel.value.set(
       this.repelX,
       this.repelY,
