@@ -191,10 +191,10 @@ export default function Testimonials() {
         <DriftWall
           items={items}
           renderItem={(item) => <QuoteCard item={item} interactive={interactive} />}
-          columns={isNarrow ? 1 : 4}
-          tileWidth={isNarrow ? 280 : 320}
-          tileHeight={210}
-          gap={18}
+          columns={isNarrow ? 2 : 4}
+          tileWidth={isNarrow ? 220 : 320}
+          tileHeight={isNarrow ? 180 : 210}
+          gap={isNarrow ? 12 : 18}
           planeScale={isNarrow ? 1 : 1.04}
           tilt={0}
           turn={0}
@@ -204,7 +204,7 @@ export default function Testimonials() {
           direction="up"
           variance={0.4}
           parallax={0}
-          lift={70}
+          lift={isNarrow ? 30 : 70}
           fade={0.62}
           /* The resting dim is expressed as OPACITY, so the dark overlay it
              leaves is 1 - dim. 0.9 is a 10% overlay - just enough to sit the

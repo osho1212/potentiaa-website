@@ -316,7 +316,7 @@ export default function HeroLabels({
 
     const intersectionObserver = new IntersectionObserver(
       ([entry]) => (entry.isIntersecting ? start() : stop()),
-      { rootMargin: "100px" },
+      { rootMargin: "0px" },
     );
     intersectionObserver.observe(container);
 

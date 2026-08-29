@@ -131,6 +131,16 @@
   transform: translateZ(var(--dw-lift));
 }
 
+@media (max-width: 900px) {
+  .drift-wall__tile.is-active {
+    z-index: 25;
+  }
+  .drift-wall__tile.is-active .drift-wall__inner,
+  .drift-wall__tile:focus-within .drift-wall__inner {
+    transform: translateZ(var(--dw-lift)) scale(1.2);
+  }
+}
+
 /* Reduced motion: the wall holds still, and everything comes up to full
    opacity because the dim only made sense as depth in a moving field. */
 @media (prefers-reduced-motion: reduce) {

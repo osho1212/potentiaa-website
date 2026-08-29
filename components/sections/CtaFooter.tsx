@@ -1,65 +1,110 @@
 "use client";
 
 import Reveal from "../Reveal";
-import ZealIdle from "../ZealIdle";
-import { useContact } from "../ContactContext";
+import ShinyText from "../ShinyText";
 import { site } from "@/lib/site";
 
 export default function CtaFooter() {
-  const { open } = useContact();
   const year = new Date().getFullYear();
 
   return (
     <>
-      <section className="cta container" id="contact" data-theme-key="cta">
-        <Reveal>
-          <h2 className="cta__title">{site.cta.title}</h2>
-        </Reveal>
-        <Reveal delay={100}>
-          <p className="lede" style={{ marginInline: "auto", marginBottom: "var(--space-10)" }}>
-            {site.cta.body}
-          </p>
-        </Reveal>
-        <Reveal delay={180}>
-          <a className="cta__email" href={`mailto:${site.contact.email}`}>
-            {site.contact.email}
-          </a>
-        </Reveal>
-        <Reveal delay={260}>
-          {/* He explained the catalogue and then left before the offer. This is
-              the one moment on the page where a real person is being offered
-              real help, so he stands with it. */}
-          <div className="cta__close">
-            <ZealIdle />
-            <button type="button" className="btn btn--coral" onClick={open}>
-              Start a project
-            </button>
-          </div>
-        </Reveal>
+      {/* Single-line ShinyText strip directly above footer */}
+      <section className="cta-strip" id="contact" data-theme-key="cta">
+        <div className="container cta-strip__inner">
+          <Reveal>
+            <h2 className="cta-strip__title">
+              <ShinyText
+                text={site.cta.title}
+                speed={2.6}
+                customGradient="linear-gradient(120deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.72) 28%, #38bdf8 38%, #ffffff 48%, #ff6a5b 58%, #fa4592 68%, rgba(255, 255, 255, 0.72) 80%, rgba(255, 255, 255, 0.72) 100%)"
+                spread={120}
+                direction="left"
+              />
+            </h2>
+          </Reveal>
+        </div>
       </section>
 
-      {/* role="contentinfo" is set explicitly, and it is not redundant here.
-          <footer> only maps to the contentinfo landmark when it is scoped to
-          the body - nested inside <main>, as this is, it maps to nothing, so
-          the document exposed no contentinfo at all and a screen-reader user
-          could not jump to the contact details or the footer nav by landmark.
+      <footer className="site-footer" role="contentinfo">
+        <div className="container site-footer__inner">
+          <div className="site-footer__main">
+            {/* Col 1: Logo & Tagline */}
+            <div className="site-footer__brand">
+              <img src="/assets/img/footer-logo.png" alt="Potentiaa" className="site-footer__logo" />
+              <p className="site-footer__tagline">
+                Personalised billing, inventory and<br />
+                management software for small businesses.<br />
+                Consult, build, maintain.
+              </p>
+              <div className="site-footer__status">
+                <span className="site-footer__status-dot" aria-hidden="true" />
+                <span>Available for new projects</span>
+              </div>
+            </div>
 
-          There is one footer, so it simply claims it. This used to be
-          second contentinfo would never be announced, but declaring one role
-          once is the honest version. */}
-      <footer className="container" role="contentinfo">
-        <div className="footer">
-          <p>
-            &copy; {year} {site.name}. {site.tagline}
-          </p>
-          <nav className="footer__links" aria-label="Footer">
-            {site.nav.map((item) => (
-              <a key={item.href} href={item.href}>
-                {item.label}
-              </a>
-            ))}
-            <a href={`mailto:${site.contact.email}`}>Contact</a>
-          </nav>
+            {/* Col 2: WHAT WE BUILD */}
+            <div className="site-footer__col">
+              <h4 className="site-footer__heading">WHAT WE BUILD</h4>
+              <ul className="site-footer__list">
+                <li><a href="#work">Billing and inventory software</a></li>
+                <li><a href="#work">Marketing websites</a></li>
+                <li><a href="#work">Management apps</a></li>
+                <li><a href="#work">Consulting and system audits</a></li>
+              </ul>
+            </div>
+
+            {/* Col 3: SERVICES */}
+            <div className="site-footer__col">
+              <h4 className="site-footer__heading">SERVICES</h4>
+              <ul className="site-footer__list">
+                <li><a href="#work">Consulting</a></li>
+                <li><a href="#work">Business software</a></li>
+                <li><a href="#work">Websites</a></li>
+                <li><a href="#work">Mobile apps</a></li>
+                <li><a href="#work">Maintenance</a></li>
+              </ul>
+            </div>
+
+            {/* Col 4: CONNECT */}
+            <div className="site-footer__col">
+              <h4 className="site-footer__heading">CONNECT</h4>
+              <ul className="site-footer__list">
+                <li>
+                  <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">
+                    Instagram
+                  </a>
+                </li>
+                <li>
+                  <a href="https://wa.me/918267839736" target="_blank" rel="noopener noreferrer">
+                    WhatsApp &middot; +91 82678 39736
+                  </a>
+                </li>
+                <li>
+                  <a href={`mailto:${site.contact.email}`}>{site.contact.email}</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Sub-footer Bottom Bar */}
+          <div className="site-footer__bottom">
+            <div className="site-footer__legal">
+              <span>&copy; {year} Potentiaa. All Rights Reserved.</span>
+              <a href="#privacy">Privacy Policy</a>
+              <a href="#terms">Terms of Service</a>
+            </div>
+            <div className="site-footer__right-group">
+              <button
+                type="button"
+                className="site-footer__top-btn"
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                aria-label="Back to top"
+              >
+                Back to top &uarr;
+              </button>
+            </div>
+          </div>
         </div>
       </footer>
     </>

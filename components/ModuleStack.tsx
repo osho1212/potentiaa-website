@@ -372,6 +372,7 @@ export default function ModuleStack() {
 
     /** Last `--hero-dock` written to the root, so we only write on change. */
     let dockWritten = -1;
+    let landedWritten: boolean | null = null;
 
     /**
      * When the slow-cadence layout read last ran.
@@ -606,13 +607,20 @@ export default function ModuleStack() {
       if (berth && claim > 0.001) {
         const b = claim;
         const berthScale = berth.size / cubeSize;
-        target.x += (berth.x - target.x) * b;
+        const landedX = berth.x + 20;
+        target.x += (landedX - target.x) * b;
         target.y += (berth.y - target.y) * b;
         target.scale += (berthScale - target.scale) * b;
         target.rotate += (0 - target.rotate) * b;
         target.opacity += (1 - target.opacity) * b;
         target.depth += (1 - target.depth) * b;
         target.dock += (0 - target.dock) * b;
+      }
+
+      const isLanded = claim > 0.05;
+      if (isLanded !== landedWritten) {
+        landedWritten = isLanded;
+        container.classList.toggle("module-stack--landed", isLanded);
       }
 
       if (!flight || reduced) {

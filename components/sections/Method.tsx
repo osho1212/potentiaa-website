@@ -4,9 +4,15 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import IntroCubes from "../IntroCubes";
 import { onScrollFrame } from "@/lib/scrollState";
 import { site } from "@/lib/site";
+import { moduleBerth } from "@/lib/moduleBerth";
 
 /** Below this the card stops pinning - see the note on the pin effect. */
 const PIN_MIN_WIDTH = 900;
+
+function smoothstep(edge0: number, edge1: number, x: number): number {
+  const c = Math.max(0, Math.min(1, (x - edge0) / Math.max(1e-6, edge1 - edge0)));
+  return c * c * (3 - 2 * c);
+}
 
 /**
  * How we work - the method as six numbered steps.
@@ -41,6 +47,8 @@ export default function Method() {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
   const runwayRef = useRef<HTMLDivElement>(null);
+  const berthSlotRef = useRef<HTMLDivElement>(null);
+  const isBerthOwnerRef = useRef(false);
 
   const toggle = (n: string) =>
     setOpen((prev) => {
@@ -69,13 +77,14 @@ export default function Method() {
     const runway = runwayRef.current;
     if (!el || !runway) return;
 
-    const pinned = window.innerWidth >= PIN_MIN_WIDTH;
-    const range = pinned ? Math.max(0, el.scrollHeight - el.clientHeight) : 0;
+    const range = Math.max(0, el.scrollHeight - el.clientHeight);
     runway.style.setProperty("--method-runway", `${range}px`);
   }, []);
 
   /**
    * Drive the list from the page, while the card is pinned.
+   * Also drive the floating 3D logo module berth so it lands and sticks in the
+   * designated area while Method is in full viewport.
    *
    * Subscribed to onScrollFrame rather than a native scroll listener because
    * Lenis owns the page and does not emit native events for its own programmatic
@@ -87,30 +96,73 @@ export default function Method() {
     const runway = runwayRef.current;
     if (!el || !rail || !runway) return;
 
+    let visible = false;
+
+    const updateBerth = () => {
+      const berthSlot = berthSlotRef.current;
+      if (!berthSlot || !visible) return;
+
+      const slotRect = berthSlot.getBoundingClientRect();
+      const runwayTop = runway.getBoundingClientRect().top;
+      const scrolled = -runwayTop;
+
+      const range = Math.max(0, el.scrollHeight - el.clientHeight);
+      const vh = window.innerHeight;
+
+      // Arrive: smoothly transition into berth as the Method section comes into view
+      const arrive = smoothstep(-vh * 0.85, 0, scrolled);
+      // Leave: smoothly transition out of berth as the Method section unpins and scrolls away
+      const leave = smoothstep(range, range + vh * 0.85, scrolled);
+      const strength = arrive * (1 - leave);
+
+      if (strength > 0.001) {
+        isBerthOwnerRef.current = true;
+        moduleBerth.strength = strength;
+        moduleBerth.x = slotRect.left + slotRect.width / 2;
+        moduleBerth.y = slotRect.top + slotRect.height / 2;
+        moduleBerth.size = Math.min(slotRect.width, slotRect.height * 1.3, 300);
+      } else if (isBerthOwnerRef.current) {
+        isBerthOwnerRef.current = false;
+        moduleBerth.strength = 0;
+      }
+    };
+
     const update = () => {
-      const pinned = window.innerWidth >= PIN_MIN_WIDTH;
       const range = Math.max(0, el.scrollHeight - el.clientHeight);
 
-      if (!pinned || range === 0) {
-        // Unpinned the list is just page content; nothing to drive, and the
-        // rail is hidden at this width anyway.
-        rail.style.setProperty("--rail-progress", range === 0 ? "1" : "0");
-        return;
+      if (range > 0) {
+        // Zero as the runway's top meets the top of the viewport, which is also
+        // the frame the pin engages on.
+        const scrolled = -runway.getBoundingClientRect().top;
+        const t = Math.min(1, Math.max(0, scrolled / range));
+
+        el.scrollTop = t * range;
+        rail.style.setProperty("--rail-progress", t.toString());
+      } else {
+        rail.style.setProperty("--rail-progress", "1");
       }
 
-      // Zero as the runway's top meets the top of the viewport, which is also
-      // the frame the pin engages on.
-      const scrolled = -runway.getBoundingClientRect().top;
-      const t = Math.min(1, Math.max(0, scrolled / range));
-
-      el.scrollTop = t * range;
-      rail.style.setProperty("--rail-progress", t.toString());
+      updateBerth();
     };
 
     measureRunway();
     update();
 
     const unsubscribe = onScrollFrame(update);
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        if (visible) {
+          updateBerth();
+        } else if (isBerthOwnerRef.current) {
+          isBerthOwnerRef.current = false;
+          moduleBerth.strength = 0;
+        }
+      },
+      { rootMargin: "50% 0px 50% 0px" },
+    );
+    io.observe(runway);
 
     // Opening a step changes the overflow, so both the runway and the mapping
     // have to be recomputed against the new height.
@@ -125,25 +177,23 @@ export default function Method() {
 
     return () => {
       unsubscribe();
+      io.disconnect();
       observer.disconnect();
       window.removeEventListener("resize", measureRunway);
+      if (isBerthOwnerRef.current) {
+        isBerthOwnerRef.current = false;
+        moduleBerth.strength = 0;
+      }
     };
   }, [measureRunway]);
 
   /**
    * Keyboard focus must not scroll the list behind the page's back.
-   *
-   * The scroller has `overflow: hidden` while pinned, so it has no scrollbar -
-   * but it is still a scroll container, and tabbing to a toggle button below
-   * the fold makes the browser set its scrollTop to reveal it. The next frame
-   * overwrites that from the page position, so the focused control would vanish
-   * again. Moving the PAGE instead puts the mapping where the focus is, and the
-   * next frame then agrees with it.
    */
   const handleFocus = useCallback((event: React.FocusEvent<HTMLDivElement>) => {
     const el = scrollerRef.current;
     const runway = runwayRef.current;
-    if (!el || !runway || window.innerWidth < PIN_MIN_WIDTH) return;
+    if (!el || !runway) return;
 
     const target = event.target as HTMLElement;
     if (target === el) return;
@@ -214,6 +264,9 @@ export default function Method() {
                 The same sequence on every build, whichever business it is — so you always know
                 what happens next.
               </p>
+
+              {/* Marked berth slot for the floating 3D logo module */}
+              <div className="method__berth-slot" ref={berthSlotRef} aria-hidden="true" />
             </div>
 
             <div className="method__track">

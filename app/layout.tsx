@@ -8,14 +8,14 @@ import "./globals.css";
    shipping the heavier faces would be dead weight in the font payload. */
 const sora = Sora({
   subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-sora",
   display: "swap",
 });
 
 const manrope = Manrope({
   subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-manrope",
   display: "swap",
 });

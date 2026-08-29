@@ -320,7 +320,7 @@ export default function HeroFlowStream({
 
     const intersectionObserver = new IntersectionObserver(
       ([entry]) => (entry.isIntersecting ? start() : stop()),
-      { rootMargin: "10%" },
+      { rootMargin: "0px" },
     );
     intersectionObserver.observe(canvas);
 

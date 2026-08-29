@@ -258,6 +258,8 @@ export default function FlowStage() {
     let assembling: boolean | null = null;
 
     let span = 1;
+    let sectionHeight = 0;
+    let sectionOffsetTop = 0;
     let panelRect = { left: 0, top: 0, width: 0, height: 0 };
     const panel = stage.querySelector<HTMLElement>(".flow-stage__panel");
 
@@ -265,9 +267,13 @@ export default function FlowStage() {
       const s = stage.getBoundingClientRect();
       if (!section) {
         span = Math.max(1, s.height - window.innerHeight);
+        sectionHeight = 0;
+        sectionOffsetTop = 0;
       } else {
         const f = section.getBoundingClientRect();
         span = Math.max(1, f.top - s.top);
+        sectionHeight = section.offsetHeight || f.height;
+        sectionOffsetTop = section.offsetTop || (f.top - s.top);
       }
 
       if (panel) {
@@ -290,13 +296,14 @@ export default function FlowStage() {
       if (!visible) return;
       const rect = stage.getBoundingClientRect();
       const scrolled = -rect.top;
-      const f = section?.getBoundingClientRect();
+      const fTop = rect.top + sectionOffsetTop;
+      const fHeight = sectionHeight || Math.max(1, window.innerHeight * 1.5);
 
       const t = Math.min(1, Math.max(0, scrolled / (span * ASSEMBLE)));
 
       flowRef.current.t = t;
       flowRef.current.offsetY = Math.min(0, rect.top);
-      const hold = Math.max(0, (section?.offsetHeight ?? 0) - window.innerHeight);
+      const hold = Math.max(0, fHeight - window.innerHeight);
       const releaseY = Math.min(0, span + hold - scrolled);
       flowRef.current.releaseY = releaseY;
 
@@ -319,8 +326,8 @@ export default function FlowStage() {
         stage.style.setProperty("--flow-release", `${releaseFixed}px`);
       }
 
-      if (f) {
-        const copyShift = (releaseY - f.top).toFixed(1);
+      if (section) {
+        const copyShift = (releaseY - fTop).toFixed(1);
         if (copyShift !== prevCopyShift.toString()) {
           prevCopyShift = copyShift as unknown as number;
           stage.style.setProperty("--flow-copy-shift", `${copyShift}px`);
@@ -331,9 +338,9 @@ export default function FlowStage() {
       const passed = releaseY < -window.innerHeight * 1.15 || rect.bottom < -window.innerHeight;
       stage.classList.toggle("flow-stage--passed", passed);
 
-      if (panel && f && panelRect.width > 0) {
-        const passedFraction = -f.top / Math.max(1, f.height);
-        const edge = berthEdges(f.height, span);
+      if (panel && section && panelRect.width > 0) {
+        const passedFraction = -fTop / Math.max(1, fHeight);
+        const edge = berthEdges(fHeight, span);
         moduleBerth.strength =
           smoothstep(edge.arriveFrom, edge.arriveTo, passedFraction) *
           (1 - smoothstep(edge.holdUntil, edge.leaveBy, passedFraction));
@@ -366,7 +373,7 @@ export default function FlowStage() {
           moduleBerth.strength = 0;
         }
       },
-      { rootMargin: "60% 0px 60% 0px" },
+      { rootMargin: "0px 0px 10% 0px" },
     );
     observer.observe(stage);
 

@@ -125,7 +125,7 @@
 }
 
 .magic-bento-card__description {
-  font-family: var(--font-sans, sans-serif);
+  font-family: var(--font-body);
   font-size: clamp(12.5px, 0.95vw, 14px);
   line-height: 1.45;
   color: var(--text-on-dark-secondary, rgba(255, 255, 255, 0.65));
