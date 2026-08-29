@@ -2,12 +2,6 @@
 
 import { useEffect, useRef } from "react";
 
-/**
- * Scroll-reveal wrapper. Uses IntersectionObserver rather than ScrollTrigger
- * so text still appears when motion is reduced (the CSS in motion.css strips
- * the transition and leaves the content visible).
- */
-/** Which way the element arrives. See the note in styles/motion.css. */
 export type RevealVariant = "up" | "scale" | "left" | "right" | "blur" | "rise";
 
 export default function Reveal({
@@ -29,6 +23,14 @@ export default function Reveal({
     const node = ref.current;
     if (!node) return;
 
+    // Check if element is already in viewport
+    const rect = node.getBoundingClientRect();
+    if (rect.top < window.innerHeight + 50 && rect.bottom > -50) {
+      node.dataset.visible = "true";
+    } else {
+      node.dataset.revealInit = "true";
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -38,10 +40,7 @@ export default function Reveal({
           }
         });
       },
-      // A low threshold with a generous bottom margin: the element starts
-      // moving as it enters rather than after it has arrived, which is the
-      // difference between a page that animates and a page that pops.
-      { threshold: 0.08, rootMargin: "0px 0px -12% 0px" },
+      { threshold: 0.01, rootMargin: "80px 0px 80px 0px" },
     );
 
     observer.observe(node);

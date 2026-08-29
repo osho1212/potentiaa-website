@@ -58,34 +58,30 @@
  * moves as one system.
  */
 .reveal {
-  opacity: 0;
-  transform: translate3d(0, 28px, 0);
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
   transition:
     opacity var(--duration-reveal) var(--ease-smooth),
     transform var(--duration-reveal) var(--ease-smooth),
     filter var(--duration-reveal) var(--ease-smooth);
   transition-delay: var(--reveal-delay, 0ms);
-  will-change: opacity, transform;
 }
 
-.reveal--scale { transform: translate3d(0, 18px, 0) scale(0.94); }
-.reveal--left { transform: translate3d(-36px, 0, 0); }
-.reveal--right { transform: translate3d(36px, 0, 0); }
-.reveal--blur { transform: translate3d(0, 20px, 0); filter: blur(10px); }
-.reveal--rise { transform: translate3d(0, 56px, 0); }
+.reveal[data-reveal-init="true"]:not([data-visible="true"]) {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+}
 
-/* Specificity has to beat `.explainer__body > *:not([data-zeal-active])`, which
-   is (0,2,0) and sets opacity 0.82. It was silently winning over `.reveal`
-   at (0,1,0), so every card and row inside an explainer section skipped its
-   fade entirely and only slid - measured at 0.82 before revealing, never 0.
-   Doubling the class is the least invasive way to outrank it. */
-.reveal.reveal { opacity: 0; }
+.reveal--scale[data-reveal-init="true"]:not([data-visible="true"]) { transform: translate3d(0, 18px, 0) scale(0.94); }
+.reveal--left[data-reveal-init="true"]:not([data-visible="true"]) { transform: translate3d(-36px, 0, 0); }
+.reveal--right[data-reveal-init="true"]:not([data-visible="true"]) { transform: translate3d(36px, 0, 0); }
+.reveal--blur[data-reveal-init="true"]:not([data-visible="true"]) { transform: translate3d(0, 20px, 0); filter: blur(10px); }
+.reveal--rise[data-reveal-init="true"]:not([data-visible="true"]) { transform: translate3d(0, 56px, 0); }
 
-.reveal[data-visible="true"],
-.reveal.reveal[data-visible="true"] {
-  opacity: 1;
-  transform: translate3d(0, 0, 0) scale(1);
-  filter: none;
+.reveal[data-visible="true"] {
+  opacity: 1 !important;
+  transform: translate3d(0, 0, 0) scale(1) !important;
+  filter: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

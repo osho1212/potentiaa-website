@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import gsap from "gsap";
+import { gsap } from "gsap";
 import "./DepthCarousel.css";
 
 export interface DepthCarouselItem {
