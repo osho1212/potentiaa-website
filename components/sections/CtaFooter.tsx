@@ -17,7 +17,7 @@ export default function CtaFooter() {
               <ShinyText
                 text={site.cta.title}
                 speed={2.6}
-                customGradient="linear-gradient(120deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.72) 28%, #38bdf8 38%, #ffffff 48%, #ff6a5b 58%, #fa4592 68%, rgba(255, 255, 255, 0.72) 80%, rgba(255, 255, 255, 0.72) 100%)"
+                customGradient="linear-gradient(120deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.72) 24%, #265DFF 36%, #7E9BFF 44%, #FFFFFF 50%, #FF6A5B 58%, #FA4592 68%, rgba(255, 255, 255, 0.72) 80%, rgba(255, 255, 255, 0.72) 100%)"
                 spread={120}
                 direction="left"
               />
