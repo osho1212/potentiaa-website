@@ -12,21 +12,24 @@ import LogoMark from "./LogoMark";
  * pre-rendered as a tumble and played back on an HTML5 canvas.
  *
  * A frame sequence rather than live WebGL, so playback costs almost nothing on
- * the GPU and holds 60fps on cheap phones. Two things are driven off the lap
+ * the GPU and holds 60fps on cheap phones. Two things are driven off the scroll
  * progress in lib/scrollState:
  *
  *   1. the frame index, which turns the stack;
  *   2. the container's position/scale/rotation, eased through the waypoints in
  *      lib/frames.ts.
  *
- * Both close cleanly at the loop seam. The frame index wraps modulo
- * FRAME_COUNT, and the tumble is built from sines over a whole lap so its last
- * frame is its first; the waypoints are authored so the first and last entries
- * match. So when the page loops, the stack is already back at centre and full
- * size - no snap.
+ * Both were built to close cleanly, back when the page looped: the frame index
+ * wraps modulo FRAME_COUNT, the tumble is built from sines over the full range
+ * so its last frame is its first, and the waypoints are authored so the first
+ * and last entries match. Nothing needs that symmetry now that there is no
+ * seam to hide, but it is kept - it reads as the module coming home over the
+ * closing sections rather than as a trick, and undoing it would mean
+ * re-authoring the tumble for no gain.
  *
- * Driven from a plain rAF loop rather than GSAP ScrollTrigger, which assumes a
- * monotonic document progress and breaks on the wrap.
+ * Driven from a plain rAF loop rather than GSAP ScrollTrigger. That started as
+ * a hard requirement (ScrollTrigger assumes monotonic progress and broke on the
+ * wrap) and is now simply the cheaper option - see lib/scrollState.
  *
  * If the sequence has not been generated yet (see /studio) the canvas is
  * swapped for the flat vector mark so the page is never broken.
@@ -65,7 +68,7 @@ const ease = (t: number) => t * t * (3 - 2 * t);
  * (distance haze), and which side of the content it renders on.
  */
 
-/** Whole helix turns per lap. Three reads as deliberate; more reads as spin. */
+/** Whole helix turns per page. Three reads as deliberate; more reads as spin. */
 const HELIX_TURNS = 3;
 
 /**
@@ -86,10 +89,10 @@ const DEPTH_SCALE = 0.34;
 /**
  * THE DOCK.
  *
- * The lap does not begin with the module already floating in the hero. It
+ * The page does not begin with the module already floating in the hero. It
  * begins with the module BEING THE LOGO: parked on the header's mark, at the
  * mark's size, next to the wordmark. It stays there for the whole hero, lifts
- * out into the helix once the hero has scrolled past, and at the end of the lap
+ * out into the helix once the hero has scrolled past, and at the end of the page
  * flies back and settles into the same spot.
  *
  * It holds through the hero rather than leaving immediately because the hero
@@ -100,7 +103,7 @@ const DEPTH_SCALE = 0.34;
  *
  * Which costs nothing to close at the seam, because the seam is the dock. The
  * page loops, so progress 1 and progress 0 are the same instant on screen, and
- * both of them are "docked" - so the two ends of the lap agree by construction
+ * both of them are "docked" - so the two ends of the page agree by construction
  * rather than by being tuned to agree. The turntable is already at frame 0
  * there, and the waypoints already match, so the whole object arrives home on
  * every axis at once.
@@ -111,7 +114,7 @@ const DEPTH_SCALE = 0.34;
  */
 
 /**
- * Fraction of a lap spent flying out of the navbar, and again flying back.
+ * Fraction of the page spent flying out of the navbar, and again flying back.
  *
  * Long enough that it lifts out rather than snaps out. It is the same span in
  * both directions, so the departure and the return are the same move.
@@ -144,17 +147,17 @@ type Flight = {
 };
 
 /**
- * Fallback for how much of a lap the hero occupies, used only until the real
+ * Fallback for how much of the page the hero occupies, used only until the real
  * measurement lands. The measured value is what actually drives the hold - see
  * `heroSpan` in the tick.
  */
 const HERO_SPAN_FALLBACK = 0.135;
 
 /**
- * How docked the module is at lap progress `p`, given how much of the lap the
+ * How docked the module is at scroll progress `p`, given how much of the page the
  * hero occupies.
  *
- * Asymmetric, and deliberately so. The two ends of the lap are not the same
+ * Asymmetric, and deliberately so. The two ends of the page are not the same
  * situation any more:
  *
  *   OUT   holds at 1 for the whole hero, then eases to 0 over DOCK_SPAN. The
@@ -176,9 +179,9 @@ function dockAt(p: number, heroSpan: number): number {
 /**
  * Where the module is right now, in viewport coordinates.
  *
- * Driven by lap progress, so it travels the WHOLE page rather than living in
- * the hero's reserved band. `progress` is already wrapped to 0..1 per lap and
- * the helix uses a whole number of turns, so the last frame of a lap and the
+ * Driven by scroll progress, so it travels the WHOLE page rather than living in
+ * the hero's reserved band. `progress` is already wrapped to 0..1 per page and
+ * the helix uses a whole number of turns, so the last frame of the page and the
  * first frame of the next are the same pose - the seam needs no special case,
  * exactly like the shard drift.
  */
@@ -210,7 +213,7 @@ function flightAt(
   const depth = plane;
 
   // Vertical drift is deliberately slow and shallow - a third of a cycle over
-  // the lap. The scroll itself supplies the vertical movement; adding a fast
+  // the page. The scroll itself supplies the vertical movement; adding a fast
   // vertical oscillation on top reads as bouncing rather than floating.
   const rise = Math.sin(theta / HELIX_TURNS + Math.PI / 2);
 
@@ -247,7 +250,7 @@ function flightAt(
   };
 }
 
-/** Interpolates the waypoint list at lap progress `p` (0..1). */
+/** Interpolates the waypoint list at scroll progress `p` (0..1). */
 function shapeAt(p: number): { reach: number; scale: number; rise: number } {
   const list = WAYPOINTS;
   let i = 0;
@@ -358,7 +361,7 @@ export default function ModuleStack() {
       images.push(img);
     }
 
-    // ---- Drive position and frame from lap progress ----------------------
+    // ---- Drive position and frame from scroll progress ----------------------
     let raf = 0;
     let last = performance.now();
 
@@ -395,7 +398,7 @@ export default function ModuleStack() {
     let logoBox: DOMRect | null = null;
 
     /**
-     * How much of a lap the hero occupies - the length of the dock's hold.
+     * How much of the page the hero occupies - the length of the dock's hold.
      *
      * Measured rather than fixed. The hero is 100svh and the sections under it
      * are not, so this is about 0.10 on a short laptop and 0.15 on a tall
@@ -433,9 +436,9 @@ export default function ModuleStack() {
         null;
 
       const heroHeight = document.querySelector<HTMLElement>("section.hero")?.offsetHeight;
-      const lap = scrollState.lap;
-      if (heroHeight && lap > 0) {
-        heroSpan = Math.min(heroHeight / lap, 0.4);
+      const span = scrollState.span;
+      if (heroHeight && span > 0) {
+        heroSpan = Math.min(heroHeight / span, 0.4);
       }
 
     };
@@ -500,7 +503,7 @@ export default function ModuleStack() {
       // Hand the dock to CSS so the flat SVG mark in the header can fade
       // against it. Written only when it actually moves - it is a custom
       // property on the root, so every write is a style recalc of the document,
-      // and it is pinned at 0 for most of the lap.
+      // and it is pinned at 0 for most of the page.
       //
       // Gated on the sequence having painted at least once. The module docks
       // from the first frame, but the canvas is empty until frame 0 decodes,
@@ -530,8 +533,8 @@ export default function ModuleStack() {
 
       // How much room the section under the sightline leaves the module. Read
       // from the page rather than from a table of scroll offsets, because the
-      // sections are not equal heights and the two laps make any progress-based
-      // lookup ambiguous at the seam.
+      // sections are not equal heights, so progress alone does not say which
+      // one is under the sightline.
       const theme = themeAt(window.innerHeight * 0.5);
       const room = theme.from.room + (theme.to.room - theme.from.room) * theme.t;
 
@@ -694,7 +697,7 @@ export default function ModuleStack() {
         reduced ? 0 : Math.sin(now / 2600) * 10 * (1 - flight.dock) * (1 - claim);
       apply(flight, bob);
 
-      // One full turntable per lap: progress 1 lands on frame 0 again.
+      // One full turntable per page: progress 1 lands on frame 0 again.
       //
       // Except on a berth, where it holds the FRONT VIEW. The tumble in
       // /studio is `y = sin(turn) * 1.01, x = sin(2 * turn) * 0.17,

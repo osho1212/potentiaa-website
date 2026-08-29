@@ -17,27 +17,20 @@ import { site } from "@/lib/site";
  *
  * `particlesRef` is owned by FlowStage and threaded down, because the pinned
  * cards drive this swarm's hover glow and the two are no longer siblings.
- *
- * `clone` matters because app/page.tsx renders this section twice for the
- * scroll loop: only the primary copy may carry the #top anchor, and only the
- * primary may hold the document's h1.
  */
 export default function Hero({
-  clone,
   particlesRef,
 }: {
-  clone?: boolean;
   particlesRef?: RefObject<HeroParticlesHandle | null>;
 }) {
   const { open } = useContact();
-  const Title = clone ? "p" : "h1";
 
   return (
-    <section className="hero" id={clone ? undefined : "top"} data-theme-key="hero">
+    <section className="hero" id="top" data-theme-key="hero">
       <div className="hero__grid container">
         <div className="hero__copy">
           <Reveal delay={80}>
-            <Title className="hero__title">
+            <h1 className="hero__title">
               {/* The trailing space is not a typo. These are block spans, so
                   it changes nothing on screen - but without it the accessible
                   name and the document's text content read
@@ -53,7 +46,7 @@ export default function Hero({
                   {line}{" "}
                 </span>
               ))}
-            </Title>
+            </h1>
           </Reveal>
 
           <Reveal delay={160}>

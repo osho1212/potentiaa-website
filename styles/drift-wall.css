@@ -1,0 +1,150 @@
+/* =====================================================================
+   DriftWall - columns of tiles drifting past a perspective plane.
+   Ported from React Bits; see components/DriftWall.tsx for what changed
+   and why. Colours come from tokens.css rather than the source's
+   hardcoded values, per the rule at the top of that file.
+   ===================================================================== */
+
+.drift-wall {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  perspective: var(--dw-perspective, 1200px);
+  perspective-origin: 50% 50%;
+
+  --dw-tile-w: 300px;
+  --dw-tile-h: 200px;
+  --dw-gap: 18px;
+  --dw-radius: var(--radius-lg);
+  --dw-lift: 64px;
+  --dw-dim: 0.55;
+
+  /* The wall dissolves into the page top and bottom, so drifting columns arrive
+     and leave rather than being cut off by a straight line.
+
+     WHAT THIS REPLACED. The source intersects a radial ellipse with a linear
+     ramp, both keyed to one stop. At this section's settings that left the mask
+     fully opaque for only the middle third and graded everywhere else - the top
+     60% of the wall sat under a permanent partial fade. Over photographs that
+     is atmosphere. Over sentences it is a wall of unreadable cards, and no
+     amount of hovering fixed it, because A DESCENDANT CANNOT ESCAPE AN
+     ANCESTOR'S MASK: the mask is on this element, the tile is inside it, and no
+     z-index or opacity on the tile lifts it out.
+
+     So the fade is a band at each end instead of a gradient across the whole
+     thing, and the band shrinks out of the way while a card is held. That is
+     the only way a held card near the edge can read at full strength, short of
+     rendering it outside this element entirely. */
+  --dw-edge: var(--dw-edge-base, 14%);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--dw-edge),
+    #000 calc(100% - var(--dw-edge)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--dw-edge),
+    #000 calc(100% - var(--dw-edge)),
+    transparent 100%
+  );
+  transition: --dw-edge var(--duration-slow) var(--ease-standard);
+}
+
+/* Registered so it can be transitioned at all - a plain custom property is not
+   an animatable type, so without this the band would snap. Browsers without
+   @property still get the right values, just no easing between them. */
+@property --dw-edge {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 14%;
+}
+
+/* Set by the component whenever a tile is active, pointer or finger. The fade
+   pulls back to almost nothing so the held card is legible wherever it is in
+   the column, then returns when you let go. */
+.drift-wall.is-holding {
+  --dw-edge: var(--dw-edge-hold, 3%);
+}
+
+.drift-wall__plane {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: row;
+  transform-style: preserve-3d;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.drift-wall__col {
+  position: relative;
+  width: calc(var(--dw-tile-w) + var(--dw-gap));
+  transform-style: preserve-3d;
+}
+
+.drift-wall__track {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+  transform-style: preserve-3d;
+}
+
+.drift-wall__tile {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: calc(var(--dw-tile-h) + var(--dw-gap));
+  flex: 0 0 auto;
+  outline: none;
+  transform-style: preserve-3d;
+}
+
+/* The inner is what moves in Z. Its opacity is the resting dim, so a tile
+   recedes into the wall until it is pointed at. */
+.drift-wall__inner {
+  position: absolute;
+  inset: calc(var(--dw-gap) / 2);
+  display: block;
+  border-radius: var(--dw-radius);
+  opacity: var(--dw-dim);
+  transform: translateZ(0);
+  transition:
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* THE LIFT IS THE MAGNIFICATION.
+   The source scales nothing - it moves the tile toward the viewer, and
+   perspective does the rest. At the values used here that works out at
+   1200 / (1200 - 64) = 1.056, which is within a rounding error of the
+   scale(1.06) the flat cards use, so the hovered tile grows by the same amount
+   it did before the wall existed. That is why .quote drops its own scale
+   inside a tile (see globals.css) - two magnifications would compound. */
+.drift-wall__tile.is-active .drift-wall__inner,
+.drift-wall__tile:focus-within .drift-wall__inner {
+  opacity: 1;
+  transform: translateZ(var(--dw-lift));
+}
+
+/* Reduced motion: the wall holds still, and everything comes up to full
+   opacity because the dim only made sense as depth in a moving field. */
+@media (prefers-reduced-motion: reduce) {
+  .drift-wall__plane,
+  .drift-wall__track {
+    will-change: auto;
+  }
+
+  .drift-wall__inner {
+    opacity: 1;
+    transition: none;
+  }
+
+  .drift-wall__tile.is-active .drift-wall__inner {
+    transform: translateZ(0);
+  }
+}

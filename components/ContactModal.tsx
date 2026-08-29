@@ -48,10 +48,10 @@ export default function ContactModal() {
 
       if (event.key !== "Tab") return;
 
-      // Trap. Wrapping by hand rather than with `inert` on the rest of the page:
-      // the clone lap already relies on staying non-inert to remain clickable,
-      // so reaching for inert here would be one global switch away from
-      // resurrecting that bug.
+      // Trap. Wrapping by hand rather than putting `inert` on the rest of the
+      // page: inert kills pointer events as well as focus, and this site has
+      // been bitten by exactly that before - a whole copy of the page was once
+      // inert and its CTAs were silently unclickable.
       const panel = panelRef.current;
       if (!panel) return;
       const focusable = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));

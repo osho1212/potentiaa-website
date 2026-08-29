@@ -1,6 +1,7 @@
 @import "../styles/tokens.css";
 @import "../styles/motion.css";
 @import "../styles/glass-surface.css";
+@import "../styles/drift-wall.css";
 
 /* ---------------------------------------------------------------
    Reset & base
@@ -636,9 +637,10 @@ button { font: inherit; cursor: pointer; }
 .hero__title {
   display: grid;
   font-family: var(--font-display);
-  /* Set explicitly rather than inherited from the h1 rule: the clone lap
-     renders this as a <p> to keep one <h1> per document, and without this the
-     two laps would use different faces - visible at the loop seam.
+  /* Set explicitly rather than inherited from the h1 rule. This originally
+     existed because a second, cloned copy of the page rendered the title as a
+     <p> and the two would otherwise have used different faces; the clone is
+     gone, and it stays because the size below is the real point.
      60.84px = 46.8px * 1.3. Earlier sizes here were capped to keep each
      titleLead/titleAccent entry (lib/site.ts) to one row in the 544px (34rem)
      copy column - deliberately given up on for this size, since the point of
@@ -1374,7 +1376,7 @@ button { font: inherit; cursor: pointer; }
      the others land on.
 
      It cannot simply be opacity: 1. The panel is pinned, so it sits at the top
-     of the viewport from the very start of the lap - a full screen before its
+     of the viewport from the very start of the page - a full screen before its
      own section - and a constant value paints it over the hero. What it can do
      is arrive early and then hold: solid by t = 0.45, which is before the first
      card seats, and unchanged from there through the whole section including
@@ -1641,10 +1643,11 @@ button { font: inherit; cursor: pointer; }
    Marquee - trust strip
    --------------------------------------------------------------- */
 .marquee {
+  --marquee-gap: var(--space-12);
   display: flex;
   overflow: hidden;
   user-select: none;
-  gap: var(--space-12);
+  gap: var(--marquee-gap);
   padding-block: var(--space-8);
   mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
   -webkit-mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
@@ -1653,19 +1656,42 @@ button { font: inherit; cursor: pointer; }
 .marquee__track {
   display: flex;
   flex-shrink: 0;
-  align-items: center;
-  gap: var(--space-12);
+  align-items: stretch;
+  gap: var(--marquee-gap);
   min-width: 100%;
-  animation: marquee-scroll 32s linear infinite;
+  /* Duration comes from the component so one row can run slower than another;
+     32s is the trust strip's original and stays the default. */
+  animation: marquee-scroll var(--marquee-duration, 32s) linear infinite;
 }
+
+.marquee--reverse .marquee__track { animation-direction: reverse; }
 
 @media (hover: hover) and (pointer: fine) {
   .marquee:hover .marquee__track { animation-play-state: paused; }
 }
 
+/* Pausing on hover is a pointer affordance and does nothing for a keyboard, so
+   focus inside a row stops it too. Without this, tabbing onto a link in a
+   moving card would chase the focus ring off the side of the screen. */
+.marquee:focus-within .marquee__track { animation-play-state: paused; }
+
+/* design.md 6: "fast, functional, never bouncy. No parallax." An indefinite
+   sideways crawl is the one thing on this page that never stops on its own, so
+   it is the first thing to go when the reader has asked for less movement. */
+@media (prefers-reduced-motion: reduce) {
+  .marquee__track { animation: none; }
+  /* The clone would just be the same cards again, sitting still. */
+  .marquee__track + .marquee__track { display: none; }
+  .marquee {
+    overflow-x: auto;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+}
+
 @keyframes marquee-scroll {
   from { transform: translateX(0); }
-  to   { transform: translateX(calc(-100% - var(--space-12))); }
+  to   { transform: translateX(calc(-100% - var(--marquee-gap))); }
 }
 
 /* design.md 6 - no stock imagery; placeholder slots until real logos land */
@@ -1683,6 +1709,274 @@ button { font: inherit; cursor: pointer; }
   text-transform: uppercase;
   color: var(--text-on-dark-muted);
   white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------
+   Testimonials - two counter-running rows of quote cards
+   --------------------------------------------------------------- */
+/* THE SECTION IS EXACTLY ONE VIEWPORT.
+   svh, not vh: on mobile the URL bar makes vh taller than what is actually on
+   screen, and the whole point of this section is that the wall ends where the
+   screen ends. The section is a column - the head takes what it needs, the wall
+   takes the rest - so the frame fits the viewport at any height without anyone
+   hardcoding a pixel figure for the copy above it.
+   The section's own padding-block from .section is dropped: it would be added
+   to 100svh and push the bottom of the wall off screen. */
+.testimonials {
+  height: 100svh;
+  min-height: 560px;
+  padding-block: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.testimonials__head {
+  flex: 0 0 auto;
+  padding-top: var(--below-header);
+}
+
+/* min-height: 0 is load-bearing. A flex child defaults to min-height: auto,
+   which refuses to shrink below its content - the wall would grow to fit its
+   own tiles and push the section past the viewport, which is the one thing
+   this layout exists to prevent. */
+.testimonials__wall {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+  margin-top: var(--space-8);
+}
+
+/* The card fills its tile now rather than sizing itself. The wall owns the
+   geometry: --dw-tile-w and --dw-tile-h are the single source of the size, and
+   a card with its own width would disagree with the track height the drift
+   maths is built on. */
+.testimonials .quote {
+  width: 100%;
+  height: 100%;
+}
+
+/* THE CARD TURNS OVER ON HOVER - glass to white, the same move the offering
+   cards make in section 3. Everything inside is therefore tokenised twice, once
+   for the glass rest state and once for the light hover state, so no text is
+   ever left carrying an on-dark colour against white. The --ink-* properties
+   are the single switch: the children read them and never name a colour. */
+.quote {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-5);
+  /* Fixed, because the cards must not resize as they travel - a fluid width
+     would make the track length depend on content and the seam would drift. */
+  width: 320px;
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  margin: 0;
+  isolation: isolate;
+
+  --ink-body: var(--text-on-dark);
+  --ink-name: var(--text-on-dark);
+  --ink-role: var(--text-on-dark-secondary);
+  --glow-x: 50%;
+  --glow-y: 50%;
+  --glow-intensity: 0;
+  --glow-radius: 240px;
+
+  /* Glass. A translucent veil over the page ground plus a real backdrop blur,
+     so the midnight behind it - and anything passing over it, which the
+     floating module does - shows through softened rather than hidden. The
+     saturate is what stops blurred midnight going flat and grey. */
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.09),
+    rgba(255, 255, 255, 0.04)
+  );
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  border: 1px solid var(--border-on-dark);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  /* transform is NOT here on purpose. GSAP animates it for the pointer tilt,
+     and a CSS transition on the same property fights whichever of the two
+     wrote last - the collision Work.tsx documents between Reveal and GSAP. */
+  transition:
+    background var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-slow) var(--ease-smooth);
+}
+
+/* The cursor-tracked rim, the same construction as .work-card::after so the two
+   sections glow identically: a gradient box with its own middle masked out,
+   which is how a gradient border is done at all. */
+.quote::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: inherit;
+  background: radial-gradient(
+    var(--glow-radius) circle at var(--glow-x) var(--glow-y),
+    rgba(var(--glow-color, 79, 70, 229), calc(var(--glow-intensity) * 0.9)) 0%,
+    rgba(var(--glow-color, 79, 70, 229), calc(var(--glow-intensity) * 0.4)) 35%,
+    transparent 65%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: opacity var(--duration-base) var(--ease-standard);
+  z-index: 1;
+}
+
+.drift-wall__tile.is-active .quote,
+.quote:hover {
+    /* Opaque white, and the blur goes with it. A backdrop filter under a solid
+       fill is pure cost for something nobody can see through. */
+    background: var(--white);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-color: rgba(79, 70, 229, 0.45);
+
+    /* NO transform here. The zoom is the tile lift - a real translateZ toward
+       the reader through the wall perspective - and the tilt is GSAP. A scale
+       on top would be a third writer on one property. */
+    /* Above its neighbours, or the card it grows over clips its own corner. */
+    z-index: 2;
+
+    box-shadow:
+      0 18px 40px -12px rgba(2, 10, 36, 0.55),
+      0 0 26px rgba(var(--glow-color, 79, 70, 229), 0.18);
+
+    /* Measured against #ffffff below, once the tokens resolve - both steps
+       clear WCAG AA at this size, so the quote is more readable hovered than
+       at rest, not less. */
+    --ink-body: var(--midnight-950);
+    --ink-name: var(--midnight-950);
+    --ink-role: var(--gray-600);
+
+    /* The rim lights for touch too. The pointer handlers set this inline when
+       there is a pointer to track; this is the floor when there is not. */
+    --glow-intensity: 1;
+}
+
+/* design.md 6 - "no parallax", and a card that leans and swells under the
+   cursor is the same class of unasked-for movement. The colour turn and the rim
+   stay, since those carry the state; the movement goes. The pointer tilt is
+   already gated off in the component (see Testimonials.tsx), so this only has
+   to catch anything GSAP left on the element when the setting changed. */
+@media (prefers-reduced-motion: reduce) {
+  .drift-wall__tile.is-active .quote,
+  .quote:hover {
+    transform: none;
+  }
+}
+
+.quote__body {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-relaxed);
+  color: var(--ink-body);
+  transition: color var(--duration-base) var(--ease-standard);
+  /* Four lines reserved, whether or not there are four lines in it yet. A real
+     quote at this width runs three or four rows, so an empty slot that is one
+     row tall would let the whole section relayout the day the copy lands - and
+     would be a placeholder that lies about the space it is holding. */
+  min-height: calc(var(--fs-sm) * var(--lh-relaxed) * 4);
+}
+
+.quote__by {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* A real image once a client has agreed to one; the monogram below is what
+   stands in until then. Sized in the markup as well as here so the row does not
+   reflow between the image being requested and arriving. */
+.quote__avatar {
+  flex-shrink: 0;
+  /* 44 rather than 36: these are drawn faces, and at 36 the features close up
+     into a smudge. Matches the width/height on the img so nothing reflows
+     between the request and the paint. */
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  border: 1px solid var(--border-on-dark);
+}
+
+/* Type on a token fill, never a photograph of someone who is not the client -
+   design.md 6 supplies no imagery and rules out stock stand-ins. radius-full
+   because that section names pills and avatars as the two things that take it. */
+.quote__mark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-on-dark);
+  background: var(--midnight-800);
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--text-on-dark);
+}
+
+.quote__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.quote__name {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--ink-name);
+  transition: color var(--duration-base) var(--ease-standard);
+}
+
+.quote__role {
+  font-size: var(--fs-xs);
+  color: var(--ink-role);
+  transition: color var(--duration-base) var(--ease-standard);
+}
+
+/* PENDING = this slot has no real quote in it yet. Same visual language as the
+   trust strip's dashed chips, so an unfilled testimonial reads as a slot
+   waiting for content rather than as a card that failed to load. Drop the flag
+   in lib/site.ts and the card styles itself normally. */
+.quote--pending {
+  border-style: dashed;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.quote--pending .quote__body,
+.quote--pending .quote__name,
+.quote--pending .quote__role {
+  color: var(--text-on-dark-muted);
+}
+
+.quote--pending .quote__body {
+  font-style: italic;
+}
+
+.quote--pending .quote__mark {
+  border-style: dashed;
+  background: transparent;
+  color: var(--text-on-dark-muted);
+}
+
+@media (max-width: 640px) {
+  .quote { width: 268px; }
 }
 
 /* ---------------------------------------------------------------

@@ -25,7 +25,7 @@ export function framePath(index: number): string {
 /**
  * Scroll waypoints for the module stack.
  *
- * `at` is progress through ONE LAP of the page (0 = top of the lap, 1 = the end
+ * `at` is progress through the page (0 = the top, 1 = the end
  * of it). The module eases between consecutive waypoints, so reading this array
  * top to bottom is reading the choreography down the page.
  *
@@ -76,6 +76,7 @@ export const WAYPOINTS: Waypoint[] = [
   // Process, then the CTA: the page opens up again on the way out.
   { at: 0.82, reach: 0.8, scale: 0.95, rise: 0.0 },
   { at: 0.93, reach: 0.5, scale: 1.08, rise: -0.02 },
-  // Loop seam - identical to `at: 0` above.
+  // Identical to `at: 0`. Authored to close a loop seam that no longer
+  // exists; kept because it lands the module back at centre on the way out.
   { at: 1.0, reach: 0.30, scale: 1.15, rise: 0.0 },
 ];

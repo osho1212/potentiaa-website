@@ -5,13 +5,13 @@ import ZealIdle from "../ZealIdle";
 import { useContact } from "../ContactContext";
 import { site } from "@/lib/site";
 
-export default function CtaFooter({ clone }: { clone?: boolean }) {
+export default function CtaFooter() {
   const { open } = useContact();
   const year = new Date().getFullYear();
 
   return (
     <>
-      <section className="cta container" id={clone ? undefined : "contact"} data-theme-key="cta">
+      <section className="cta container" id="contact" data-theme-key="cta">
         <Reveal>
           <h2 className="cta__title">{site.cta.title}</h2>
         </Reveal>
@@ -44,10 +44,10 @@ export default function CtaFooter({ clone }: { clone?: boolean }) {
           the document exposed no contentinfo at all and a screen-reader user
           could not jump to the contact details or the footer nav by landmark.
 
-          Only the primary lap claims it. The clone carries aria-hidden, so a
+          There is one footer, so it simply claims it. This used to be
           second contentinfo would never be announced, but declaring one role
           once is the honest version. */}
-      <footer className="container" role={clone ? undefined : "contentinfo"}>
+      <footer className="container" role="contentinfo">
         <div className="footer">
           <p>
             &copy; {year} {site.name}. {site.tagline}

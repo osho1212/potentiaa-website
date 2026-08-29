@@ -31,7 +31,7 @@ const PIN_MIN_WIDTH = 900;
  * `aria-controls` does that. The panel uses `hidden`, so collapsed content is
  * out of the accessibility tree and the tab order, not merely invisible.
  */
-export default function Method({ clone }: { clone?: boolean }) {
+export default function Method() {
   /* A Set, so any number of steps can be open at once. An accordion that closed
      the previous step would stop the reader comparing two, and there is no
      layout reason to allow only one - the scroller absorbs the height. */
@@ -79,7 +79,7 @@ export default function Method({ clone }: { clone?: boolean }) {
    *
    * Subscribed to onScrollFrame rather than a native scroll listener because
    * Lenis owns the page and does not emit native events for its own programmatic
-   * movement - including the lap-wrap teleport. See lib/scrollState.
+   * movement - anchor-link jumps included. See lib/scrollState.
    */
   useEffect(() => {
     const el = scrollerRef.current;
@@ -164,7 +164,7 @@ export default function Method({ clone }: { clone?: boolean }) {
   }, []);
 
   return (
-    <section className="section method-section" id={clone ? undefined : "method"} data-theme-key="method">
+    <section className="section method-section" id="method" data-theme-key="method">
       {/* The runway is the section's real height: one viewport for the pinned
           card, plus however much page scroll the list needs to run through. */}
       <div className="method__runway" ref={runwayRef}>
@@ -178,22 +178,20 @@ export default function Method({ clone }: { clone?: boolean }) {
               <IntroCubes />
 
               <div className="method__layout">
-            {/* NO <Reveal> ON THIS COLUMN, and it is not an oversight.
+            {/* NO <Reveal> ON THIS COLUMN.
 
-                Reveal starts an element at opacity 0 and fades it in the first
-                time it intersects. That is fine for a section you pass once -
-                but the page loops, and the lap-wrap seam lands INSIDE this
-                section's runway. Measured: lap 7539px, wrap boundary 3769px,
-                this runway 3555-4918px. So a reader partway through the list
-                gets teleported to the other lap's copy at the same visual
-                position, that copy's head has never intersected, and it fades
-                itself in - the heading appearing to reload mid-scroll while the
-                card has not visibly moved.
+                This was a hard constraint and is now a choice. The page used to
+                loop, and the wrap seam landed INSIDE this runway (measured: lap
+                7539px, boundary 3769px, runway 3555-4918px), so a reader partway
+                through the list was teleported to the other copy, whose head had
+                never intersected - and it faded itself in, the heading appearing
+                to reload mid-scroll while the card had not visibly moved. A
+                pinned card spanning the seam therefore could not use
+                intersection-driven entrances for anything inside it.
 
-                A pinned card that spans the seam therefore cannot use
-                intersection-driven entrances for anything inside it. The head
-                is on screen for the whole of this section anyway, which is what
-                makes losing the entrance cost nothing. */}
+                There is no seam now, so an entrance here would be safe. It is
+                still not worth adding: the head is on screen for the whole of
+                this section, so there is no moment for it to enter ON. */}
             <div className="method__head">
               <p className="method__eyebrow">{site.method.eyebrow}</p>
               <h2 className="method__title">{site.method.title}</h2>

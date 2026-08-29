@@ -12,11 +12,11 @@ import { site } from "@/lib/site";
  * The copy sits on the LEFT and the right half is deliberately empty: that is
  * where the cards land. Nothing here may fill that space.
  */
-export default function FlowSection({ clone }: { clone?: boolean }) {
+export default function FlowSection() {
   return (
     <section
       className="section flow-section"
-      id={clone ? undefined : "flow"}
+      id="flow"
       data-theme-key="flow"
     >
       <div className="container flow-section__grid">

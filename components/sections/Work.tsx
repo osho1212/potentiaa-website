@@ -189,7 +189,7 @@ function WorkCard({
   );
 }
 
-export default function Work({ clone }: { clone?: boolean }) {
+export default function Work() {
   const [active, setActive] = useState(0);
   const [interactive, setInteractive] = useState(false);
 
@@ -240,7 +240,7 @@ export default function Work({ clone }: { clone?: boolean }) {
   };
 
   return (
-    <section className="section" id={clone ? undefined : "work"} data-theme-key="work">
+    <section className="section" id="work" data-theme-key="work">
       <div className="container">
         <div className="work__head">
           <Reveal>

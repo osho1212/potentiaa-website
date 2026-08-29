@@ -32,10 +32,10 @@ import { moduleBerth } from "@/lib/moduleBerth";
  * The swarm still has to be reachable from here, because the cards drive its
  * hover glow - hence the ref owned at this level and handed to Hero.
  *
- * PROGRESS is measured from this element's own box rather than from lap
+ * PROGRESS is measured from this element's own box rather than from page
  * progress. The page renders every section twice for the scroll loop, so a
- * lap-relative number would drive both copies from one position; an
- * element-relative one is correct in both laps and across the seam by
+ * page-relative number would have driven both copies of the looping page from
+ * one position; an element-relative one was correct in both copies by
  * construction, with no wrap arithmetic to get wrong.
  */
 /**
@@ -189,7 +189,7 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
   return c * c * (3 - 2 * c);
 }
 
-export default function FlowStage({ clone }: { clone?: boolean }) {
+export default function FlowStage() {
   const particlesRef = useRef<HeroParticlesHandle>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const flowRef = useRef<FlowProgress>({ t: 0, offsetY: 0, releaseY: 0 });
@@ -253,7 +253,7 @@ export default function FlowStage({ clone }: { clone?: boolean }) {
     /**
      * Whether the cards are still flying, tracked so the class is written only
      * when it flips rather than on every scroll frame - a classList write is a
-     * style invalidation, and this is false for all but a fraction of the lap.
+     * style invalidation, and this is false for all but a fraction of the page.
      */
     let assembling: boolean | null = null;
 
@@ -399,8 +399,8 @@ export default function FlowStage({ clone }: { clone?: boolean }) {
         </div>
       </div>
 
-      <Hero clone={clone} particlesRef={particlesRef} />
-      <FlowSection clone={clone} />
+      <Hero particlesRef={particlesRef} />
+      <FlowSection />
     </div>
   );
 }

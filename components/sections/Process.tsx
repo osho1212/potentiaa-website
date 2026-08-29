@@ -17,9 +17,9 @@ function StepModules({ active }: { active: number }) {
   );
 }
 
-export default function Process({ clone }: { clone?: boolean }) {
+export default function Process() {
   return (
-    <section className="section" id={clone ? undefined : "process"} data-theme-key="process">
+    <section className="section" id="process" data-theme-key="process">
       <div className="container">
         <Reveal>
           <p className="eyebrow">{site.process.eyebrow}</p>

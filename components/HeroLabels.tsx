@@ -25,7 +25,7 @@ const ORBITS = [
   { rx: 0.42, ry: 0.48, cx: 0.46, cy: 0.48 },
 ];
 
-/** Seconds per lap, and direction. */
+/** Seconds per page, and direction. */
 const TIMING = [
   { duration: 46 },
   { duration: 54, reverse: true },

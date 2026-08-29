@@ -54,7 +54,7 @@ const FRUSTUM = REACH * 1.19;
  * frame 90 are the same pose and the page's loop seam needs no special case.
  *
  * x and z carry smaller offset waves so the object is never simply rocking in
- * one plane. Both complete a whole number of cycles per lap, for the same
+ * one plane. Both complete a whole number of cycles per page, for the same
  * reason.
  */
 function poseAt(t: number): { x: number; y: number; z: number } {
@@ -183,7 +183,7 @@ export default function StudioPage() {
     const spin = () => {
       if (!busyRef.current) {
         // Preview runs the same closed loop the export bakes, at about 14s a
-        // lap, so what you watch here is exactly what lands in the frames.
+        // turn, so what you watch here is exactly what lands in the frames.
         const pose = poseAt((performance.now() / 14000) % 1);
         group.rotation.set(pose.x, pose.y, pose.z);
         renderer.render(scene, camera);

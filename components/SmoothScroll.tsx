@@ -5,108 +5,117 @@ import Lenis from "lenis";
 import { emitScrollFrame, scrollState } from "@/lib/scrollState";
 
 /**
- * Smooth scrolling plus the infinite loop, and publishes both to
- * lib/scrollState for the animated layers.
+ * Smooth scrolling, and publishes the scroll position to lib/scrollState for
+ * the animated layers.
  *
- * HOW THE LOOP WORKS
- * app/page.tsx renders the section set twice. One copy is a "lap". Because the
- * document repeats with a fixed period, any two scroll positions exactly one lap
- * apart show identical pixels - so we let the reader scroll normally and
- * teleport them a lap back whenever they drift out of the middle band:
+ * WHAT USED TO BE HERE. The page scrolled forever: app/page.tsx rendered the
+ * section set twice, and whenever the reader drifted out of the middle band
+ * this teleported them a whole lap back. Because the document repeated with a
+ * fixed period, the destination looked exactly like the origin and the jump was
+ * invisible.
  *
- *   0            0.5*lap        1.5*lap          2*lap
- *   |---clone-A----|===working band===|----clone-B---|
+ * It is removed, along with everything it needed to work - the second copy of
+ * the DOM, the `clone` flag threaded through every section, the tab-order sweep
+ * over the hidden lap, and the load-time jump into the middle band. The
+ * document now starts at the top, ends at the bottom, and scrolls once.
  *
- * The jump is invisible because the destination looks exactly like the origin.
- * Half a lap of real content sits either side, so the wrap never happens near a
- * document edge where the browser would clamp the scroll and expose it.
- *
- * NOT Lenis's own `infinite: true`: on a window wrapper that leaves Lenis's
- * internal scroll unbounded while the browser clamps the real one, and the two
- * fight until the target runs away to +/- infinity.
+ * The smoothing is NOT part of that and stays. So does the scrollState publish,
+ * which is the only way the animated layers hear about movement: Lenis does not
+ * emit a window `scroll` event, so a native listener would miss frames.
  */
 export default function SmoothScroll() {
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     /**
-     * Distance between the two laps, which is what the wrap has to jump.
+     * How far the document can scroll - the distance that maps to progress
+     * 0..1, and the number a layer needs to convert a real element's height
+     * into the span of progress it occupies. ModuleStack does exactly that to
+     * keep the module docked for as long as the hero is on screen.
      *
-     * Measured as the gap between the two wrappers' offsetTop rather than the
-     * first one's height: those agree only while no margin collapses between
-     * them, and being even a few pixels out makes the seam visible.
+     * This was the lap length while the page looped. It is the scroll range
+     * now, which is the same quantity for every purpose anything here uses it
+     * for: pixels per unit of progress.
      */
-    const measureLap = () => {
-      const primary = document.querySelector<HTMLElement>('[data-lap="primary"]');
-      const clone = document.querySelector<HTMLElement>('[data-lap="clone"]');
-      if (!primary || !clone) return 0;
-      return clone.offsetTop - primary.offsetTop;
-    };
+    const measureSpan = () =>
+      Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
 
     if (reduced) {
-      // No smoothing and no looping - an ordinary document. Still feed
-      // scrollState so the hero picks up a position.
+      // No smoothing - an ordinary document. Still feed scrollState so the
+      // hero picks up a position.
       const onScroll = () => {
-        const lap = measureLap() || document.documentElement.scrollHeight;
-        scrollState.lap = lap;
-        scrollState.progress = lap > 0 ? (window.scrollY % lap) / lap : 0;
+        const span = measureSpan();
+        scrollState.span = span;
+        scrollState.progress = span > 0 ? Math.min(Math.max(window.scrollY / span, 0), 1) : 0;
         scrollState.distance = window.scrollY;
         scrollState.velocity = 0;
         emitScrollFrame();
       };
       onScroll();
       window.addEventListener("scroll", onScroll, { passive: true });
-      return () => window.removeEventListener("scroll", onScroll);
+      window.addEventListener("resize", onScroll);
+      return () => {
+        window.removeEventListener("scroll", onScroll);
+        window.removeEventListener("resize", onScroll);
+      };
     }
 
+    /**
+     * THE SCROLL FEEL. Three settings, and the third is the one that matters.
+     *
+     * `wheelMultiplier` is how far one notch travels: 1.15 put 115px under a
+     * standard 100px wheel event, so the page moved further than the hand asked
+     * it to. Under 1 it moves less, which is what makes a long page feel like it
+     * has weight rather than sliding out from under the cursor.
+     *
+     * `duration` is how long the glide takes to settle. Longer reads as
+     * momentum, up to a point - past about 1.5s the page stops feeling heavy and
+     * starts feeling unresponsive, because the gap between the input and the
+     * result is doing the talking.
+     *
+     * `easing` is the shape of that glide, and it was the real problem. The old
+     * curve was an exponential-out so steep it spent 40% of its travel in the
+     * first 48ms - measured - and the remaining 450ms creeping through the last
+     * few pixels. That is a snap with a tail on it, not a glide, and lengthening
+     * the duration alone would only have made the tail longer while leaving the
+     * snap exactly as abrupt. A quartic-out puts 14% in the same opening instant
+     * instead, so the movement starts as a push rather than a jump and carries
+     * its speed through the middle, where the eye actually reads it.
+     *
+     * Measured on one wheel notch (deltaY 100), three runs, original -> first
+     * pass -> current:
+     *     travel per notch   115px  ->  75px  ->  60px
+     *     time to settle     495ms  ->  890ms ->  890ms (unaffected: duration and easing set this, not distance)
+     *     travel in first 50ms  40%  ->  14%  ->  14%  (same reason)
+     *
+     * Touch is damped far less on purpose. `syncTouch` means the content tracks
+     * the finger, and a finger that the page refuses to keep up with does not
+     * read as premium, it reads as broken.
+     */
     const lenis = new Lenis({
-      duration: 0.65,
-      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      duration: 1.2,
+      easing: (t: number) => 1 - Math.pow(1 - t, 4),
       smoothWheel: true,
-      wheelMultiplier: 1.15,
-      touchMultiplier: 1.5,
+      wheelMultiplier: 0.6,
+      touchMultiplier: 1.2,
       syncTouch: true,
     });
 
-    let lap = measureLap();
-
-    // Start in the middle band rather than at the top of the document
-    if (lap > 0) lenis.scrollTo(lap, { immediate: true, force: true });
-
-    let distance = lenis.scroll;
-    let previous = lenis.scroll;
+    // Lenis knows its own limit and keeps it current; measureSpan is the
+    // fallback for the frames before it has resolved one.
+    let span = lenis.limit || measureSpan();
 
     const onScroll = () => {
       const current = lenis.scroll;
-      let delta = current - previous;
+      span = lenis.limit || measureSpan();
 
-      if (lap > 0) {
-        // A wrap moved us a whole lap; that is not real travel, so discount it
-        if (Math.abs(delta) > lap * 0.5) delta -= Math.sign(delta) * lap;
-
-        if (current > lap * 1.5) {
-          lenis.scrollTo(current - lap, { immediate: true, force: true });
-          previous = current - lap;
-        } else if (current < lap * 0.5) {
-          lenis.scrollTo(current + lap, { immediate: true, force: true });
-          previous = current + lap;
-        } else {
-          previous = current;
-        }
-      } else {
-        previous = current;
-      }
-
-      distance += delta;
-
-      scrollState.distance = distance;
+      scrollState.distance = current;
       scrollState.velocity = lenis.velocity;
-      scrollState.lap = lap;
-      // One full lap of choreography per copy of the page
-      scrollState.progress = lap > 0 ? (((current % lap) + lap) % lap) / lap : 0;
+      scrollState.span = span;
+      scrollState.progress = span > 0 ? Math.min(Math.max(current / span, 0), 1) : 0;
 
       // Anything scroll-reactive listens here, not on window's scroll event -
-      // Lenis does not emit one for its own programmatic movement.
+      // Lenis does not emit one for its own movement.
       emitScrollFrame();
     };
 
@@ -120,51 +129,22 @@ export default function SmoothScroll() {
     };
     raf = requestAnimationFrame(tick);
 
-    // Fonts and images change section heights after first paint, which changes
-    // the lap length. A one-shot timeout races that; an observer does not.
+    /**
+     * Fonts and images change section heights after first paint, which changes
+     * the scroll range. Lenis has to be told to re-read it, and scrollState has
+     * to be refreshed off the new number or every progress-driven layer stays
+     * on the old scale until the reader next moves.
+     */
     const remeasure = () => {
-      const next = measureLap();
-      if (next > 0) lap = next;
+      lenis.resize();
+      span = lenis.limit || measureSpan();
+      onScroll();
     };
 
     const observer = new ResizeObserver(remeasure);
-    const primary = document.querySelector<HTMLElement>('[data-lap="primary"]');
-    if (primary) observer.observe(primary);
+    observer.observe(document.body);
     window.addEventListener("resize", remeasure);
     if (document.fonts?.ready) void document.fonts.ready.then(remeasure);
-
-    /**
-     * Take the clone lap out of the tab order, without taking it out of the
-     * page.
-     *
-     * The clone used to carry `inert`, which removed it from the tab order AND
-     * killed every pointer event inside it. That second effect was the bug: the
-     * reader only ever sees the clone copies of the hero, intro, Work and
-     * Method - measured, not assumed - so the hero's CTAs and the Work cards
-     * were not clickable by anyone.
-     *
-     * `aria-hidden` on the wrapper handles the announcement. This handles the
-     * tab stops, which is the other half `inert` was doing and the half that
-     * has to stay: focusable elements inside an aria-hidden subtree are an
-     * accessibility failure in their own right, because a keyboard user would
-     * land on a control a screen reader insists is not there.
-     *
-     * Done here rather than on each control so it cannot be forgotten when a
-     * section gains a button, and repeated on mutation because the sections
-     * render client-side.
-     */
-    const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
-    const cloneLap = document.querySelector<HTMLElement>('[data-lap="clone"]');
-
-    const detabClone = () => {
-      cloneLap?.querySelectorAll<HTMLElement>(FOCUSABLE).forEach((el) => {
-        el.setAttribute("tabindex", "-1");
-      });
-    };
-
-    detabClone();
-    const cloneObserver = cloneLap ? new MutationObserver(detabClone) : null;
-    cloneObserver?.observe(cloneLap as HTMLElement, { childList: true, subtree: true });
 
     // Anchor links have to go through Lenis, not native scroll
     const onAnchorClick = (event: MouseEvent) => {
@@ -189,14 +169,12 @@ export default function SmoothScroll() {
     if (process.env.NODE_ENV === "development") {
       (window as unknown as { __lenis?: Lenis }).__lenis = lenis;
       (window as unknown as { __scrollState?: unknown }).__scrollState = scrollState;
-      (window as unknown as { __lap?: () => number }).__lap = () => lap;
     }
 
     return () => {
       document.removeEventListener("click", onAnchorClick);
       window.removeEventListener("resize", remeasure);
       observer.disconnect();
-      cloneObserver?.disconnect();
       cancelAnimationFrame(raf);
       lenis.destroy();
     };

@@ -10,10 +10,10 @@ import { mixRgb, themeAt } from "@/lib/sectionTheme";
  *
  * LOOP-SAFE PARALLAX. The page scrolls forever, so a plain `y = -progress * d`
  * translate would snap back to zero at the seam. Instead each shard travels a
- * whole number of wrap-distances per lap and its offset is taken modulo that
+ * whole number of wrap-distances per page and its offset is taken modulo that
  * distance: it drifts upward continuously, re-enters from the bottom, and after
- * exactly one lap has wrapped an integer number of times - landing back where
- * it started with nothing to see at the seam. Rotation uses whole turns per lap
+ * exactly the whole page has wrapped an integer number of times - landing back where
+ * it started with nothing to see at the seam. Rotation uses whole turns per page
  * for the same reason.
  *
  * Purely decorative, so aria-hidden and frozen under prefers-reduced-motion.
@@ -24,9 +24,9 @@ type Shard = {
   phase: number;
   left: string;
   size: number;
-  /** Roughly how many wrap-distances it covers per lap. Higher = nearer. */
+  /** Roughly how many wrap-distances it covers per page. Higher = nearer. */
   speed: number;
-  /** Whole turns per lap. */
+  /** Whole turns per page. */
   turns: number;
   /**
    * 0 = far, 1 = near. Drives opacity, blur and how much of the section accent

@@ -342,6 +342,77 @@ export const site = {
     ],
   },
 
+  /* ============================================================
+     SAMPLE DATA - NOT REAL CLIENTS. REPLACE BEFORE LAUNCH.
+     ============================================================
+     Every name, business and sentence below was written to fill the layout,
+     and none of these people exist. That is fine for building against and is
+     NOT fine in production: a testimonial is a factual claim that a named
+     human said a thing, so shipping these as-is would put fabricated reviews
+     on a live business site.
+
+     Swap each entry for a real quote once you have it in writing, and point
+     `avatar` at a real photo the person has agreed to. The avatars here are
+     locally generated brand monograms, not stock photographs - design.md 6
+     supplies no imagery and rules out stock or generated stand-ins, and a
+     gradient monogram is brand furniture rather than a face that is not
+     theirs.
+
+     Set `pending: true` on any entry and the card styles itself as an empty
+     slot instead - the dashed placeholder treatment is still in the CSS.
+
+     Voice, per design.md 2: owner to owner, time and money, sentence case,
+     one idea a sentence, no hype. ============================================ */
+  testimonials: {
+    eyebrow: "What owners say",
+    title: "The proof is in the hours you get back.",
+    lede: "Short, specific, and from the people who run the place. These are samples until the real ones are signed off.",
+    items: [
+      {
+        quote:
+          "We were closing the books four days after month end. Now it is the same afternoon. That is three days a month I got back for the price of one system.",
+        name: "Anita Rao",
+        role: "Rao Textiles, wholesale",
+        avatar: "/assets/testimonials/anita.svg",
+      },
+      {
+        quote:
+          "Stock and billing used to be two different notebooks and one argument. They talk to each other now, and we stopped paying for things we already had.",
+        name: "Devraj Mehta",
+        role: "Mehta Hardware, retail",
+        avatar: "/assets/testimonials/devraj.svg",
+      },
+      {
+        quote:
+          "I run three branches from my phone. I can see what sold this morning without calling anyone, which means I stopped driving across town to find out.",
+        name: "Farah Sheikh",
+        role: "Sheikh Pharmacy, three branches",
+        avatar: "/assets/testimonials/farah.svg",
+      },
+      {
+        quote:
+          "They built the one thing that was costing us the most, and it was live in six weeks. No deck, no year-long project, no rebuild of what already worked.",
+        name: "Gopal Nair",
+        role: "Nair Logistics, transport",
+        avatar: "/assets/testimonials/gopal.svg",
+      },
+      {
+        quote:
+          "Two staff used to spend every Friday typing the same orders in twice. That job does not exist any more, and neither of them lost their job over it.",
+        name: "Meera Krishnan",
+        role: "Krishnan Foods, manufacturing",
+        avatar: "/assets/testimonials/meera.svg",
+      },
+      {
+        quote:
+          "What sold me was that they told me which half of my idea was not worth building. The half we did build has paid for itself twice.",
+        name: "Suresh Pillai",
+        role: "Pillai Auto Works, service",
+        avatar: "/assets/testimonials/suresh.svg",
+      },
+    ],
+  },
+
   cta: {
     title: "Tell us where the time goes.",
     body: "One call, no deck. We will tell you honestly whether software is worth it for you.",
