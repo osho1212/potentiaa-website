@@ -33,9 +33,9 @@ export default function CtaFooter() {
             <div className="site-footer__brand">
               <img src="/assets/img/footer-logo.png" alt="Potentiaa" className="site-footer__logo" />
               <p className="site-footer__tagline">
-                Personalised billing, inventory and<br />
-                management software for small businesses.<br />
-                Consult, build, maintain.
+                Custom management software, live dashboards,<br />
+                and growth websites for ambitious business owners.<br />
+                Automate &bull; Track &bull; Scale.
               </p>
               <div className="site-footer__status">
                 <span className="site-footer__status-dot" aria-hidden="true" />
@@ -47,10 +47,10 @@ export default function CtaFooter() {
             <div className="site-footer__col">
               <h4 className="site-footer__heading">WHAT WE BUILD</h4>
               <ul className="site-footer__list">
-                <li><a href="#work">Billing and inventory software</a></li>
-                <li><a href="#work">Marketing websites</a></li>
-                <li><a href="#work">Management apps</a></li>
-                <li><a href="#work">Consulting and system audits</a></li>
+                <li><a href="#offerings">Owner Dashboards</a></li>
+                <li><a href="#offerings">Billing & Inventory</a></li>
+                <li><a href="#offerings">Growth Websites</a></li>
+                <li><a href="#projects">Custom Case Studies</a></li>
               </ul>
             </div>
 
@@ -58,11 +58,11 @@ export default function CtaFooter() {
             <div className="site-footer__col">
               <h4 className="site-footer__heading">SERVICES</h4>
               <ul className="site-footer__list">
-                <li><a href="#work">Consulting</a></li>
-                <li><a href="#work">Business software</a></li>
-                <li><a href="#work">Websites</a></li>
-                <li><a href="#work">Mobile apps</a></li>
-                <li><a href="#work">Maintenance</a></li>
+                <li><a href="#method">Workflow Audit</a></li>
+                <li><a href="#offerings">Custom Business Tools</a></li>
+                <li><a href="#offerings">Websites & SEO</a></li>
+                <li><a href="#method">Hands-on Staff Training</a></li>
+                <li><a href="#method">Ongoing Support</a></li>
               </ul>
             </div>
 

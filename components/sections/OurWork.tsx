@@ -21,54 +21,54 @@ const PROJECTS: ProjectItem[] = [
   {
     id: "erp-dispatch",
     image: "/assets/work/erp-dispatch.jpg",
-    alt: "NexLogix ERP & Warehouse Dispatch Terminal",
+    alt: "NexLogix Warehouse and Dispatch System",
     title: "NexLogix Warehouse & Dispatch Hub",
-    category: "LOGISTICS & INVENTORY",
+    category: "WAREHOUSE & STOCK",
     industry: "Wholesale & Distribution",
     description:
-      "A complete warehouse management terminal replacing manual registers and phone calls. Real-time SKU tracking, barcode verification, and automated route dispatching.",
-    impact: "+45% faster dispatch speed and zero lost inventory tickets.",
-    features: ["Barcode SKU Scanner", "Live Route Optimization", "Auto-Generated Challans"],
-    tags: ["Custom Terminal", "Multi-warehouse", "Offline Sync"],
+      "A simple tablet-based warehouse system replacing handwritten paper registers and phone calls. Real-time stock counts, barcode scanning, and instant delivery challans.",
+    impact: "+45% faster dispatch speed and zero lost inventory items.",
+    features: ["Barcode Stock Scanner", "Instant Delivery Challans", "Low-Stock WhatsApp Alerts"],
+    tags: ["Warehouse Tablet", "Multi-godown", "Offline Friendly"],
   },
   {
     id: "billing-reconcile",
     image: "/assets/work/billing-reconcile.jpg",
-    alt: "ReconcileHub Automated Billing & Ledger System",
-    title: "ReconcileHub Multi-tier Billing Engine",
+    alt: "ReconcileHub Automated Billing and Invoicing",
+    title: "ReconcileHub 1-Click Billing Engine",
     category: "BILLING & ACCOUNTS",
     industry: "B2B Supply & Manufacturing",
     description:
-      "Unified accounts and invoicing system designed for complex GST rules, credit cycles, and automated payment follow-ups directly over WhatsApp and email.",
-    impact: "-80% manual bookkeeping overhead and 14-day reduction in DSO.",
-    features: ["WhatsApp Invoice Dispatch", "Automated Bank Reconciliation", "Live Profit Margins"],
-    tags: ["GST Compliant", "Automated Ledgers", "Role-based Access"],
+      "Fast invoicing and payment tracking built for complex GST rules, credit cycles, and automated payment reminder messages sent directly to clients on WhatsApp.",
+    impact: "Saves 2 hours of billing every evening; overdue payments collected 14 days faster.",
+    features: ["WhatsApp Invoice Dispatch", "Automated Payment Reminders", "Daily Cash & Profit Report"],
+    tags: ["1-Click GST Bills", "Customer Ledger", "Role Permissions"],
   },
   {
     id: "field-ops",
     image: "/assets/work/field-ops.jpg",
-    alt: "FieldOps Pro Workforce & Dispatch Suite",
-    title: "FieldOps Pro Dispatch & Service Suite",
-    category: "FIELD OPERATIONS",
-    industry: "On-site Repairs & Services",
+    alt: "FieldOps Mobile Service Management App",
+    title: "FieldOps Service & Technician App",
+    category: "FIELD & REPAIR SERVICES",
+    industry: "On-site Repairs & Maintenance",
     description:
-      "A synchronized technician management platform with live GPS dispatching, digital work-order signoffs, and customer SMS tracking.",
-    impact: "Doubled daily completed job capacity with 100% digital audit trails.",
-    features: ["Live Technician Telemetry", "Digital Customer Signatures", "Instant Billing on Mobile"],
-    tags: ["Mobile First", "GPS Dispatch", "Client Portal"],
+      "Technicians receive jobs on their phone, log spare parts used, capture customer signatures, and generate instant bills on-site.",
+    impact: "Doubled daily completed service jobs without adding extra office staff.",
+    features: ["Mobile Job Assignments", "Digital Customer Sign-off", "Instant Mobile Invoicing"],
+    tags: ["Works on Mobile", "Live Job Status", "Customer SMS & WhatsApp"],
   },
   {
     id: "strata-analytics",
     image: "/assets/work/strata-analytics.jpg",
-    alt: "Strata Executive Business Intelligence Portal",
-    title: "Strata Executive Intelligence Portal",
-    category: "BUSINESS INTELLIGENCE",
+    alt: "Strata Executive Business Dashboard",
+    title: "Strata All-in-One Owner Portal",
+    category: "OWNER DASHBOARD",
     industry: "Multi-branch Retail & Commerce",
     description:
-      "Centralized executive dashboard aggregating fragmented store data into actionable daily cashflow reports, inventory health scores, and customer retention funnels.",
-    impact: "Replaced 4-hour daily report generation with live sub-second metrics.",
-    features: ["Predictive Stock Depletion", "Live Revenue Heatmaps", "Automated Weekly P&L"],
-    tags: ["Real-time BI", "Executive Portal", "Data Pipelines"],
+      "Combined sales and expense books from multiple store branches into a single live dashboard on the owner's mobile phone.",
+    impact: "Replaced 4 hours of evening manual calculations with live daily profit and revenue reports.",
+    features: ["Live Daily Sales & Expenses", "Multi-Branch Comparison", "Fast-Selling Item Alerts"],
+    tags: ["Live on Mobile", "Owner Dashboard", "Automated Daily P&L"],
   },
 ];
 
@@ -86,14 +86,14 @@ export default function OurWork() {
         {/* Section Header */}
         <div className="our-work__head">
           <Reveal>
-            <p className="eyebrow">Case Studies & Systems</p>
+            <p className="eyebrow">Real Solutions & Results</p>
           </Reveal>
           <Reveal delay={80}>
             <h2 className="section-title">Our Work</h2>
           </Reveal>
           <Reveal delay={140}>
             <p className="lede our-work__lede">
-              Custom software systems and operational terminals we have engineered for growing businesses to eliminate manual bottlenecks.
+              Real systems and dashboards we built for growing businesses to eliminate paperwork, connect staff, and track profits.
             </p>
           </Reveal>
         </div>

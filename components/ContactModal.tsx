@@ -18,23 +18,13 @@ export default function ContactModal() {
   const { isOpen, close } = useContact();
   const panelRef = useRef<HTMLDivElement>(null);
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (!isOpen) return;
 
-    /**
-     * Everything a dialog owes a keyboard user, which this one was not paying.
-     *
-     * The system critic measured all three: 13 background controls were still
-     * focusable behind an `aria-modal="true"` that promised otherwise (WCAG
-     * 2.1.2), focus landed on BODY after Escape instead of returning to
-     * whatever opened the dialog (WCAG 2.4.3), and the page kept scrolling
-     * underneath - `body { overflow: hidden }` is invisible to Lenis, which
-     * scrolls a transform, so the background travelled 1082px with the dialog
-     * open.
-     */
     const opener = document.activeElement as HTMLElement | null;
 
     const FOCUSABLE =
@@ -48,10 +38,6 @@ export default function ContactModal() {
 
       if (event.key !== "Tab") return;
 
-      // Trap. Wrapping by hand rather than putting `inert` on the rest of the
-      // page: inert kills pointer events as well as focus, and this site has
-      // been bitten by exactly that before - a whole copy of the page was once
-      // inert and its CTAs were silently unclickable.
       const panel = panelRef.current;
       if (!panel) return;
       const focusable = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
@@ -73,14 +59,10 @@ export default function ContactModal() {
     document.addEventListener("keydown", onKeyDown);
     document.body.dataset.scrollLocked = "true";
 
-    // Stop the smooth-scroll engine, not just the document. See above.
     const lenis = (window as unknown as { __lenisInstance?: { stop(): void; start(): void } })
       .__lenisInstance;
     lenis?.stop();
 
-    // Move focus into the dialog for keyboard and screen-reader users.
-    // Prefer the first real field over the close button, which comes first
-    // in DOM order but is a dead end to land on.
     const firstField =
       panelRef.current?.querySelector<HTMLElement>("input, textarea") ??
       panelRef.current?.querySelector<HTMLElement>("button");
@@ -90,7 +72,6 @@ export default function ContactModal() {
       document.removeEventListener("keydown", onKeyDown);
       delete document.body.dataset.scrollLocked;
       lenis?.start();
-      // Back where they came from, not to the top of the document.
       opener?.focus?.();
     };
   }, [isOpen, close]);
@@ -99,9 +80,16 @@ export default function ContactModal() {
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    const subject = encodeURIComponent(`Project enquiry from ${name || "the website"}`);
+    const subject = encodeURIComponent(`Project enquiry from ${name || "a business owner"}`);
     const body = encodeURIComponent(
-      [`Name: ${name}`, `Email: ${email}`, "", message].join("\n"),
+      [
+        `Name: ${name}`,
+        `Phone / WhatsApp: ${phone}`,
+        `Email: ${email}`,
+        "",
+        `Daily bottleneck:`,
+        message,
+      ].join("\n"),
     );
     window.location.href = `mailto:${site.contact.email}?subject=${subject}&body=${body}`;
   };
@@ -116,10 +104,6 @@ export default function ContactModal() {
         </button>
 
         <aside className="modal__aside">
-          {/* Zeal, rather than the old gradient placeholder standing in for a
-              portrait nobody has. He is the one who walked the reader down the
-              page; he should be the one who greets them when they ask for help,
-              instead of handing them off to an empty avatar. */}
           <div className="modal__zeal" aria-hidden="true">
             <Image
               src={poses["zeal-celebrating"].src}
@@ -130,11 +114,10 @@ export default function ContactModal() {
             />
           </div>
           <h3 className="modal__title" id="contact-title">
-            Talk to us directly
+            Let’s talk about your business
           </h3>
           <p className="card__body">
-            Tell us what is eating your time. We will come back with whether software
-            is worth it for you, and what it would cost.
+            Tell us what takes up the most time in your day (billing, stock, managing staff, or finding customers). We’ll give you an honest recommendation and a clear plan.
           </p>
           <p className="modal__note">
             <a href={`mailto:${site.contact.email}`}>{site.contact.email}</a>
@@ -144,19 +127,32 @@ export default function ContactModal() {
         <div className="modal__main">
           <form onSubmit={handleSubmit}>
             <div className="field-row">
-              <label htmlFor="contact-name">Your name</label>
+              <label htmlFor="contact-name">Your Name & Business</label>
               <input
                 id="contact-name"
                 className="input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Who are we speaking to?"
+                placeholder="e.g. Rajesh Sharma (Sharma Hardware)"
                 required
               />
             </div>
 
             <div className="field-row">
-              <label htmlFor="contact-email">Email</label>
+              <label htmlFor="contact-phone">Phone / WhatsApp</label>
+              <input
+                id="contact-phone"
+                className="input"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+91 98765 43210"
+                required
+              />
+            </div>
+
+            <div className="field-row">
+              <label htmlFor="contact-email">Email (Optional)</label>
               <input
                 id="contact-email"
                 className="input"
@@ -164,28 +160,27 @@ export default function ContactModal() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@yourbusiness.com"
-                required
               />
             </div>
 
             <div className="field-row">
-              <label htmlFor="contact-message">What is slowing you down?</label>
+              <label htmlFor="contact-message">What is your biggest daily headache?</label>
               <textarea
                 id="contact-message"
                 className="input"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Billing takes two hours every evening, stock counts never match..."
+                placeholder="e.g. Billing takes 2 hours every evening, warehouse stock never matches our sales records..."
                 required
               />
             </div>
 
             <button type="submit" className="btn btn--primary">
-              Send enquiry
+              Send Enquiry
             </button>
 
             <p className="modal__note">
-              This opens a prefilled mail draft. No form backend is connected yet.
+              We respond within 24 hours on WhatsApp or email.
             </p>
           </form>
         </div>

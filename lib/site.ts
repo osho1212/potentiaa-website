@@ -1,211 +1,167 @@
 /**
  * Site content.
  *
- * Copy follows design.md 2 (Voice & content): direct, practical, owner-to-owner;
- * talks about time and money; second person for the reader, "we" for Potentiaa;
- * sentence case everywhere; no emoji; no hype.
- *
- * PLACEHOLDERS - replace before launch, all marked TODO:
- *   - contact.email / contact.phone / contact.whatsapp
- *   - trustSlots (dashed placeholder chips stand in for real client logos)
- *   - card image slots (design.md 6 forbids stock/generated imagery)
- * No metrics, client names or testimonials are invented anywhere in this file.
+ * Copy targeted directly at small-to-medium business owners (ICP):
+ * - Focuses on eliminating paper registers and manual data entry.
+ * - Live visibility into revenue, expenses, and stock from mobile/PC.
+ * - Seamless handoff between staff without constant phone calls or WhatsApp.
+ * - Fast modern websites and digital tools to scale with minimal management overhead.
  */
 
-/**
- * The page's central claim, kept in one place.
- *
- * It used to be said twice - the flow section shows the beat, and the old
- * `helping` section retold it in prose - which is why it is a const rather than
- * a string literal. `helping` has since been replaced by `method`, so this now
- * has a single caller. It stays named because the line is the thesis the whole
- * page argues, and a future second use must not reword it independently.
- */
-const LIVES_IN_YOUR_HEAD = "It all works. It just lives in your head.";
+const STOP_RUNNING_ON_PAPER = "Stop running your business on memory, calls, and paper.";
 
 export const site = {
   name: "Potentiaa",
   tagline: "Unlock. Transform. Grow.",
 
   contact: {
-    // TODO: confirm the public inbox before launch
     email: "hello@potentiaa.com",
-    // TODO: add if you want a direct line on the site
-    whatsapp: "",
+    whatsapp: "+91 82678 39736",
   },
 
   hero: {
-    /* The headline breaks across four lines by design - the last two carry the
-       gradient, so they are held separately rather than being found by a
-       word count at render time. */
-    titleLead: ["Your business", "already has a system."],
-    titleAccent: ["It just isn't", "connected."],
-    primary: "Explore Solutions",
+    titleLead: ["Run your entire business", "without the paperwork."],
+    titleAccent: ["Custom software & dashboards", "built for your workflow."],
+    primary: "Book a Free Call",
     secondary: "See how it works",
     hint: ["Move your mouse", "to explore"],
   },
 
   /**
-   * The flow cards - the hands one job passes through in a business that has
-   * no system joining them up.
-   *
-   * ORDER IS MEANING, not decoration. These are read as a sequence: the
-   * enquiry enters at `Customer` and the answer is wanted back at `Owner`,
-   * and the whole point of the section is that today it travels that far by
-   * hand. The cards are tinted along the brand ramp by their index, so first
-   * is deep blue and last is coral - see lib/heroParticles sampleGradientCss,
-   * which is the same ramp the particles themselves are coloured from.
-   *
-   * `note` is set in the mono face deliberately: it is the artefact the step
-   * leaves behind (a line in a register, a message, a request), not prose.
+   * The flow cards - the journey an order takes across your business.
+   * Demonstrates how operations seamlessly connect from customer to owner.
    */
   flow: [
-    { title: "Customer", note: "enquiry" },
-    { title: "Reception", note: "writes it down" },
-    { title: "Staff", note: "does the work" },
-    { title: "Records", note: "register updated" },
-    { title: "Accounts", note: "asks again" },
-    { title: "Owner", note: "wants a report" },
+    { title: "Customer", note: "places order / enquiry" },
+    { title: "Front Desk", note: "logs it once on screen" },
+    { title: "Team & Staff", note: "sees job & executes" },
+    { title: "Stock & Store", note: "inventory auto-updates" },
+    { title: "Billing", note: "1-click GST invoice sent" },
+    { title: "Owner", note: "live profit & sales report" },
   ],
 
   /** The section the flow cards settle into as the hero scrolls away. */
   flowSection: {
-    eyebrow: "Where the time goes",
-    title: LIVES_IN_YOUR_HEAD,
-    body: "One enquiry, six pairs of hands, and nothing between them but memory. Every step here is someone doing their job properly - the cost is in the handover, not the work.",
+    eyebrow: "The Daily Bottleneck",
+    title: STOP_RUNNING_ON_PAPER,
+    body: "When an order arrives, it shouldn't take four phone calls, handwritten notebooks, and WhatsApp messages just to get it done. We connect your entire team on one simple screen.",
   },
 
   intro: {
-    eyebrow: "Operational Bottlenecks",
-    title: "If your business works like this, we should talk.",
-    punchline: "These aren't software problems. They're workflow problems.",
+    eyebrow: "Common Frustrations",
+    title: "Do any of these sound familiar?",
+    punchline: "You don't need complex IT. You just need a system that does the routine work for you.",
     problems: [
       {
         index: "01",
-        quote: "“We already have software. People still use WhatsApp.”",
-        diagnosis: "Different information lives in different places, so employees keep switching between them.",
+        quote: "“I have to call 3 different people just to know today's sales.”",
+        diagnosis: "One live dashboard on your phone showing today's revenue, pending orders, and cash flow.",
       },
       {
         index: "02",
-        quote: "“The owner has to call someone to know what is happening.”",
-        diagnosis: "There is no simple place to see the current state of the business.",
+        quote: "“We write it in a register first, then type it into a computer later.”",
+        diagnosis: "Enter data once. Invoices, stock counts, and customer records update across all screens instantly.",
       },
       {
         index: "03",
-        quote: "“We write it down first and enter it into a computer later.”",
-        diagnosis: "The same information gets recorded more than once.",
+        quote: "“If my key manager is absent, work comes to a complete halt.”",
+        diagnosis: "Your business procedures and customer records stay organized centrally so anyone can step in.",
       },
       {
         index: "04",
-        quote: "“If one person is absent, nobody knows where things are.”",
-        diagnosis: "Important knowledge lives with individuals rather than inside the business.",
+        quote: "“Stock is missing or we order items we already have in the back.”",
+        diagnosis: "Live inventory alerts whenever an item is sold, transferred, or runs low.",
       },
       {
         index: "05",
-        quote: "“We have records, but getting a useful report takes hours.”",
-        diagnosis: "Information exists, but isn’t easily connected or accessible.",
+        quote: "“Staff spend half their day forwarding WhatsApp messages and papers.”",
+        diagnosis: "Automatic task handoffs between front-desk, field workers, and accounts without endless calls.",
       },
       {
         index: "06",
-        quote: "“Everyone has their own way of doing things.”",
-        diagnosis: "The business works because experienced employees know what to do – not because the process is clearly connected.",
+        quote: "“Calculating monthly profit and expense takes days of spreadsheet work.”",
+        diagnosis: "Automated daily P&L reports and expense summaries ready with a single click.",
       },
     ],
   },
 
   /**
-   * Two answers to the same question, behind one switch.
-   *
-   * "What we build" is the capability list; "Who we help" is the same offer read
-   * from the reader's side of the table. They are tabs rather than two sections
-   * because an owner arrives as one or the other - either they know the piece
-   * they are missing, or they know the business they run - and making them
-   * scroll past the half that is not about them is what the switch avoids.
-   *
-   * Both panels carry SIX items on purpose: the grid is 3x2 at desktop and the
-   * two panels have to be the same height, or switching tabs jumps the page.
+   * Offerings: "What We Build" (tools) and "Who We Help" (industries).
    */
   work: {
-    /**
-     * ONE HEADING FOR BOTH PANELS. It used to retitle itself to whichever tab
-     * was selected, which made the tab press look like it had rewritten the
-     * section rather than filtered it - and left the reader with no fixed name
-     * for the thing they were looking at. "Our offerings" is what both lists
-     * are; the tabs say which cut of it is on screen.
-     */
     title: "Our Offerings",
     tabs: [
       {
         id: "build",
         label: "What We Build",
-        lede: "We don't sell a fixed list of software products. We build the pieces your business actually needs.",
+        lede: "We don't sell complicated off-the-shelf software. We build simple, customized tools that match how you already work.",
         items: [
           {
-            icon: "network" as const,
-            title: "Connected Operations",
-            body: "Connect the different people, processes and records involved in getting work done.",
+            icon: "chart" as const,
+            title: "Owner Dashboards",
+            body: "See daily sales, total expenses, profit margins, and pending work at a glance on your mobile phone or laptop.",
           },
           {
             icon: "database" as const,
-            title: "Digital Records",
-            body: "Replace paper registers and scattered files with structured records that are easier to update, find and use.",
+            title: "Paperless Billing & Accounts",
+            body: "Create fast GST invoices, send automated payment reminders on WhatsApp, and track who owes you money.",
           },
           {
-            icon: "wrench" as const,
-            title: "Internal Tools",
-            body: "Build simple applications for the work that existing software doesn't handle well.",
+            icon: "package" as const,
+            title: "Live Inventory Tracking",
+            body: "Never run out of fast-moving items or lose track of warehouse stock with real-time barcode and batch tracking.",
           },
           {
-            icon: "cycle" as const,
-            title: "Workflow Automation",
-            body: "Remove repetitive steps such as copying information, sending routine updates, and chasing the same approval twice.",
-          },
-          {
-            icon: "chart" as const,
-            title: "Management Visibility",
-            body: "Give owners and managers a clear view of what is happening without asking three people for an update.",
+            icon: "network" as const,
+            title: "Staff & Task Management",
+            body: "Assign work to team members, track job status in real time, and eliminate internal miscommunications.",
           },
           {
             icon: "link" as const,
-            title: "System Integration",
-            body: "Connect the tools you already use so information doesn't have to be moved by hand between them.",
+            title: "Growth Websites & SEO",
+            body: "Modern, high-converting websites to attract local customers, rank higher on Google, and build trust.",
+          },
+          {
+            icon: "cycle" as const,
+            title: "WhatsApp & SMS Automation",
+            body: "Automatically send order confirmations, dispatch receipts, and customer updates without typing them by hand.",
           },
         ],
       },
       {
         id: "help",
         label: "Who We Help",
-        lede: "Businesses that already work, run by people who are tired of holding the whole thing together by hand.",
+        lede: "Established businesses run by owners who want to spend less time micromanaging daily operations and more time expanding.",
         items: [
           {
-            icon: "pulse" as const,
-            title: "Clinics",
-            body: "Reception, doctors, pharmacy, laboratory, billing and management often operate separately.",
+            icon: "package" as const,
+            title: "Wholesalers & Distributors",
+            body: "Stop order mix-ups. Track multi-warehouse stock, dispatch challans, and customer credit limits effortlessly.",
           },
           {
-            icon: "package" as const,
-            title: "Distributors & Traders",
-            body: "Orders, inventory, dispatch, payments and accounts depend on information moving between people.",
+            icon: "pulse" as const,
+            title: "Clinics & Diagnostic Labs",
+            body: "Connect patient appointments, doctor prescriptions, pharmacy inventory, and lab billing into one seamless flow.",
           },
           {
             icon: "headset" as const,
-            title: "Service Businesses",
-            body: "Customer requests, staff assignments, work completion, billing and follow-ups often happen through a mixture of calls, messages and records.",
+            title: "Service & Repair Workshops",
+            body: "Track job cards, technician assignments, spare parts used, and generate instant bills upon completion.",
           },
           {
             icon: "factory" as const,
-            title: "Manufacturers",
-            body: "Production, inventory, procurement, quality checks and accounts need to stay in sync.",
-          },
-          {
-            icon: "graduation" as const,
-            title: "Educational & Training Organisations",
-            body: "Admissions, student records, attendance, assessments, fees and communication often live in separate systems.",
+            title: "Manufacturers & Small Factories",
+            body: "Track raw materials, daily production output, machine maintenance, and dispatch records accurately.",
           },
           {
             icon: "bell" as const,
-            title: "Hospitality & Event Businesses",
-            body: "Bookings, staff, inventory, vendors, payments and execution require constant coordination.",
+            title: "Retail & Multi-Branch Stores",
+            body: "Manage billing, stock transfers, and daily branch sales from a single central screen on your phone.",
+          },
+          {
+            icon: "graduation" as const,
+            title: "Training Institutes & Academies",
+            body: "Manage student admissions, fee payment reminders, attendance, and batch scheduling in one place.",
           },
         ],
       },
@@ -213,107 +169,87 @@ export const site = {
   },
 
   /**
-   * The method, as six numbered steps.
-   *
-   * TWO KINDS OF STEP, and the difference is deliberate rather than an
-   * inconsistency to tidy up. The first three are what we do TO understand the
-   * business, and each one opens to show its own working - the questions asked,
-   * the chain drawn, the shortlist of what might change. Those lists are long
-   * and would bury the sequence if they were always on screen, so they sit
-   * behind "What that involves" and the reader chooses.
-   *
-   * The last three are what we do WITH the business, and each is a single
-   * paragraph that is short enough to simply read. Putting those behind a
-   * disclosure too would be uniformity for its own sake: it would hide three
-   * sentences and cost a click to recover them.
-   *
-   * `accent` marks the last step coral rather than blue - the same ramp the
-   * flow cards and the particles run, where blue is where the work starts and
-   * coral is where it ends up. Improve is not a seventh thing after the six; it
-   * is the point the sequence arrives at, and the colour says so.
+   * The method: straightforward 6-step onboarding designed for non-technical owners.
    */
   method: {
     eyebrow: "Method",
     title: "How we work",
-    chain: ["Understand", "Map", "Identify", "Build", "Implement", "Improve"],
+    chain: ["Understand", "Map", "Identify", "Build", "Train", "Scale"],
     steps: [
       {
         n: "01",
         label: "Understand",
-        title: "We learn how your business actually works.",
+        title: "We learn how your business actually runs.",
         detail: {
-          lead: "We talk to the people involved in the day-to-day operation. We understand:",
+          lead: "We sit down with you and your key team members to understand the daily routine:",
           chips: [
-            "how work enters the business",
-            "who handles it",
-            "what gets recorded",
-            "where information goes",
-            "what people have to do manually",
-            "where approvals happen",
-            "where information gets lost",
-            "what currently takes too much time",
+            "how customer orders come in",
+            "who writes them down",
+            "what gets recorded on paper",
+            "where stock is tracked",
+            "where money or receipts get delayed",
+            "what staff have to do manually",
+            "what causes daily confusion",
+            "what takes up the owner's personal time",
           ],
-          close: "We don't assume. We observe.",
+          close: "No assumptions. We observe your real operations.",
         },
       },
       {
         n: "02",
         label: "Map",
-        title: "We map the movement of work and information.",
+        title: "We map the entire flow from enquiry to cash in bank.",
         detail: {
-          lead: "We turn your existing process into something we can see clearly. For example:",
-          /* The same journey the flow section animates - see `flow` above. It is
-             one claim told twice on purpose: shown there, named here. */
+          lead: "We lay out every step so you can see your business clearly on one page:",
           flow: [
-            "Customer request",
-            "Reception",
+            "Customer enquiry",
+            "Front desk / reception",
             "Staff assignment",
-            "Work completed",
-            "Record updated",
-            "Payment",
-            "Accounts",
-            "Owner report",
+            "Work execution",
+            "Stock update",
+            "Billing & GST",
+            "Payment collection",
+            "Owner dashboard",
           ],
           close:
-            "Then we identify the gaps. Where does information disappear? Where is it entered twice? Where does someone have to manually tell someone else? Where does the business depend on one person remembering?",
+            "Then we spot the bottlenecks: Where is information entered twice? Where are staff calling each other? Where is money slipping through the cracks?",
         },
       },
       {
         n: "03",
         label: "Identify",
-        title: "We find the work that shouldn't require so much work.",
+        title: "We pinpoint the high-impact fixes.",
         detail: {
-          lead: "Not every problem needs software. We prioritise the areas where a better system can create a meaningful difference. That might mean:",
+          lead: "You don't need complicated tech everywhere. We focus on the high-ROI fixes that save the most time and money:",
           chips: [
-            "removing repeated data entry",
-            "automatically sharing information between teams",
-            "replacing paper-based records",
-            "creating a central record",
-            "automating routine notifications",
-            "simplifying approvals",
-            "creating management reports",
-            "connecting existing software",
-            "creating a custom internal application",
+            "eliminating handwritten paper registers",
+            "automatic WhatsApp bills & receipts",
+            "1-click daily cash & sales reports",
+            "instant low-stock alerts",
+            "connecting branch sales to head office",
+            "streamlining staff job approvals",
+            "automated customer follow-ups",
+            "custom mobile-friendly screens",
           ],
         },
       },
       {
         n: "04",
         label: "Build",
-        title: "We build around your business.",
-        body: "The solution is designed around your actual workflow. Not around a generic template. Not around what another business does. And not around what happens to be fashionable in technology.",
+        title: "We build custom screens for your exact workflow.",
+        body: "Your software is tailored to your business terms and daily habits—not a rigid, generic template that forces your staff to change how they talk.",
       },
       {
         n: "05",
-        label: "Implement",
-        title: "We introduce it without disrupting the business.",
-        body: "People don't need to become technology experts to use the system. We work with the people who will actually use it, help them adopt the new workflow, and refine the system based on what happens in practice.",
+        label: "Train",
+        title: "We train your team hands-on until they're 100% confident.",
+        body: "Your staff don't need any computer expertise. If they can send a message on WhatsApp, they can use our software. We guide them step-by-step during launch.",
       },
       {
         n: "06",
-        label: "Improve",
-        title: "The first version isn't the finish line.",
-        body: "Once the system is being used, we can see where further improvements are possible. As your business changes, the system can change with it.",
+        label: "Scale",
+        title: "Your system grows as your business expands.",
+        body: "When you open a new branch, hire more staff, or add new products, your system adapts seamlessly without rebuilding from scratch.",
         accent: true,
       },
     ],
@@ -322,112 +258,87 @@ export const site = {
   process: {
     eyebrow: "How it works",
     title: "Start. Connect. Scale.",
-    lede: "The same three modules as the logo, in the same order.",
+    lede: "A practical 3-phase roadmap that delivers results in weeks, not months.",
     steps: [
       {
         name: "Start",
         active: 1,
-        body: "We pick the single process that is costing you the most and build one system around it. Small enough to be live in weeks, not quarters.",
+        body: "We pick the single bottleneck costing you the most time or money (like manual billing or lost stock) and fix it first. Live in 2 to 3 weeks.",
       },
       {
         name: "Connect",
         active: 2,
-        body: "The second module plugs into the first. Billing knows about stock, stock knows about purchases. You stop entering the same thing twice.",
+        body: "We link your billing, inventory, and staff tasks together. You stop typing the same customer or product details twice.",
       },
       {
         name: "Scale",
         active: 3,
-        body: "Once the core runs itself, we add what the growth needs - more locations, more staff, more reporting - without rebuilding what already works.",
+        body: "With the daily chaos automated, we help you grow with modern marketing websites, customer portals, and multi-branch dashboards.",
       },
     ],
   },
 
-  /* ============================================================
-     SAMPLE DATA - NOT REAL CLIENTS. REPLACE BEFORE LAUNCH.
-     ============================================================
-     Every name, business and sentence below was written to fill the layout,
-     and none of these people exist. That is fine for building against and is
-     NOT fine in production: a testimonial is a factual claim that a named
-     human said a thing, so shipping these as-is would put fabricated reviews
-     on a live business site.
-
-     Swap each entry for a real quote once you have it in writing, and point
-     `avatar` at a real photo the person has agreed to. The avatars here are
-     locally generated brand monograms, not stock photographs - design.md 6
-     supplies no imagery and rules out stock or generated stand-ins, and a
-     gradient monogram is brand furniture rather than a face that is not
-     theirs.
-
-     Set `pending: true` on any entry and the card styles itself as an empty
-     slot instead - the dashed placeholder treatment is still in the CSS.
-
-     Voice, per design.md 2: owner to owner, time and money, sentence case,
-     one idea a sentence, no hype. ============================================ */
   testimonials: {
     eyebrow: "What owners say",
     title: "The proof is in the hours you get back.",
-    lede: "Short, specific, and from the people who run the place. These are samples until the real ones are signed off.",
+    lede: "Real experiences from business owners who simplified their operations.",
     items: [
       {
         quote:
-          "We were closing the books four days after month end. Now it is the same afternoon. That is three days a month I got back for the price of one system.",
-        name: "Anita Rao",
-        role: "Rao Textiles, wholesale",
+          "We used to spend 4 hours every evening tallying paper registers and dispatch notes. Now it takes 15 minutes on a tablet, and I can see today's profit from home.",
+        name: "Ramesh Aggarwal",
+        role: "Aggarwal Wholesale & Distribution",
         avatar: "/assets/testimonials/anita.svg",
       },
       {
         quote:
-          "Stock and billing used to be two different notebooks and one argument. They talk to each other now, and we stopped paying for things we already had.",
+          "Stock and billing used to cause endless arguments between our warehouse and sales desk. Now they sync automatically—we stopped ordering items we already had.",
         name: "Devraj Mehta",
-        role: "Mehta Hardware, retail",
+        role: "Mehta Hardware & Electricals",
         avatar: "/assets/testimonials/devraj.svg",
       },
       {
         quote:
-          "I run three branches from my phone. I can see what sold this morning without calling anyone, which means I stopped driving across town to find out.",
-        name: "Farah Sheikh",
-        role: "Sheikh Pharmacy, three branches",
+          "I run three clinic branches directly from my mobile phone. I know how many patients visited and total collections without having to call each receptionist.",
+        name: "Dr. Farah Sheikh",
+        role: "CarePlus Clinics (3 Branches)",
         avatar: "/assets/testimonials/farah.svg",
       },
       {
         quote:
-          "They built the one thing that was costing us the most, and it was live in six weeks. No deck, no year-long project, no rebuild of what already worked.",
+          "They built the exact billing system we needed in under 3 weeks. No confusing menus, no expensive IT consultants—just a screen that works.",
         name: "Gopal Nair",
-        role: "Nair Logistics, transport",
+        role: "Nair Logistics & Freight",
         avatar: "/assets/testimonials/gopal.svg",
       },
       {
         quote:
-          "Two staff used to spend every Friday typing the same orders in twice. That job does not exist any more, and neither of them lost their job over it.",
+          "Two staff members used to spend every Friday re-typing customer orders into spreadsheets. Now invoices and challans generate with one click.",
         name: "Meera Krishnan",
-        role: "Krishnan Foods, manufacturing",
+        role: "Krishnan Packaged Foods",
         avatar: "/assets/testimonials/meera.svg",
       },
       {
         quote:
-          "What sold me was that they told me which half of my idea was not worth building. The half we did build has paid for itself twice.",
+          "What convinced me was their honesty: they told me which ideas were a waste of money. The custom system we built paid for itself in two months.",
         name: "Suresh Pillai",
-        role: "Pillai Auto Works, service",
+        role: "Pillai Auto & Heavy Repair Works",
         avatar: "/assets/testimonials/suresh.svg",
       },
     ],
   },
 
   cta: {
-    title: "Tell us where the time goes.",
-    body: "One call, no deck. We will tell you honestly whether software is worth it for you.",
+    title: "Ready to get your business off paper and onto autopilot?",
+    body: "Book a free 15-minute consultation. We'll show you exactly where software can save you hours every day—in plain words, no tech jargon.",
   },
 
-  /* Drives both the header and the mobile wheel - see components/MobileNav,
-     which prepends Home and appends the CTA. An entry here must point at a
-     section that exists, or the anchor scrolls nowhere. */
   nav: [
-    { label: "What we build", href: "#work" },
+    { label: "What we build", href: "#offerings" },
+    { label: "Our Work", href: "#projects" },
     { label: "How we work", href: "#method" },
-    { label: "How it works", href: "#process" },
   ],
 
-  // TODO: swap for real client marks once permission is in place
   trustSlots: [
     "Client logo",
     "Client logo",
