@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
+import { gsap } from "gsap";
 import type { FlowProgress } from "./HeroLabels";
 import { nodeProximity, pathAt, seatAt, type LiveCardState } from "@/lib/flowLayout";
 import { sampleGradientCss } from "@/lib/heroParticles";
@@ -34,8 +35,51 @@ const FADE_IN = { from: 0.28, to: 0.92 };
 /** How far along the line the stream has been drawn, against `t`. */
 const REVEAL = { from: 0.35, to: 1 };
 
+/**
+ * How much of the line the reveal's leading edge fades across, in `u`.
+ *
+ * The reveal used to be a hard cut - a particle one step behind the edge drew
+ * at full brightness and one step ahead of it did not draw at all. `reveal` is
+ * driven by scroll, so that boundary sweeps along the line as the reader moves
+ * and every particle it crosses appears instantly at full alpha. Hundreds of
+ * them doing that during a scroll is the stream's leading edge sparkling into
+ * existence rather than growing.
+ *
+ * 0.04 is about a quarter of one segment between stations: long enough to read
+ * as the line extending, short enough that the head still looks like a head.
+ */
+const REVEAL_FEATHER = 0.04;
+
 /** Colour bands for stream particles. */
 const BANDS = 24;
+
+/**
+ * NO FPS CAP HERE, and that is the opposite of HeroEnergy - deliberately.
+ *
+ * A 30fps duty-cycle cap was tried on this canvas, on the same reasoning that
+ * justifies HeroEnergy's: the stream crawls the line at SPEED laps per second,
+ * so nothing in it needs sixty redraws a second to read correctly. That
+ * reasoning is sound for HeroEnergy and wrong for this one, because of what
+ * this canvas is drawing.
+ *
+ * HeroEnergy is a free-floating field; it answers to nothing else on screen. This
+ * canvas draws the line THROUGH the six station cards, and those cards are DOM
+ * elements moved by CSS at the display's own rate. The stream is aligned to
+ * them through `ctx.translate(0, releaseY)` and a shared seat table
+ * (lib/flowLayout), both of which change with every scroll frame.
+ *
+ * Halve this canvas's rate and you do not get a slightly coarser stream - you
+ * get a stream that is a frame behind the cards it is joining, drifting away
+ * from the icons and snapping back, twice a second, for the whole scroll. That
+ * reads as the stream glitching, which is exactly what it was reported as.
+ *
+ * The cap also no longer buys anything. It was added while six SVG-filter
+ * lenses were re-rasterising in software on the same thread and everything in
+ * this section was contending for it. With those off the scroll (see
+ * flow-stage--drifting in styles/glass-surface.css) this canvas measured free:
+ * dropped frames 2.4%/1.0% with it drawing against 1.2%/3.7% with it display:none
+ * - indistinguishable. It costs nothing, so it may as well stay in step.
+ */
 
 function smoothstep(edge0: number, edge1: number, x: number): number {
   const c = Math.max(0, Math.min(1, (x - edge0) / Math.max(1e-6, edge1 - edge0)));
@@ -82,7 +126,24 @@ export default function HeroFlowStream({
     for (let i = 0; i < STREAM_COUNT; i++) {
       u0[i] = i / STREAM_COUNT;
       offset[i] = (Math.random() * 2 - 1) * (Math.random() * 0.7 + 0.3);
-      size[i] = 0.8 + Math.random() * 1.6;
+      /**
+       * A FLOOR ON THE RADIUS, because below about a pixel these twinkle.
+       *
+       * This was `0.8 + random * 1.6`, and the bottom of that range is the
+       * problem: an arc of radius 0.8 filled on a dpr-1.5 backing store is
+       * mostly antialiasing, and the exact pixel coverage it resolves to
+       * changes as it drifts a fraction of a pixel between frames. The particle
+       * therefore flickers in brightness while travelling in a straight line at
+       * a constant alpha - and it is drawn with `lighter`, which makes every
+       * one of those flickers add into whatever is under it.
+       *
+       * A few hundred of those at once is read as the stream fizzing rather
+       * than flowing. The floor is lifted to 1.2 so the smallest particle still
+       * covers a whole device pixel at dpr 1.5 with something left over; the
+       * top of the range is unchanged, so the size variation that gives the
+       * stream its depth is still there, just without the sub-pixel tier.
+       */
+      size[i] = 1.2 + Math.random() * 1.2;
       drift[i] = 0.5 + Math.random() * 0.9;
     }
 
@@ -192,11 +253,30 @@ export default function HeroFlowStream({
           const mote = trailPool[i];
           if (mote.life <= 0) continue;
 
+          /**
+           * Integrated against TIME, not against frames.
+           *
+           * `mote.x += mote.vx` advanced a mote by one velocity unit per
+           * callback, so how far a comet trail actually threw its motes came
+           * out of the display's refresh rate: a 144Hz panel scattered them
+           * nearly two and a half times as far as a 60Hz one, and any frame the
+           * page dropped shortened the trail visibly. The damping had the same
+           * problem - a fixed 0.94 per frame settles in half the wall-clock
+           * time at twice the rate.
+           *
+           * Both are now expressed per second and scaled by the frame's own dt,
+           * with 60fps as the reference so the tuned constants above keep the
+           * behaviour they were chosen for. `dt` is already clamped to 50ms at
+           * the top of draw, so a tab returning from the background cannot
+           * throw a mote across the canvas in one step.
+           */
+          const step = dt * 60;
           mote.life -= dt;
-          mote.x += mote.vx;
-          mote.y += mote.vy;
-          mote.vx *= 0.94;
-          mote.vy *= 0.94;
+          mote.x += mote.vx * step;
+          mote.y += mote.vy * step;
+          const damp = Math.pow(0.94, step);
+          mote.vx *= damp;
+          mote.vy *= damp;
 
           const progress = mote.life / mote.maxLife;
           const alpha = Math.sin(progress * Math.PI) * 0.5;
@@ -244,12 +324,19 @@ export default function HeroFlowStream({
           u -= Math.floor(u);
           if (u > reveal || u < bandMinU || u >= bandMaxU) continue;
 
+          // Fade in across the leading edge rather than switching on at it -
+          // see REVEAL_FEATHER. Full brightness everywhere behind the feather,
+          // so this costs nothing for the body of the stream.
+          const behindEdge = reveal - u;
+          const edgeFade =
+            behindEdge < REVEAL_FEATHER ? behindEdge / REVEAL_FEATHER : 1;
+
           const p = pathAt(u, count, width, height);
           const near = nodeProximity(u, count);
           const spread = SPREAD_NODE + (SPREAD_MID - SPREAD_NODE) * near;
           const px = p.x + nx * offset[i] * spread;
           const py = p.y + ny * offset[i] * spread;
-          const brightness = (0.35 + 0.65 * (1 - near)) * presence;
+          const brightness = (0.35 + 0.65 * (1 - near)) * presence * edgeFade;
           const radius = size[i] * (1 + (1 - near) * 0.9);
 
           ctx.globalAlpha = Math.min(1, brightness);
@@ -289,24 +376,39 @@ export default function HeroFlowStream({
       ctx.restore();
     };
 
-    let raf = 0;
     let running = false;
     const started = performance.now();
 
-    const tick = (now: number) => {
-      raf = requestAnimationFrame(tick);
-      draw((now - started) / 1000);
-    };
+    /**
+     * BEHIND LENIS ON THE SHARED TICKER, which is what keeps the stream welded
+     * to the cards.
+     *
+     * Everything positioning this canvas - `flowRef.current.releaseY`, and the
+     * `t` that drives reveal and presence - is written by FlowStage from inside
+     * `onScrollFrame`, which SmoothScroll fires from inside `lenis.raf`, which
+     * runs on gsap.ticker. On its own requestAnimationFrame this canvas was a
+     * second scheduler reading those values with no defined relationship to the
+     * frame that produced them.
+     *
+     * SiteShell renders SmoothScroll before <main>, so its ticker callback is
+     * registered first and gsap runs callbacks in registration order. Adding
+     * this one here therefore lands it after the scroll has been advanced and
+     * after FlowStage has written the new seat offsets - every frame, in that
+     * order. The stream draws the line where the cards are this frame rather
+     * than where they were last frame.
+     */
+    const drive = () => draw((performance.now() - started) / 1000);
+
     const start = () => {
       if (running) return;
       running = true;
       lastTime = performance.now();
-      raf = requestAnimationFrame(tick);
+      gsap.ticker.add(drive);
     };
     const stop = () => {
       if (!running) return;
       running = false;
-      cancelAnimationFrame(raf);
+      gsap.ticker.remove(drive);
     };
 
     resize();
@@ -327,7 +429,9 @@ export default function HeroFlowStream({
     return () => {
       sizeObserver.disconnect();
       intersectionObserver.disconnect();
-      cancelAnimationFrame(raf);
+      // `stop` is a no-op if the observer already paused it; calling remove
+      // directly covers the case where it did not.
+      gsap.ticker.remove(drive);
     };
   }, [flowRef, liveCardsRef]);
 
