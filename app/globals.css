@@ -4177,3 +4177,74 @@ textarea.input { resize: vertical; min-height: 120px; }
   }
   .hero__art { width: min(48vw, 66svh, 700px); }
 }
+
+/* ---------------------------------------------------------------
+   Fallback pages - 404 and the route error boundary
+
+   Shared by app/not-found.tsx and app/error.tsx. Deliberately spare: these
+   render when something has already gone wrong, so they lean on the page
+   ground and the type scale and add nothing that could itself fail. No
+   canvas, no glass, no gradient, no image request.
+
+   app/global-error.tsx does NOT use these classes - it replaces the document
+   after the root layout failed, so this stylesheet may never have been
+   applied. It carries its own inline styles for that reason.
+   --------------------------------------------------------------- */
+.fallback-page {
+  position: relative;
+  z-index: var(--z-content);
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-16) var(--space-6);
+  text-align: center;
+}
+
+.fallback-page__inner {
+  max-width: 34rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.fallback-page__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-on-dark-muted);
+  margin: 0;
+}
+
+.fallback-page__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-on-dark);
+  text-wrap: balance;
+  margin: var(--space-4) 0 0;
+}
+
+.fallback-page__body {
+  font-size: var(--fs-md);
+  color: var(--text-on-dark-secondary);
+  margin: var(--space-4) 0 0;
+}
+
+.fallback-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+}
+
+.fallback-page__digest {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-on-dark-muted);
+  margin: var(--space-8) 0 0;
+}
