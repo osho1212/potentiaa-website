@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
 import { FRAME_COUNT, FRAME_SIZE, framePath, WAYPOINTS } from "@/lib/frames";
 import { scrollState } from "@/lib/scrollState";
 import { moduleBerth } from "@/lib/moduleBerth";
@@ -362,8 +363,15 @@ export default function ModuleStack() {
     }
 
     // ---- Drive position and frame from scroll progress ----------------------
-    let raf = 0;
-    let last = performance.now();
+    /**
+     * Seeded on the first tick rather than from performance.now().
+     *
+     * The clock driving this is now gsap.ticker's, which counts from whenever
+     * GSAP was initialised, not from navigation start. Priming `last` off a
+     * different clock's idea of "now" would make the first frame's delta a large
+     * negative number and the damping step meaningless.
+     */
+    let last = -1;
 
     // Damped toward the target each frame. This is what the old GSAP
     // `scrub: 1.2` bought us - the stack trails the scroll instead of being
@@ -385,7 +393,7 @@ export default function ModuleStack() {
      * getBoundingClientRect each, sixteen times a second. Measured at 0.82ms a
      * sweep, that was 13.7ms of forced layout per second buying nothing.
      */
-    let rectsAt = 0;
+    let rectsAt = -Infinity;
 
     /**
      * Where the header's mark is, in viewport pixels - the module's berth.
@@ -520,7 +528,8 @@ export default function ModuleStack() {
     };
 
     const tick = (now: number) => {
-      const delta = Math.min((now - last) / 1000, 0.05);
+      if (last < 0) last = now;
+      const delta = Math.min(Math.max(now - last, 0) / 1000, 0.05);
       last = now;
 
       // Before anything reads a rect. The dock needs the header mark's box on
@@ -722,13 +731,32 @@ export default function ModuleStack() {
       let toFront = (((0 - scrub) % FRAME_COUNT) + FRAME_COUNT) % FRAME_COUNT;
       if (toFront > FRAME_COUNT / 2) toFront -= FRAME_COUNT;
       draw(reduced ? 0 : scrub + toFront * claim);
-
-      raf = requestAnimationFrame(tick);
     };
 
-    raf = requestAnimationFrame(tick);
+    /**
+     * On the page's clock, not a private one.
+     *
+     * This cannot become an `onScrollFrame` subscriber the way DepthField did:
+     * two things here keep moving after the scroll has stopped. `flight` is
+     * DAMPED toward its target, so it needs frames to finish settling once the
+     * reader lets go, and the bob is an idle sine that has nothing to do with
+     * scroll at all. A scroll-driven callback would freeze both mid-travel.
+     *
+     * So it stays a per-frame loop - but gsap.ticker's, the same one now
+     * advancing Lenis. That matters for ORDER as much as for count: the module
+     * reads `scrollState.progress`, which SmoothScroll writes from inside
+     * `lenis.raf`. On its own rAF this read raced that write and picked up
+     * either this frame's progress or last frame's depending on which callback
+     * the browser ran first. Behind Lenis on a shared ticker it always reads the
+     * value written moments earlier in the same frame.
+     *
+     * gsap.ticker reports seconds; everything below was written against
+     * milliseconds.
+     */
+    const drive = (time: number) => tick(time * 1000);
+    gsap.ticker.add(drive);
 
-    return () => cancelAnimationFrame(raf);
+    return () => gsap.ticker.remove(drive);
   }, []);
 
   return (

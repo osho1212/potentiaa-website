@@ -255,10 +255,63 @@ export default function DriftWall<T>({
       rafRef.current = requestAnimationFrame(animate);
     };
 
-    rafRef.current = requestAnimationFrame(animate);
-    return () => {
+    /**
+     * ONLY WHILE THE WALL IS ON SCREEN.
+     *
+     * This loop writes a transform to every column track plus the perspective
+     * plane on every frame, and the tiles live in a `preserve-3d` subtree, so
+     * each of those writes is real compositing work rather than a cheap style
+     * set. It was running from mount to unmount: a reader at the top of the page
+     * or down in the footer was paying the full per-frame cost of a wall that
+     * was nowhere near the viewport.
+     *
+     * Every animated layer in the hero already gates itself this way. This one
+     * did not, and it is the most expensive of them per frame.
+     */
+    let running = false;
+
+    const start = () => {
+      if (running) return;
+      running = true;
+      // Cleared rather than carried: the elapsed time across a pause is not
+      // travel the wall should make up. dt is clamped anyway, but re-seeding on
+      // the first frame back means the columns resume exactly where they
+      // stopped instead of taking one 50ms lurch.
+      lastTsRef.current = null;
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    const stop = () => {
+      if (!running) return;
+      running = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = 0;
+    };
+
+    const el = containerRef.current;
+    if (!el) return;
+
+    /**
+     * The resting pose, written once before the loop is allowed to start.
+     *
+     * The stylesheet gives .drift-wall__plane no transform of its own - not even
+     * the translate(-50%, -50%) that pairs with its top/left of 50%. That whole
+     * transform, centring included, only ever existed because this loop wrote it
+     * on its first frame. Now that the loop does not necessarily get a first
+     * frame at mount, the wall would hang off its own centre until the reader
+     * scrolled it into view and then snap into place.
+     */
+    applyPlaneTransform(pointerDampedRef.current.x, pointerDampedRef.current.y);
+
+    const visibility = new IntersectionObserver(
+      ([entry]) => (entry.isIntersecting ? start() : stop()),
+      { rootMargin: "100px" },
+    );
+    visibility.observe(el);
+
+    return () => {
+      visibility.disconnect();
+      stop();
       lastTsRef.current = null;
     };
   }, [baseVelocities, columnMeta, pauseOnHover, parallax, reduced, applyPlaneTransform]);

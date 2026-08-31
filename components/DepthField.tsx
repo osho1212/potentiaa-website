@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { scrollState } from "@/lib/scrollState";
+import { onScrollFrame, scrollState } from "@/lib/scrollState";
 import { mixRgb, themeAt } from "@/lib/sectionTheme";
 
 /**
@@ -85,12 +85,28 @@ export default function DepthField() {
     const nodes = Array.from(root.querySelectorAll<HTMLElement>(".field__shard"));
     const glows = Array.from(root.querySelectorAll<HTMLElement>(".field__glow"));
 
-    let raf = 0;
-
     let prevAccent = "";
     let prevP = -1;
 
-    const tick = () => {
+    /**
+     * Driven by the scroll dispatch, NOT by a requestAnimationFrame loop of its
+     * own.
+     *
+     * Every value this reads comes from `scrollState.progress`, and the body was
+     * already wrapped in a guard that did nothing whenever progress had not
+     * moved. So the old loop spent most of its life waking up once a frame, for
+     * the entire time the component was mounted, to compare two numbers and find
+     * them equal - and it did that whether or not the field was anywhere near
+     * the viewport, because unlike every Hero layer this one had no
+     * IntersectionObserver.
+     *
+     * `onScrollFrame` is the dispatch lib/scrollState was written to provide, and
+     * its own header says why: one shared rAF for every layer instead of one
+     * apiece. Subscribing here means these transforms are written exactly when
+     * there is new scroll to write them for, in the same frame as the scroll
+     * that caused them.
+     */
+    const update = () => {
       const p = reduced ? 0 : scrollState.progress;
       if (Math.abs(p - prevP) > 0.00005) {
         prevP = p;
@@ -122,12 +138,13 @@ export default function DepthField() {
           glow.style.transform = `translate3d(0, ${drift}px, 0)`;
         });
       }
-
-      raf = requestAnimationFrame(tick);
     };
 
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    // Once for the opening frame: the dispatch does not fire until something
+    // scrolls, and the shards would otherwise sit un-positioned until it did.
+    update();
+
+    return onScrollFrame(update);
   }, []);
 
   return (

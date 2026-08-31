@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Lenis from "lenis";
+import { gsap } from "gsap";
 import { emitScrollFrame, scrollState } from "@/lib/scrollState";
 
 /**
@@ -122,12 +123,43 @@ export default function SmoothScroll() {
     lenis.on("scroll", onScroll);
     onScroll();
 
-    let raf = 0;
-    const tick = (time: number) => {
-      lenis.raf(time);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
+    /**
+     * ONE CLOCK FOR THE WHOLE PAGE, and it is GSAP's.
+     *
+     * This used to be a bare requestAnimationFrame loop. GSAP runs its own rAF
+     * ticker for every tween on the site - the card tilts in Work and
+     * Testimonials, the spotlight in MagicBento, the carousel in OurWork - so
+     * the page had two independent schedulers both asking the browser for the
+     * same frame and neither aware of the other.
+     *
+     * That is the jitter. Lenis scrolls by writing a transform; a tween writes
+     * its own transform. Which of the two lands first in a given frame depends
+     * on which rAF callback the browser happens to run first, and that order is
+     * not stable between frames. So an element being tweened while the page
+     * moves gets its two transforms composed in one order on one frame and the
+     * other order on the next - it reads as the element shivering against the
+     * scroll rather than riding it.
+     *
+     * Driving Lenis FROM gsap.ticker collapses both into a single callback with
+     * a defined order: scroll updates, then tweens, every frame, in that order.
+     *
+     * gsap.ticker measures in seconds and lenis.raf wants milliseconds.
+     */
+    const drive = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(drive);
+
+    /**
+     * And no lag smoothing.
+     *
+     * By default GSAP watches for frames that took too long and, past a
+     * threshold, pretends the gap was smaller so tweens do not lurch. That is
+     * the right call for a tween running on its own. It is the wrong call here:
+     * Lenis is being advanced by this same clock, and a clock that quietly
+     * under-reports elapsed time hands Lenis a smaller step than really
+     * happened. The scroll then falls behind the wheel and catches up over the
+     * following frames, which is exactly the stutter this is meant to remove.
+     */
+    gsap.ticker.lagSmoothing(0);
 
     /**
      * Fonts and images change section heights after first paint, which changes
@@ -175,7 +207,10 @@ export default function SmoothScroll() {
       document.removeEventListener("click", onAnchorClick);
       window.removeEventListener("resize", remeasure);
       observer.disconnect();
-      cancelAnimationFrame(raf);
+      gsap.ticker.remove(drive);
+      // Back to GSAP's default, so a tween that outlives this component is not
+      // left running on a ticker configured for a scroller that no longer exists.
+      gsap.ticker.lagSmoothing(500, 33);
       lenis.destroy();
     };
   }, []);
