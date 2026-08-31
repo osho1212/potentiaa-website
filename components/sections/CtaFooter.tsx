@@ -16,9 +16,11 @@ export default function CtaFooter() {
             <h2 className="cta-strip__title">
               <ShinyText
                 text={site.cta.title}
-                speed={2.6}
-                customGradient="linear-gradient(120deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.72) 24%, #265DFF 36%, #7E9BFF 44%, #FFFFFF 50%, #FF6A5B 58%, #FA4592 68%, rgba(255, 255, 255, 0.72) 80%, rgba(255, 255, 255, 0.72) 100%)"
-                spread={120}
+                speed={3.0}
+                color="#ffffff"
+                shineColor="#ffffff"
+                customGradient="linear-gradient(120deg, #FFFFFF 0%, #FFFFFF 35%, #93c5fd 46%, #FFFFFF 50%, #f472b6 54%, #FFFFFF 65%, #FFFFFF 100%)"
+                spread={90}
                 direction="left"
               />
             </h2>

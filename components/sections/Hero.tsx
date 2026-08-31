@@ -4,19 +4,16 @@ import type { RefObject } from "react";
 import Reveal from "../Reveal";
 import HeroParticles from "../HeroParticles";
 import type { HeroParticlesHandle } from "../HeroParticles";
+import HeroFlowConstellation from "../HeroFlowConstellation";
 import { useContact } from "../ContactContext";
 import { site } from "@/lib/site";
 
 /**
- * The hero: copy on the left, the module render and the particle swarm on the
- * right.
- *
- * The swarm lives HERE and scrolls away with this section - it is part of the
- * hero. Only the flow cards are pinned across into the section below, from
- * components/sections/FlowStage.
- *
- * `particlesRef` is owned by FlowStage and threaded down, because the pinned
- * cards drive this swarm's hover glow and the two are no longer siblings.
+ * The Hero section:
+ * - Centered typographic display & CTAs
+ * - Full-screen 3D WebGL Organic Neural Web particle simulation
+ * - 6 Fluid orbiting 3D squircle icons moving dynamically around the page
+ * - Seamless scroll alignment into the Flow section
  */
 export default function Hero({
   particlesRef,
@@ -25,17 +22,39 @@ export default function Hero({
 }) {
   const { open } = useContact();
 
+  const handleScrollToFlow = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const lenis = (
+      window as unknown as {
+        __lenisInstance?: {
+          scrollTo(target: string | HTMLElement, opts?: Record<string, unknown>): void;
+        };
+      }
+    ).__lenisInstance;
+
+    if (lenis) {
+      lenis.scrollTo("#flow", { offset: 0, duration: 1.2 });
+    } else {
+      const target = document.querySelector("#flow");
+      target?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <section className="hero" id="top" data-theme-key="hero">
+      {/* Full-screen centered particle simulation layer */}
+      <div className="hero__art" aria-hidden="true">
+        <HeroParticles ref={particlesRef} />
+      </div>
+
+      {/* 6 Orbiting 3D Glass Squircle Icons that align into Flow Section */}
+      <HeroFlowConstellation />
+
+      {/* Vertically & horizontally centered hero content */}
       <div className="hero__grid container">
         <div className="hero__copy">
           <Reveal delay={80}>
             <h1 className="hero__title">
-              {/* The trailing space is not a typo. These are block spans, so
-                  it changes nothing on screen - but without it the accessible
-                  name and the document's text content read
-                  "Your businessalready has asystem.", which is what a screen
-                  reader would announce and what a crawler would index. */}
               {site.hero.titleLead.map((line) => (
                 <span key={line} className="hero__title-line">
                   {line}{" "}
@@ -51,7 +70,12 @@ export default function Hero({
 
           <Reveal delay={160}>
             <div className="hero__actions">
-              <button type="button" className="hero__cta" onClick={open}>
+              <button
+                type="button"
+                className="hero__cta"
+                onClick={open}
+                id="hero-cta-book"
+              >
                 {site.hero.primary}
                 <span className="hero__cta-arrow" aria-hidden="true">
                   <svg viewBox="0 0 16 16" width="16" height="16" fill="none">
@@ -66,7 +90,12 @@ export default function Hero({
                 </span>
               </button>
 
-              <a className="hero__play" href="#process">
+              <a
+                className="hero__play"
+                href="#flow"
+                onClick={handleScrollToFlow}
+                id="hero-cta-explore"
+              >
                 <span className="hero__play-disc" aria-hidden="true">
                   <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
                     <path d="M5.5 3.6v8.8L13 8z" />
@@ -77,19 +106,8 @@ export default function Hero({
             </div>
           </Reveal>
         </div>
-
-        <div className="hero__art">
-          <HeroParticles ref={particlesRef} />
-          <img
-            className="hero__art-image"
-            src="/assets/hero/module.webp"
-            alt="Potentiaa core module"
-            width={762}
-            height={800}
-            loading="eager"
-          />
-        </div>
       </div>
     </section>
   );
 }
+

@@ -624,107 +624,79 @@ button { font: inherit; cursor: pointer; }
   position: relative;
   z-index: var(--z-content);
   min-height: 100svh;
-  display: grid;
-  /* copy + object. Was `1fr auto`, the second row holding a trust strip that
-     has since been removed. */
-  grid-template-rows: 1fr;
-  /* Must clear the fixed header pill: it sits at top var(--space-5) and is
-     about 64px tall, so anything above ~104px tucks under it. */
-  padding-block: calc(var(--space-20) + var(--space-6)) var(--space-8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding-block: calc(var(--space-20) + var(--space-4)) var(--space-8);
+  overflow: visible;
 }
 
 .hero__grid {
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 34rem) minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: var(--space-8);
   width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  z-index: 2;
 }
 
 @media (min-width: 1280px) {
   .hero__grid.container {
-    padding-left: 100px !important;
-    padding-right: 500px !important;
+    padding-inline: clamp(var(--space-6), 6vw, 120px) !important;
   }
 }
 
 @media (min-width: 1024px) and (max-width: 1279px) {
   .hero__grid.container {
-    padding-left: clamp(40px, 5vw, 80px) !important;
-    padding-right: clamp(140px, 18vw, 280px) !important;
+    padding-inline: clamp(var(--space-5), 5vw, 80px) !important;
   }
 }
 
 @media (max-width: 1023px) {
   .hero__grid.container {
-    padding-inline: clamp(var(--space-4), 4vw, var(--space-8)) !important;
+    padding-inline: clamp(var(--space-4), 4vw, var(--space-6)) !important;
   }
 }
 
 .hero__copy {
-  display: grid;
-  justify-items: start;
-  /* Only one gap left in this grid since the eyebrow and lede came out -
-     between the title and the actions row - so this is scoped to exactly
-     that one boundary rather than several. Widened for more breathing room
-     below "connected." before the buttons. */
-  gap: var(--space-8);
-  /* Over the artwork, which bleeds left behind it. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--space-6);
   position: relative;
-  z-index: 1;
+  z-index: 10;
+  max-width: 56rem;
+  margin-inline: auto;
 }
 
 .hero__title {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
   font-family: var(--font-display);
-  /* Set explicitly rather than inherited from the h1 rule. This originally
-     existed because a second, cloned copy of the page rendered the title as a
-     <p> and the two would otherwise have used different faces; the clone is
-     gone, and it stays because the size below is the real point.
-     60.84px = 46.8px * 1.3. Earlier sizes here were capped to keep each
-     titleLead/titleAccent entry (lib/site.ts) to one row in the 544px (34rem)
-     copy column - deliberately given up on for this size, since the point of
-     it was to fill the empty space beside the copy, and "already has a
-     system." now wraps onto two rows inside its own line. That is intended,
-     not a bug to chase. */
-  /* Fluid, and capped against the viewport's HEIGHT as well as its width.
-
-     Was a hardcoded 60.84px with two media queries patching it: one at
-     max-width 760, and one inside the short-viewport block that had to stay
-     last in the file to win. The vw term replaces the first. The min()
-     against svh replaces the second, and does it without depending on where
-     in the file it is written.
-
-     Resolves to 60.8px at 1280px wide - the size this line was drawn at -
-     and floors at 28px, where "connected." still holds one row on a 320px
-     screen. */
-  font-size: min(clamp(1.75rem, 1.066rem + 3.42vw, 3.8rem), 9svh);
+  font-size: min(clamp(2.1rem, 1.3rem + 4vw, 4.2rem), 9svh);
   font-weight: var(--fw-bold, 700);
-  line-height: 1.04;
-  letter-spacing: -0.02em;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
   color: var(--text-on-dark);
 }
 
-.hero__title-line { display: block; }
+.hero__title-line { display: block; text-align: center; }
 
-/* A break between the lead lines and the accent lines - the two read as
-   separate statements ("...a system." / "It just isn't connected.") and were
-   sitting on bare line-height with no air between them.
-   Not :first-of-type: every line here is a <span>, so "first of type" among
-   siblings is the very first lead line, which never carries this class - the
-   selector would silently match nothing. This targets the first accent line
-   specifically, by requiring its immediately preceding sibling to lack the
-   accent class - true only at the group boundary, not between the two accent
-   lines themselves. */
 .hero__title-line:not(.hero__title-line--accent) + .hero__title-line--accent {
-  margin-top: var(--space-6);
+  margin-top: var(--space-3);
 }
 
-/* The gradient is per LINE, not across the block.
-   background-clip: text clips to an element's own text, and each line is its
-   own span - so the ramp restarts on each of them, which is what the reference
-   does and what keeps "connected." from ending mid-orange. */
 .hero__title-line--accent {
   background: linear-gradient(
     100deg,
@@ -740,8 +712,13 @@ button { font: inherit; cursor: pointer; }
 .hero__actions {
   display: flex;
   align-items: center;
+  justify-content: center;
   flex-wrap: wrap;
-  gap: var(--space-6);
+  gap: var(--space-5);
+  margin-inline: auto;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
 }
 
 /* The primary call, as a gradient pill. */
@@ -749,14 +726,11 @@ button { font: inherit; cursor: pointer; }
   display: inline-flex;
   align-items: center;
   gap: var(--space-3);
-  /* Matches .btn's 40px - same fixed-height reasoning, see there. */
-  height: 40px;
+  height: 42px;
   padding-inline: var(--space-6);
   position: relative;
   border: 0;
   border-radius: var(--radius-full);
-  /* Secondary style: no fill - the gradient lives only on the ring below,
-     drawn by ::before rather than a `border`, which cannot take a gradient. */
   background: transparent;
   color: var(--white, #fff);
   font-family: inherit;
@@ -766,13 +740,6 @@ button { font: inherit; cursor: pointer; }
   transition: transform var(--duration-base) var(--ease-standard);
 }
 
-/* The gradient ring. A `border` can't take a gradient, and the usual
-   double-background workaround (solid colour under the padding-box) needs a
-   flat colour to sit on - this button sits over the particle field, which
-   isn't one. Masking a gradient box down to just its edge keeps the ring
-   transparent in the middle, same as the button itself.
-   padding: 1.5px sets the ring's thickness - it's what the content-box inset
-   is measured from. */
 .hero__cta::before {
   content: "";
   position: absolute;
@@ -809,8 +776,8 @@ button { font: inherit; cursor: pointer; }
 .hero__play-disc {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--radius-full);
   border: 1px solid var(--glass-border);
   background: var(--glass-bg);
@@ -840,7 +807,6 @@ button { font: inherit; cursor: pointer; }
   flex-shrink: 0;
   border-radius: var(--radius-full);
   border: 1px solid var(--glass-border);
-  /* A crosshair, drawn rather than imported - two hairlines and a dot. */
   background:
     linear-gradient(var(--text-on-dark-secondary), var(--text-on-dark-secondary))
       50% 50% / 1px 9px no-repeat,
@@ -851,54 +817,14 @@ button { font: inherit; cursor: pointer; }
 /* ---- The object ------------------------------------------------------- */
 
 .hero__art {
-  position: relative;
-  justify-self: end;
-
-  /* Keeps the front field's `screen` blend to the artwork stack. Without it the
-     blend reaches whatever the hero happens to be sitting on. */
-  isolation: isolate;
-
-  /* The width is the intent, and neither the reset nor the grid column may
-     overrule it. The base reset gives every img `max-width: 100%`, which on a
-     grid item means "no wider than your column" - and the column here is
-     whatever the headline leaves, which measured 576px against the reference's
-     660.
-       52vw    the share of the fold the artwork takes, from the reference;
-       66svh   so it cannot outgrow a short viewport and push through the trust
-               strip below it;
-       800px   so it stops growing on very large monitors. */
-  max-width: none;
-  width: min(52vw, 66svh, 800px);
-
-  /* It bleeds left, under the copy, and right, past the container - which is
-     what the reference does and what stops it reading as a picture parked in
-     a column. The right value resolves to 0 on any viewport too narrow to have
-     a gutter to give back. */
-  margin-right: calc(max(0px, 100vw - var(--container-max)) * -0.28);
-  margin-left: calc(var(--space-16) * -1);
-
-  /* Sits a little above centre, 100px to the left, scaled 90%.
-     translateX leads deliberately: a translate placed AFTER the scale would be
-     applied in the scaled coordinate system and land 90px across, not 100. */
-  transform: translateX(-100px) translateY(-3%) scale(0.9);
-  transform-origin: center center;
-}
-
-.hero__art-image {
-  position: relative;
-  z-index: 3;
-  display: block;
+  position: absolute;
+  inset: 0;
   width: 100%;
-  max-width: none;
-  height: auto;
-  /* -56px, shifted 30px right to -26px. translateX leads the scale so the
-     30px lands as 30 real px, not scaled down by the 1.045 that follows it. */
-  transform: translateX(-26px) scale(1.045);
-  transform-origin: center center;
-
-  /* A transparent cut-out on a near-black page needs its own contact shadow or
-     it reads as pasted on. */
-  filter: drop-shadow(var(--shadow-art-lg));
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
+  transform: none;
 }
 
 /* ---- The flow cards ----------------------------------------------------
@@ -1296,343 +1222,262 @@ button { font: inherit; cursor: pointer; }
      started dimming the swarm the instant the reader touched the wheel -
      measured 0.75 opacity at t=0.20, with the hero still 80% on screen and
      still the thing being looked at. The hero keeps its atmosphere for as long
-     as it is the subject; the fade belongs to the handover, not to the whole
      scroll. Zero at 0.8 is just before the flow completes at t=1, which reads
      correctly too: the cards lift off the swarm, and it dissolves behind them
      as they go. */
-  opacity: calc(1 - max(0, var(--flow-t, 0) - 0.35) * 2.2);
+  opacity: 1;
 }
 
-/* ---- The flow stage ---------------------------------------------------
-   The hero and the flow section, wrapped so the swarm and the cards can be
-   pinned across both. See components/sections/FlowStage for why there are two
-   pins and why both are declared before the hero. */
-
-.flow-stage {
-  position: relative;
-  --flow-t: 0;
-  --flow-panel-inset: 100px;
-}
-
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .flow-stage {
-    --flow-panel-inset: clamp(40px, 6vw, 80px);
-  }
-}
-
-@media (max-width: 1023px) {
-  .flow-stage {
-    --flow-panel-inset: clamp(var(--space-4), 4vw, var(--space-8));
-  }
-}
-
-/* The pinned layers. Each spans the viewport and cancels its own layout space,
-   so the hero still starts at the top of the stage rather than a screen below
-   it - the negative margin is what makes a sticky layer weightless: it still
-   sticks across the parent's whole scroll range, but contributes no height.
-
-   Declared BEFORE the hero in source order so they begin sticking at the top
-   of the stage; placed after, they would not start until a whole viewport
-   later. z-index then decides which side of the page content each one lands
-   on, which source order cannot.
-
-   Only these are pinned. The swarm stays inside `.hero__art` and scrolls away
-   with the hero; see components/sections/FlowStage. */
-.flow-stage__pin {
-  position: sticky;
-  top: 0;
-  height: 100svh;
-  margin-bottom: -100svh;
+/* ---------------------------------------------------------------
+   Dynamic 3D Squircle Orbitals & Flow Alignment Constellation
+   --------------------------------------------------------------- */
+.hero-constellation {
+  position: fixed;
+  inset: 0;
   pointer-events: none;
+  z-index: 12;
+  overflow: visible;
+  perspective: 1200px;
 }
 
-/* Ensure the sticky pins and cards are cleanly hidden ONLY after having scrolled completely off the top of the viewport */
-.flow-stage--passed .flow-stage__pin {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
-
-/* The glass, BELOW --z-content (10) so the flow section's heading and body
-   sit on it rather than under it. */
-.flow-stage__pin--under { z-index: 9; }
-
-/* The stream and the cards, above the page content: the cards overlap the
-   hero's headline by design and have to stay hoverable. Held below --z-stack
-   (30) so the module stack still passes in front where the helix carries it
-   forward. */
-.flow-stage__pin--over { z-index: 11; }
-
-/* The swarm and the cards' resting box - `.hero__art`'s, so they sit exactly
-   where they did when they were children of it.
-
-   Position and size are set from JS, by MEASURING `.hero__art` rather than by
-   restating its layout here. Its box is the product of a container width, a
-   grid column, `justify-self: end`, two negative margins and a transform, all
-   of which change at two breakpoints - a second copy of that arithmetic was
-   written first and landed 221px left and 381px high of the real thing. The
-   measured box cannot drift, because it is the real thing.
-
-   The measurement is one rect read per resize, not per frame. Reading the
-   TRANSFORMED box is deliberate: `.hero__art` carries a scale(0.9), and the
-   children's percentage insets compound with it identically either way. */
-.flow-stage__art { position: absolute; }
-
-/* The glass the flow lands on.
-
-   Sized to the staircase's own band (see STAIR in lib/flowLayout) with room
-   around it, so the six plates read as sitting ON something rather than
-   floating over the page.
-
-   Driven entirely from CSS: --flow-t and --flow-release are published on the
-   stage every scroll frame, and inherit down to here. The panel therefore
-   needs no place in any frame loop of its own.
-
-   `opacity` needs no clamp - values outside 0..1 are clamped by the property
-   itself, so the calc can go negative for the whole first part of the scroll
-   and simply stay invisible. */
-.flow-stage__panel {
+.constellation-node {
   position: absolute;
-  /* The whole section's ground, not a shelf under the cards: the heading and
-     the body sit on this too. Held wider than .container's 1200px so the copy
-     lands comfortably inside it rather than against its edge. */
-  left: var(--flow-panel-inset);
-  right: var(--flow-panel-inset);
-  /* Clears the fixed header instead of running under it. The header takes no
-     layout space, so a percentage from the top of the pinned layer put the
-     glass edge - and the copy sitting on it - beneath the navbar pill. */
-  top: var(--below-header);
-  bottom: 4%;
-  /* Matches .intro__container-card (section 3's white card) so the glass and
-     the card read as the same shape language. */
-  border-radius: clamp(20px, 3vw, 32px);
-  pointer-events: none;
-
-  /* THE SECTION'S FRAME, not a effect that arrives with the cards.
-
-     This used to reach full strength at t = 0.79 - most of the way through the
-     assembly - so the glass was still coming up while the staircase was landing
-     on it, and it read as one more thing animating rather than as the ground
-     the others land on.
-
-     It cannot simply be opacity: 1. The panel is pinned, so it sits at the top
-     of the viewport from the very start of the page - a full screen before its
-     own section - and a constant value paints it over the hero. What it can do
-     is arrive early and then hold: solid by t = 0.45, which is before the first
-     card seats, and unchanged from there through the whole section including
-     the runway. Frame first, contents second.
-
-     The copy keeps the later ramp deliberately - see .flow-section__grid. It is
-     text, and text over the hero headline is exactly what the old shared ramp
-     was protecting against. */
-  opacity: calc((var(--flow-t, 0) - 0.05) * 2.5);
-
-  /* Still leaves with its own section rather than hanging over the next one. */
-  transform: translate3d(0, var(--flow-release, 0px), 0);
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  contain: paint layout;
-
-  /* Lit from within, in the brand ramp: blue rising from the corner the flow
-     starts in, coral over the corner it ends in, magenta pooling between them.
-     The order is not decorative - it is the same ramp the cards and the
-     particles are tinted from, so the panel reads as the light those are
-     made of rather than as a tinted sheet of glass. */
-  background:
-    radial-gradient(90% 120% at 6% 100%, rgba(38, 93, 255, 0.42) 0%, transparent 62%),
-    radial-gradient(80% 110% at 96% 4%, rgba(255, 106, 91, 0.34) 0%, transparent 60%),
-    radial-gradient(70% 90% at 52% 58%, rgba(250, 69, 146, 0.24) 0%, transparent 66%),
-    rgba(0, 27, 94, 0.2);
-  backdrop-filter: blur(18px) saturate(135%);
-  -webkit-backdrop-filter: blur(18px) saturate(135%);
-  border: 1px solid transparent;
-  box-shadow:
-    /* The emitted light - thrown outward in the ramp's own colours, so the
-       panel lights the page around it instead of sitting on it. */
-    0 0 90px -10px rgba(38, 93, 255, 0.4),
-    0 0 140px -20px rgba(250, 69, 146, 0.3),
-    0 0 190px -40px rgba(255, 106, 91, 0.26),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
-    0 40px 80px -60px rgba(0, 0, 0, 1);
+  top: 0;
+  left: 50%;
+  width: 80px;
+  height: 80px;
+  margin-left: -40px;
+  margin-top: -40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  will-change: transform;
+  transform-style: preserve-3d;
+  transition: filter 0.25s ease;
 }
 
-/* The lit rim. A `border` cannot take a gradient, and the usual solid-colour
-   workaround needs a flat backdrop to sit on - this panel has the page and the
-   depth field behind it. Masking a gradient box down to its edge keeps the
-   middle transparent, the same technique the hero's secondary CTA uses. */
-.flow-stage__panel::before {
+.constellation-node__glass {
+  position: relative;
+  width: 80px !important;
+  height: 80px !important;
+  min-width: 80px !important;
+  min-height: 80px !important;
+  border-radius: 22px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.45),
+    0 0 28px var(--node-glow, rgba(38, 93, 255, 0.28));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.constellation-node:hover .constellation-node__glass {
+  border-color: var(--node-tint, rgba(38, 93, 255, 0.75));
+  box-shadow:
+    0 24px 50px rgba(0, 0, 0, 0.6),
+    0 0 42px var(--node-glow, rgba(38, 93, 255, 0.55));
+  transform: scale(1.08);
+}
+
+.constellation-node__icon {
+  display: grid;
+  place-items: center;
+  color: var(--node-tint, #ffffff);
+  filter: drop-shadow(0 0 10px var(--node-glow, rgba(38, 93, 255, 0.5)));
+}
+
+.constellation-node__icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+/* Text label appearing cleanly below the node when aligned in Flow Section */
+.constellation-node__label {
+  position: absolute;
+  top: calc(100% + 14px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.constellation-node__header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.constellation-node__idx {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--node-tint, var(--blue-400));
+}
+
+.constellation-node__title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-on-dark);
+}
+
+.constellation-node__note {
+  font-size: 11.5px;
+  color: var(--text-on-dark-secondary);
+}
+
+.constellation-node__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-top: 3px;
+}
+
+.constellation-node__dot {
+  width: 4.5px;
+  height: 4.5px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 6px #4ade80;
+}
+
+/* ===============================================================
+   Section 2: Standalone Full-Screen Operational Pipeline (Flow Section)
+   =============================================================== */
+
+.flow-section {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding-block: var(--space-20) var(--space-16);
+  z-index: var(--z-content);
+  overflow: visible;
+}
+
+/* Luminous ambient background bloom for Flow Section (Screen 2) */
+.flow-section::before {
   content: "";
   position: absolute;
   inset: 0;
-  padding: 1px;
-  border-radius: inherit;
-  background: linear-gradient(
-    135deg,
-    rgba(38, 93, 255, 0.85) 0%,
-    rgba(250, 69, 146, 0.7) 48%,
-    rgba(255, 106, 91, 0.8) 100%
-  );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
+  background:
+    radial-gradient(ellipse 90% 65% at 50% 45%, rgba(38, 93, 255, 0.20) 0%, rgba(250, 69, 146, 0.12) 45%, transparent 75%),
+    radial-gradient(ellipse 60% 40% at 85% 60%, rgba(255, 106, 91, 0.10) 0%, transparent 60%);
   pointer-events: none;
+  z-index: 0;
 }
 
-/* The glass stays: it is the ground the column is read against, and it is a
-   single backdrop-filter, which a phone can afford. */
-
-/* The connecting stream, filling the pin and sitting under the cards - the
-   line runs through the stations, not over them. Sized in JS to the pin's own
-   box; see components/HeroFlowStream. */
-.flow-stage__stream {
-  position: absolute;
-  inset: 0;
-  display: block;
-  pointer-events: none;
-}
-
-/* Goes with the cards it joins up - below 900px they are hidden, and a line
-   through absent stations is a line to nowhere. Declared here rather than in
-   the cards' own breakpoint block because that block sits above the rule
-   directly above this one, and at equal specificity source order decides.
-
-   Hiding the canvas also stops its loop: its IntersectionObserver watches the
-   canvas itself, and a display:none element never intersects. */
-/* The stream follows the seats without being told: it reads the same
-   seatAt()/pathAt() the cards do, so a staircase on a phone produces the line
-   that runs through it. Kept on phones for that reason. */
-
-/* Held back on a phone. The path is the same density of particles as the
-   desktop one, but it is drawn across a third of the width, so it reads far
-   heavier - and here it crosses the cards themselves rather than running
-   through open panel beside them. Dropping it well back keeps it as the thing
-   joining the stations up rather than something competing with their labels. */
-@media (max-width: 767px) {
-  .flow-stage__stream { opacity: 0.45; }
-}
-
-/* The flow section. One viewport tall, which is also the distance the pinned
-   layer travels over - the stage is hero + this, and the pin stays put for
-   exactly that distance.
-
-   The copy is a HEADER here, not a column. It used to take a 34rem column on
-   the left with the flow squeezed into what was left, which made the two
-   compete; above the flow it frames the thing instead of sharing the width
-   with it, and hands the whole width to the staircase. */
-.flow-section {
+.flow-section__container {
   position: relative;
-  z-index: var(--z-content);
-  /* THE ONE DIAL FOR HOW LONG THE FINISHED FRAME RESTS.
-
-     Whatever is over one viewport here is runway: the assembled frame stands
-     completely still in it. Without any, panel, copy, cards and module all
-     begin leaving the instant they arrive.
-
-     The cost of runway is dead scrolling, and it is exactly
-     (thisHeight - ASSEMBLE) viewports between the last card seating and the
-     section releasing. At 200svh that was 934px - two or three swipes with
-     nothing moving, which reads as the page having stopped responding. At
-     150svh it was still 514px. 115svh leaves 119px of true standstill and
-     238px in total, which is about one swipe.
-
-     Safe to change now: berthEdges() in FlowStage solves the module's four
-     timings from whatever this is, so nothing has to be re-derived by hand.
-     It was those four constants, not this number, that made the previous two
-     changes here delicate. */
-  min-height: 115svh;
-  display: grid;
-  align-content: start;
-  padding-top: calc(var(--below-header) + var(--space-6) + 60px);
-  padding-inline: calc(var(--flow-panel-inset) + clamp(var(--space-6), 3.5vw, var(--space-12)));
-}
-
-.flow-section .container {
-  padding-inline: 0 !important;
-  max-width: 100% !important;
-  margin-inline: 0 !important;
-}
-
-.flow-section__grid {
-  display: block;
+  z-index: 1;
   width: 100%;
-  max-width: 100%;
-  transform: translate3d(0, var(--flow-copy-shift, 0px), 0);
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  opacity: calc((var(--flow-t, 0) - 0.4) * 2.6);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--space-8), 4vh, var(--space-12));
 }
 
-/* Held to a readable measure strictly inside the glass panel */
-.flow-section__copy { max-width: min(44ch, 100%); }
+.flow-section__header {
+  max-width: 860px;
+  text-align: left;
+}
 
-.flow-section__body { margin-top: var(--space-5); }
+.flow-section__eyebrow {
+  color: var(--blue-400);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+}
 
-/* THE COPY AND THE COLUMN SHARE ONE SCREEN HERE, so the copy gives back
-   everything it is not using.
+.flow-section__title {
+  font-family: var(--font-display);
+  font-size: clamp(var(--fs-2xl), 4.2vw, var(--fs-3xl));
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-on-dark);
+  margin-bottom: var(--space-3);
+  text-wrap: balance;
+}
 
-   The +100px above is a deliberate desktop drop - the eyebrow sits lower on the
-   glass than clearing the header requires. A phone cannot afford it: the panel
-   has to hold the heading, the body AND six stacked cards inside one viewport,
-   and measured at 390px the copy alone ran to 65% of the screen with the first
-   card already under it. Taking the drop back and setting the body one step
-   down buys the ~120px the column needs. */
-@media (max-width: 767px) {
-  .flow-section {
-    padding-top: calc(var(--below-header) + var(--space-3));
-  }
+.flow-section__body {
+  max-width: 58ch;
+  font-size: var(--fs-base);
+  line-height: var(--lh-relaxed);
+  color: var(--text-on-dark-secondary);
+  margin: 0;
+}
 
-  .flow-section__copy .eyebrow {
-    font-size: 11px;
-    margin-bottom: var(--space-1);
-  }
+/* 6-Station Operational Pipeline Track & Berths */
+.flow-pipeline {
+  width: 100%;
+  position: relative;
+}
 
-  .flow-section__copy .section-title {
-    font-size: clamp(20px, 5.5vw, 25px);
-    line-height: 1.15;
-    margin-bottom: 0;
-  }
+.flow-pipeline__track {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--space-4);
+  width: 100%;
+  position: relative;
+}
 
-  .flow-section__body {
-    margin-top: var(--space-4);
-    font-size: 13px;
-    line-height: 1.35;
-    max-width: 44ch;
-    opacity: 0.85;
+.flow-pipeline__berths {
+  min-height: 180px;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.flow-pipeline__berth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+@media (max-width: 1080px) {
+  .flow-pipeline__berths {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3);
   }
 }
 
-/* SHORT phones, where the copy and the staircase are fighting over the last
-   20px of glass.
-
-   The band cannot move down any further - lib/flowLayout already holds it at
-   310px, and below that six cards start overlapping each other, which is worse
-   than a tight heading. So the remaining space comes out of the copy instead:
-   measured at 300x640 the copy ran to 323px against a first seat at 310, and
-   these two rules give back 36px of that. Height-gated, because it is the
-   viewport's HEIGHT that creates the squeeze - a tall phone has room for the
-   full-size heading and should keep it. */
-@media (max-width: 767px) and (max-height: 720px) {
-  .flow-section {
-    padding-top: var(--below-header);
+@media (max-width: 640px) {
+  .flow-pipeline__berths {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2);
   }
-
-  .flow-section__copy .section-title {
-    font-size: var(--fs-xl);
+  .flow-pipeline__berth {
+    min-height: 140px;
   }
 }
 
-/* ---- The hero's ground ------------------------------------------------ */
-
-/* A bloom behind the object, and a wash that takes the section a shade darker
-   than the page.
-
-   Both are on a pseudo-element rather than on .hero itself so they sit BEHIND
-   the object without joining the stacking order the module and the depth field
-   negotiate. The wash fades out down the section instead of ending, because
-   the page ground continues past the fold - a flat panel would put a horizontal
-   seam across the page exactly where the marquee begins. */
 .hero::before {
   content: "";
   position: absolute;
@@ -1640,12 +1485,10 @@ button { font: inherit; cursor: pointer; }
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(52% 50% at 68% 46%, rgba(120, 60, 214, 0.32), transparent 70%),
-    radial-gradient(42% 40% at 58% 54%, rgba(30, 74, 220, 0.26), transparent 72%),
-    radial-gradient(32% 28% at 80% 32%, rgba(255, 106, 91, 0.14), transparent 74%),
+    radial-gradient(80% 60% at 50% 40%, rgba(38, 93, 255, 0.20) 0%, rgba(99, 102, 241, 0.12) 40%, transparent 70%),
     linear-gradient(180deg,
-      rgba(4, 4, 12, 0.62) 0%,
-      rgba(4, 4, 12, 0.62) 58%,
+      rgba(4, 4, 12, 0.65) 0%,
+      rgba(4, 4, 12, 0.65) 58%,
       rgba(4, 4, 12, 0) 100%);
 }
 
@@ -1653,31 +1496,13 @@ button { font: inherit; cursor: pointer; }
 
 @media (max-width: 1080px) {
   .hero__grid {
-    grid-template-columns: minmax(0, 1fr);
     justify-items: center;
     text-align: center;
-    gap: var(--space-4);
+    gap: var(--space-6);
   }
-  .hero__copy { justify-items: center; }
+  .hero__copy { justify-items: center; text-align: center; }
   .hero__actions { justify-content: center; }
-
-  /* Behind the copy rather than beside it - there is no "beside" left. */
-  .hero__art {
-    grid-row: 1;
-    grid-column: 1;
-    justify-self: center;
-    width: min(92vw, 62svh, 620px);
-    margin: 0;
-    transform: none;
-    opacity: 0.62;
-  }
-  .hero__copy { grid-row: 1; grid-column: 1; }
-
   .hero__hint { display: none; }
-}
-
-@media (max-width: 767px) {
-  .hero__art { width: min(96vw, 54svh, 520px); }
 }
 
 /* ---------------------------------------------------------------
@@ -1764,6 +1589,7 @@ button { font: inherit; cursor: pointer; }
    The section's own padding-block from .section is dropped: it would be added
    to 100svh and push the bottom of the wall off screen. */
 .testimonials {
+  position: relative;
   height: 100svh;
   min-height: 560px;
   padding-block: 0;
@@ -1772,7 +1598,20 @@ button { font: inherit; cursor: pointer; }
   overflow: hidden;
 }
 
+.testimonials::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 85% 60% at 50% 50%, rgba(139, 92, 246, 0.16) 0%, rgba(38, 93, 255, 0.10) 45%, transparent 70%),
+    radial-gradient(ellipse 50% 35% at 90% 70%, rgba(250, 69, 146, 0.08) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
 .testimonials__head {
+  position: relative;
+  z-index: 1;
   flex: 0 0 auto;
   padding-top: var(--below-header);
 }
@@ -1877,32 +1716,15 @@ button { font: inherit; cursor: pointer; }
 
 .drift-wall__tile.is-active .quote,
 .quote:hover {
-    /* Opaque white, and the blur goes with it. A backdrop filter under a solid
-       fill is pure cost for something nobody can see through. */
-    background: var(--white);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border-color: rgba(79, 70, 229, 0.45);
-
-    /* NO transform here. The zoom is the tile lift - a real translateZ toward
-       the reader through the wall perspective - and the tilt is GSAP. A scale
-       on top would be a third writer on one property. */
-    /* Above its neighbours, or the card it grows over clips its own corner. */
+    background: rgba(18, 28, 68, 0.85);
+    border-color: rgba(99, 102, 241, 0.6);
     z-index: 2;
-
     box-shadow:
-      0 18px 40px -12px rgba(2, 10, 36, 0.55),
-      0 0 26px rgba(var(--glow-color, 79, 70, 229), 0.18);
-
-    /* Measured against #ffffff below, once the tokens resolve - both steps
-       clear WCAG AA at this size, so the quote is more readable hovered than
-       at rest, not less. */
-    --ink-body: var(--midnight-950);
-    --ink-name: var(--midnight-950);
-    --ink-role: var(--gray-600);
-
-    /* The rim lights for touch too. The pointer handlers set this inline when
-       there is a pointer to track; this is the floor when there is not. */
+      0 18px 40px -12px rgba(2, 10, 36, 0.75),
+      0 0 30px rgba(var(--glow-color, 79, 70, 229), 0.3);
+    --ink-body: #ffffff;
+    --ink-name: #ffffff;
+    --ink-role: var(--blue-300);
     --glow-intensity: 1;
 }
 
@@ -2112,15 +1934,31 @@ button { font: inherit; cursor: pointer; }
    at 919px against a 790px viewport, so the head is now two rows - the tabs
    ride beside the lede rather than under the title - and the section takes a
    shorter padding step than the page default. */
-.section[data-theme-key="work"] {
-  /* Asymmetric on purpose. The header takes no layout space, so a symmetric
-     pad puts "Our Offerings" underneath the navbar pill exactly when the
-     section is filling the viewport - which is the one moment this section is
-     designed to be read in. --below-header is the same clearance the flow
-     panel uses, so the heading starts where that glass edge starts. The bottom
-     is the short step, since nothing is floating over it. */
+.work-section {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   padding-top: var(--below-header);
   padding-bottom: clamp(var(--space-6), 3vh, var(--space-10));
+  overflow: hidden;
+}
+
+.work-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 50%, rgba(38, 93, 255, 0.18) 0%, rgba(6, 182, 212, 0.12) 45%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 85% 65%, rgba(99, 102, 241, 0.10) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.work-section .container {
+  position: relative;
+  z-index: 1;
 }
 
 .work__head {
@@ -2293,18 +2131,15 @@ button { font: inherit; cursor: pointer; }
 
 @media (hover: hover) and (pointer: fine) {
   .work-card:hover {
-    background: var(--white);
-    border-color: rgba(79, 70, 229, 0.45);
+    background: rgba(18, 28, 68, 0.85);
+    border-color: rgba(99, 102, 241, 0.6);
     box-shadow:
-      0 18px 40px -12px rgba(2, 10, 36, 0.55),
-      0 0 26px rgba(var(--glow-color, 79, 70, 229), 0.18);
-
-    /* Measured against #ffffff: title 15.9:1, body 10.8:1 - both clear WCAG
-       AAA, so the copy is more readable hovered than at rest, not less. */
-    --ink-title: var(--midnight-950);
-    --ink-body: var(--gray-700);
-    --ink-icon: var(--blue-600);
-    --icon-plate: var(--blue-50);
+      0 18px 40px -12px rgba(2, 10, 36, 0.75),
+      0 0 30px rgba(var(--glow-color, 79, 70, 229), 0.3);
+    --ink-title: #ffffff;
+    --ink-body: var(--text-on-dark-secondary);
+    --ink-icon: var(--blue-400);
+    --icon-plate: rgba(38, 93, 255, 0.15);
   }
 }
 
@@ -2732,73 +2567,52 @@ button { font: inherit; cursor: pointer; }
    feels unchanged - only the box that moves is different.
 
    The section's own padding-block goes to zero: the pin owns the spacing now,
-   and an outer pad would show as a gap the card could not fill. */
+/* ---------------------------------------------------------------
+   Method Section (Natural fluid scroll, zero void gap)
+   --------------------------------------------------------------- */
 .method-section {
-  padding-block: 0;
+  position: relative;
+  min-height: 100svh;
+  padding-block: clamp(var(--space-12), 6vh, var(--space-20));
+  z-index: var(--z-content);
+  overflow: visible;
 }
 
-.method__runway {
-  --method-runway: 0px;
-  height: calc(100svh + var(--method-runway));
-}
-
-.method__pin {
-  position: sticky;
-  top: 0;
-  height: 100svh;
-  display: flex;
-  /* Clears the fixed header, which takes no layout space, and leaves a floor
-     under the card so it does not sit edge-to-edge with the next section. */
-  padding-top: var(--below-header);
-  padding-bottom: clamp(var(--space-6), 5vh, var(--space-12));
+/* Luminous ambient background bloom for Method */
+.method-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 85% 60% at 50% 50%, rgba(250, 69, 146, 0.18) 0%, rgba(255, 106, 91, 0.12) 45%, transparent 75%),
+    radial-gradient(ellipse 50% 35% at 80% 30%, rgba(38, 93, 255, 0.12) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .method__container {
-  display: flex;
-  min-height: 0;
+  position: relative;
+  z-index: 1;
+  width: 100%;
 }
 
 .method__card {
-  /* Fills whatever the pin leaves after the header clearance and the floor. */
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--white);
-  color: var(--gray-900);
-  /* Same corner and inset as .intro__container-card, so the two white cards on
-     the page read as the same object rather than two near-misses. */
-  border-radius: clamp(20px, 3vw, 32px);
-  padding: clamp(var(--space-8), 4.5vw, var(--space-16));
-  box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.4),
-    0 4px 16px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  position: relative;
-  overflow: hidden;
+  width: 100%;
 }
 
-/* Heading left, steps right. The left column is deliberately narrow - it holds
-   a title and two short lines, and giving it half the card would strand the
-   steps in a column too tight for the chips to wrap sensibly. */
 .method__layout {
-  /* Above .intro-cubes-field, which paints at z-index 0 inside the card. Same
-     relationship .intro__content has to it. */
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(280px, 0.8fr) 1.2fr;
+  grid-template-columns: minmax(280px, 0.85fr) 1.15fr;
   gap: clamp(var(--space-8), 5vw, var(--space-16));
-  align-items: stretch;
-  /* Takes the card's remaining height so the scroller can be measured against
-     it. `min-height: 0` because a grid item defaults to min-content and would
-     otherwise refuse to shrink, letting the list push the card taller than the
-     viewport instead of scrolling inside it. */
-  flex: 1;
-  min-height: 0;
+  align-items: start;
+  width: 100%;
 }
 
 .method__head {
+  position: sticky;
+  top: calc(var(--header-height, 72px) + var(--space-6));
   align-self: start;
 }
 
@@ -2808,7 +2622,7 @@ button { font: inherit; cursor: pointer; }
   font-weight: var(--fw-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--blue-600);
+  color: var(--blue-400);
   margin-bottom: var(--space-3);
 }
 
@@ -2818,7 +2632,7 @@ button { font: inherit; cursor: pointer; }
   font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-tight);
   line-height: var(--lh-tight);
-  color: var(--midnight-950);
+  color: var(--text-on-dark);
   margin-bottom: var(--space-4);
 }
 
@@ -2831,7 +2645,7 @@ button { font: inherit; cursor: pointer; }
   align-items: center;
   gap: var(--space-2);
   font-size: var(--fs-base);
-  color: var(--gray-600);
+  color: var(--text-on-dark-secondary);
   margin-bottom: var(--space-5);
 }
 
@@ -2843,7 +2657,7 @@ button { font: inherit; cursor: pointer; }
 .method__lede {
   font-size: var(--fs-base);
   line-height: var(--lh-relaxed);
-  color: var(--gray-600);
+  color: var(--text-on-dark-secondary);
   max-width: 34ch;
 }
 
@@ -2863,7 +2677,7 @@ button { font: inherit; cursor: pointer; }
   grid-template-columns: auto 1fr;
   gap: var(--space-6);
   min-width: 0;
-  min-height: 0;
+  position: relative;
 }
 
 .method__rail {
@@ -2871,13 +2685,13 @@ button { font: inherit; cursor: pointer; }
   position: relative;
   width: 2px;
   border-radius: var(--radius-full);
-  background: var(--gray-200);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .method__rail-fill {
   position: absolute;
   inset: 0 0 auto 0;
-  height: calc(var(--rail-progress) * 100%);
+  height: calc(var(--rail-progress, 0) * 100%);
   border-radius: inherit;
   background: linear-gradient(180deg, var(--blue-500), var(--coral-500));
 }
@@ -2886,27 +2700,19 @@ button { font: inherit; cursor: pointer; }
 .method__rail-dot {
   position: absolute;
   left: 50%;
-  top: calc(var(--rail-progress) * 100%);
+  top: calc(var(--rail-progress, 0) * 100%);
   width: 13px;
   height: 13px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  background: var(--white);
+  background: var(--text-on-dark);
   border: 2px solid var(--coral-500);
-  box-shadow: 0 0 0 4px rgba(255, 106, 91, 0.16);
+  box-shadow: 0 0 0 4px rgba(255, 106, 91, 0.25);
 }
 
-/* `hidden`, not `auto`. The page drives scrollTop every frame while the card is
-   pinned, so a native scrollbar here would be a second driver fighting the
-   first - wheel over the list would move it, and the next frame would undo
-   that. No scrollbar, one source of truth. It is still a scroll container, so
-   focus can move it; see handleFocus in Method.tsx for that case. */
 .method__scroller {
-  height: 100%;
-  min-height: 0;
-  min-width: 0;
-  overflow: hidden;
-  padding-right: var(--space-4);
+  overflow: visible;
+  height: auto;
 }
 
 .method__steps {
@@ -2915,11 +2721,9 @@ button { font: inherit; cursor: pointer; }
   padding: 0;
 }
 
-/* Rules between steps rather than around them. A stepper is one continuous
-   sequence; six bordered boxes would read as six unrelated items. */
 .method__step {
   padding-block: var(--space-6);
-  border-bottom: 1px solid var(--gray-200);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .method__step:first-child { padding-top: 0; }
@@ -2931,14 +2735,12 @@ button { font: inherit; cursor: pointer; }
   font-weight: var(--fw-medium);
   letter-spacing: var(--tracking-wide);
   line-height: 1;
-  color: var(--blue-600);
+  color: var(--blue-400);
   margin-bottom: var(--space-3);
 }
 
-/* Improve, in coral. The end of the brand ramp, for the step the sequence
-   arrives at - see the note on site.method. */
 .method__step--accent .method__n {
-  color: var(--coral-600);
+  color: var(--coral-400);
 }
 
 .method__label {
@@ -2946,14 +2748,14 @@ button { font: inherit; cursor: pointer; }
   font-weight: var(--fw-medium);
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
-  color: var(--gray-500);
+  color: var(--text-on-dark-muted);
   margin-bottom: var(--space-2);
 }
 
 .method__step-title {
   font-size: clamp(var(--fs-md), 1.8vw, var(--fs-lg));
   line-height: var(--lh-snug);
-  color: var(--midnight-950);
+  color: var(--text-on-dark);
   margin: 0;
   max-width: 34ch;
 }
@@ -2963,7 +2765,7 @@ button { font: inherit; cursor: pointer; }
 .method__close {
   font-size: var(--fs-sm);
   line-height: var(--lh-relaxed);
-  color: var(--gray-700);
+  color: var(--text-on-dark-secondary);
   max-width: 62ch;
   margin: var(--space-3) 0 0;
 }
@@ -2981,7 +2783,7 @@ button { font: inherit; cursor: pointer; }
   font-family: var(--font-body);
   font-size: var(--fs-sm);
   font-weight: var(--fw-medium);
-  color: var(--blue-600);
+  color: var(--blue-400);
   transition: color var(--duration-base) var(--ease-standard);
 }
 
@@ -2992,7 +2794,9 @@ button { font: inherit; cursor: pointer; }
   height: 22px;
   flex: none;
   border-radius: var(--radius-full);
-  border: 1px solid var(--gray-300);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-on-dark);
   font-size: var(--fs-sm);
   line-height: 1;
   transition:
@@ -3002,7 +2806,7 @@ button { font: inherit; cursor: pointer; }
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .method__toggle:hover { color: var(--blue-700); }
+  .method__toggle:hover { color: var(--blue-300); }
   .method__toggle:hover .method__toggle-mark {
     background: var(--accent-primary);
     border-color: var(--accent-primary);
@@ -3030,10 +2834,10 @@ button { font: inherit; cursor: pointer; }
 .method__chip {
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-full);
-  border: 1px solid var(--gray-200);
-  background: var(--gray-50);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
   font-size: var(--fs-sm);
-  color: var(--gray-700);
+  color: var(--text-on-dark-secondary);
 }
 
 /* The journey, as one wrapping line of nodes. */
@@ -3046,8 +2850,8 @@ button { font: inherit; cursor: pointer; }
   margin: var(--space-3) 0 0;
   padding: var(--space-4);
   border-radius: var(--radius-md);
-  border: 1px solid var(--gray-200);
-  background: var(--gray-50);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .method__flow-node {
@@ -3055,16 +2859,16 @@ button { font: inherit; cursor: pointer; }
   align-items: center;
   font-family: var(--font-mono, monospace);
   font-size: var(--fs-xs);
-  color: var(--gray-800);
+  color: var(--text-on-dark);
 }
 
 .method__flow-arrow {
   margin-inline: var(--space-2);
-  color: var(--blue-500);
+  color: var(--blue-400);
 }
 
 .method__close {
-  color: var(--midnight-950);
+  color: var(--text-on-dark);
   font-weight: var(--fw-medium);
 }
 
@@ -3180,32 +2984,34 @@ button { font: inherit; cursor: pointer; }
     padding-bottom: var(--space-4);
   }
   .method__step {
-    background: #f8fafc;
-    border: 1px solid var(--gray-200);
+    background: rgba(14, 22, 54, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: clamp(12px, 2.5vw, 16px);
     padding: clamp(var(--space-3), 3vw, var(--space-5));
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
   }
   .method__step:first-child {
     padding-top: clamp(var(--space-3), 3vw, var(--space-5));
   }
   .method__step:last-child {
-    border-bottom: 1px solid var(--gray-200);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     padding-bottom: clamp(var(--space-3), 3vw, var(--space-5));
   }
   .method__step-title {
     font-size: clamp(var(--fs-sm), 3.5vw, var(--fs-md));
+    color: var(--text-on-dark);
   }
   .method__prose,
   .method__lead,
   .method__close {
     font-size: var(--fs-xs);
     line-height: 1.4;
+    color: var(--text-on-dark-secondary);
   }
   .method__step--accent {
-    background: linear-gradient(180deg, #fff9f8, #f8fafc);
-    border-color: rgba(255, 106, 91, 0.25);
+    background: linear-gradient(180deg, rgba(38, 93, 255, 0.15), rgba(14, 22, 54, 0.45));
+    border-color: rgba(38, 93, 255, 0.35);
   }
 }
 
@@ -3233,23 +3039,35 @@ button { font: inherit; cursor: pointer; }
    Our Work Showcase (Single Viewport, Left Carousel, Right White Card)
    --------------------------------------------------------------- */
 .our-work-section {
-  height: 100svh;
-  min-height: 600px;
-  max-height: 940px;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding-block: clamp(var(--space-4), 2.5vh, var(--space-8));
+  justify-content: center;
+  padding-block: var(--space-8) var(--space-12);
   position: relative;
   z-index: var(--z-content);
+  margin-top: 0;
   overflow: hidden;
 }
 
+.our-work-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 50%, rgba(38, 93, 255, 0.16) 0%, rgba(16, 185, 129, 0.10) 45%, transparent 70%),
+    radial-gradient(ellipse 45% 35% at 15% 30%, rgba(99, 102, 241, 0.10) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
 .our-work__container {
-  height: 100%;
+  position: relative;
+  z-index: 1;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: var(--space-6);
 }
 
 .our-work__head {
@@ -3290,14 +3108,16 @@ button { font: inherit; cursor: pointer; }
 }
 
 .our-work__white-card {
-  background: #ffffff;
-  color: #0f172a;
+  background: rgba(10, 18, 46, 0.55);
+  color: var(--text-on-dark);
   border-radius: clamp(18px, 2.5vw, 26px);
   padding: clamp(var(--space-6), 3.2vw, var(--space-10));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.4),
-    0 4px 16px rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.95);
+    0 24px 60px rgba(0, 0, 0, 0.5),
+    0 4px 16px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -3316,16 +3136,16 @@ button { font: inherit; cursor: pointer; }
   font-weight: var(--fw-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #2563eb;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  color: var(--blue-400);
+  background: rgba(38, 93, 255, 0.15);
+  border: 1px solid rgba(38, 93, 255, 0.35);
   padding: 4px 12px;
   border-radius: 999px;
 }
 
 .our-work__industry-tag {
   font-size: var(--fs-xs);
-  color: #64748b;
+  color: var(--text-on-dark-muted);
   font-weight: var(--fw-medium);
 }
 
@@ -3335,7 +3155,7 @@ button { font: inherit; cursor: pointer; }
   font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-tight);
   line-height: var(--lh-snug);
-  color: #090d16;
+  color: var(--text-on-dark);
   margin: 0;
 }
 
@@ -3343,13 +3163,13 @@ button { font: inherit; cursor: pointer; }
   font-family: var(--font-body);
   font-size: var(--fs-sm);
   line-height: var(--lh-relaxed);
-  color: #334155;
+  color: var(--text-on-dark-secondary);
   margin: 0;
 }
 
 .our-work__impact-card {
-  background: linear-gradient(135deg, #eff6ff 0%, #fef2f2 100%);
-  border: 1px solid #dbeafe;
+  background: linear-gradient(135deg, rgba(38, 93, 255, 0.12) 0%, rgba(250, 69, 146, 0.12) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md, 14px);
   padding: var(--space-4) var(--space-5);
   display: flex;
@@ -3363,14 +3183,14 @@ button { font: inherit; cursor: pointer; }
   font-weight: var(--fw-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #ea580c;
+  color: var(--coral-400);
 }
 
 .our-work__impact-text {
   font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: var(--fw-semibold);
-  color: #0f172a;
+  color: var(--text-on-dark);
   line-height: 1.35;
   margin: 0;
 }
@@ -3387,7 +3207,7 @@ button { font: inherit; cursor: pointer; }
   gap: var(--space-2);
   font-size: 12px;
   font-weight: var(--fw-medium);
-  color: #1e293b;
+  color: var(--text-on-dark-secondary);
 }
 
 .our-work__feature-check {
@@ -3396,8 +3216,8 @@ button { font: inherit; cursor: pointer; }
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #dcfce7;
-  color: #16a34a;
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
   font-size: 10px;
   font-weight: bold;
   flex-shrink: 0;
@@ -3409,15 +3229,15 @@ button { font: inherit; cursor: pointer; }
   gap: var(--space-2);
   flex-wrap: wrap;
   padding-top: 6px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .our-work__tag-pill {
   font-size: 10.5px;
   font-weight: var(--fw-medium);
-  color: #475569;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  color: var(--text-on-dark-secondary);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 2px 8px;
   border-radius: 5px;
 }
@@ -3441,30 +3261,32 @@ button { font: inherit; cursor: pointer; }
 }
 
 /* ---------------------------------------------------------------
-   CTA Strip (Center-aligned single-line text with footer styling)
+   CTA Strip (Center-aligned single-line text with seamless background)
    --------------------------------------------------------------- */
 .cta-strip {
   width: 100%;
-  background: #060b18;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  padding-block: clamp(var(--space-12), 5vw, var(--space-20));
-  margin-top: var(--space-16);
+  background: transparent;
+  border-top: none;
+  border-bottom: none;
+  padding-block: clamp(var(--space-12), 6vw, var(--space-20));
+  margin-top: var(--space-8);
   text-align: center;
   position: relative;
   z-index: var(--z-content);
+  overflow: visible;
 }
 
 .cta-strip__inner {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden;
 }
 
 .cta-strip__title {
   font-family: var(--font-display);
-  font-size: clamp(20px, 4.4vw, 54px);
+  font-size: clamp(22px, 4.8vw, 56px);
   font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-tight);
   line-height: 1.15;
@@ -3980,49 +3802,48 @@ textarea.input { resize: vertical; min-height: 120px; }
 }
 
 /* ===============================================================
-   Section 3: Diagnostic Workflow Problems Grid
+   Section 3: Diagnostic Workflow Problems Grid (Intro)
    =============================================================== */
 
 .intro-section {
   position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   padding-block: var(--space-20) var(--space-16);
-}
-
-.intro__container-card {
-  background: #ffffff;
-  color: #0f172a;
-  border-radius: clamp(20px, 3vw, 32px);
-  padding: clamp(var(--space-8), 4.5vw, var(--space-16));
-  box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.4),
-    0 4px 16px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  position: relative;
   overflow: hidden;
 }
 
-.intro-cubes-field {
+/* Luminous ambient background bloom for Intro */
+.intro-section::before {
+  content: "";
   position: absolute;
   inset: 0;
+  background:
+    radial-gradient(ellipse 85% 60% at 50% 45%, rgba(99, 102, 241, 0.18) 0%, rgba(30, 27, 75, 0.35) 45%, transparent 70%),
+    radial-gradient(ellipse 50% 35% at 20% 70%, rgba(38, 93, 255, 0.10) 0%, transparent 60%);
   pointer-events: none;
-  overflow: hidden;
   z-index: 0;
 }
 
-.intro-cube-shard {
-  position: absolute;
-  top: 0;
-  will-change: transform;
-  backface-visibility: hidden;
+.intro__container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
 }
 
 .intro__content {
   position: relative;
   z-index: 1;
-  margin-top: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
+  width: 100%;
 }
 
 .intro__header {
@@ -4030,9 +3851,10 @@ textarea.input { resize: vertical; min-height: 120px; }
 }
 
 .intro__eyebrow {
-  color: #2563eb !important; /* 7.5:1 contrast against #ffffff (WCAG AAA) */
+  color: var(--blue-400) !important;
   font-weight: 700 !important;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
   margin-bottom: var(--space-2);
 }
 
@@ -4042,7 +3864,7 @@ textarea.input { resize: vertical; min-height: 120px; }
   font-weight: var(--fw-bold);
   line-height: var(--lh-tight);
   letter-spacing: var(--tracking-tight);
-  color: #090d16; /* 18:1 contrast against #ffffff (WCAG AAA) */
+  color: var(--text-on-dark);
   margin-top: var(--space-2);
   text-wrap: balance;
 }
@@ -4051,10 +3873,10 @@ textarea.input { resize: vertical; min-height: 120px; }
 .intro__punchline-card {
   margin-top: var(--space-2);
   padding: var(--space-6) var(--space-8);
-  background: linear-gradient(135deg, #090d16 0%, #1e1b4b 100%);
-  border: 1px solid rgba(15, 23, 42, 0.15);
+  background: rgba(14, 22, 54, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4066,7 +3888,7 @@ textarea.input { resize: vertical; min-height: 120px; }
   font-size: clamp(19px, 2.4vw, 30px);
   font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-tight);
-  color: #ffffff; /* 16:1 contrast against #090d16 (WCAG AAA) */
+  color: #ffffff;
   background: linear-gradient(135deg, #ffffff 30%, #93c5fd 70%, #f472b6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -4075,11 +3897,6 @@ textarea.input { resize: vertical; min-height: 120px; }
 @media (max-width: 860px) {
   .intro-section {
     padding-block: var(--space-12) var(--space-8);
-  }
-
-  .intro__container-card {
-    padding: var(--space-6) var(--space-4);
-    border-radius: 20px;
   }
 
   .intro__content {
@@ -4122,5 +3939,4 @@ textarea.input { resize: vertical; min-height: 120px; }
   .hero {
     padding-block: calc(var(--space-16) + var(--space-6)) var(--space-4);
   }
-  .hero__art { width: min(48vw, 66svh, 700px); }
 }

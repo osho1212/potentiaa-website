@@ -1,5 +1,6 @@
 import SiteShell from "@/components/SiteShell";
-import FlowStage from "@/components/sections/FlowStage";
+import Hero from "@/components/sections/Hero";
+import FlowSection from "@/components/sections/FlowSection";
 import Intro from "@/components/sections/Intro";
 import Work from "@/components/sections/Work";
 import Method from "@/components/sections/Method";
@@ -10,7 +11,8 @@ import CtaFooter from "@/components/sections/CtaFooter";
 export default function HomePage() {
   return (
     <SiteShell>
-      <FlowStage />
+      <Hero />
+      <FlowSection />
       <Intro />
       <Work />
       <Method />

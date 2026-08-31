@@ -17,12 +17,12 @@ import GlassSurface from "./GlassSurface";
  * Each card's ellipse, as fractions of the container box.
  */
 const ORBITS = [
-  { rx: 0.44, ry: 0.38, cx: 0.5, cy: 0.46 },
-  { rx: 0.38, ry: 0.44, cx: 0.54, cy: 0.5 },
-  { rx: 0.46, ry: 0.46, cx: 0.48, cy: 0.52 },
-  { rx: 0.4, ry: 0.34, cx: 0.52, cy: 0.44 },
-  { rx: 0.48, ry: 0.4, cx: 0.5, cy: 0.56 },
-  { rx: 0.42, ry: 0.48, cx: 0.46, cy: 0.48 },
+  { rx: 0.44, ry: 0.38, cx: 0.5, cy: 0.5 },
+  { rx: 0.38, ry: 0.44, cx: 0.5, cy: 0.5 },
+  { rx: 0.46, ry: 0.42, cx: 0.5, cy: 0.5 },
+  { rx: 0.40, ry: 0.36, cx: 0.5, cy: 0.5 },
+  { rx: 0.48, ry: 0.40, cx: 0.5, cy: 0.5 },
+  { rx: 0.42, ry: 0.46, cx: 0.5, cy: 0.5 },
 ];
 
 /** Seconds per page, and direction. */

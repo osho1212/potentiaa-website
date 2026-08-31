@@ -222,7 +222,7 @@ export default function Work() {
   };
 
   return (
-    <section className="section" id="offerings" data-theme-key="work">
+    <section className="section work-section" id="offerings" data-theme-key="work">
       <div className="container">
         <div className="work__head">
           <Reveal>
