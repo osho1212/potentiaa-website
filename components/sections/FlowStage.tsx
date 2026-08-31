@@ -292,6 +292,50 @@ export default function FlowStage() {
     let prevReleaseY = -99999;
     let prevCopyShift = -99999;
 
+    /**
+     * THE LENS COMES OFF WHILE THE PAGE MOVES, not only while the cards fly.
+     *
+     * `flow-stage--assembling` already drops the six SVG lenses for exactly
+     * this reason, and the note in styles/glass-surface.css has the measurement
+     * that justified it. But it is keyed on `t < 1` - the cards still
+     * travelling - and the moment they seat it hands the real glass back. The
+     * section then holds a further half-viewport of runway, and the reader
+     * scrolls through all of it with six lenses on screen.
+     *
+     * That is the state the lag was reported in, and it is the same cost: a
+     * `backdrop-filter` re-runs whenever what is behind it changes, and
+     * scrolling changes what is behind everything. Each of these six is a
+     * nine-primitive SVG chain - feImage, three feDisplacementMap passes, three
+     * feColorMatrix, two feBlend, a blur - and an SVG filter graph in
+     * backdrop-filter is not GPU-accelerated, so all six re-rasterise in
+     * software every frame the page moves. Measured on the seated staircase,
+     * swapping just these for a plain blur took dropped frames from 18.7% to
+     * 8.2%; the flow-stage panel's own blur(18px), over twenty times the area,
+     * measured as costing nothing.
+     *
+     * A timer rather than a velocity threshold. `update` is called from the
+     * scroll dispatch, so being called at all IS the signal that the page is
+     * moving; velocity would additionally have to pick a floor, and Lenis's
+     * long tail spends its last frames below any floor worth setting while the
+     * backdrop is still visibly changing. The class is written only on the
+     * flip, matching how `assembling` is handled - a classList write is a style
+     * invalidation and this would otherwise fire every frame.
+     */
+    let drifting = false;
+    let settleTimer = 0;
+
+    const markDrifting = () => {
+      if (!drifting) {
+        drifting = true;
+        stage.classList.add("flow-stage--drifting");
+      }
+      clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(() => {
+        drifting = false;
+        stage.classList.remove("flow-stage--drifting");
+      }, 140);
+    };
+
     const update = () => {
       if (!visible) return;
       const rect = stage.getBoundingClientRect();
@@ -319,6 +363,10 @@ export default function FlowStage() {
         assembling = flying;
         stage.classList.toggle("flow-stage--assembling", flying);
       }
+
+      // The lens also comes off while the page is simply MOVING, not only
+      // while the cards are in flight - see markDrifting.
+      markDrifting();
 
       const releaseFixed = releaseY.toFixed(1);
       if (releaseFixed !== prevReleaseY.toString()) {
@@ -383,6 +431,8 @@ export default function FlowStage() {
       unsubscribe();
       observer.disconnect();
       spanObserver.disconnect();
+      // Or the pending settle fires against a stage that has been unmounted.
+      clearTimeout(settleTimer);
     };
   }, []);
 

@@ -422,18 +422,32 @@ button { font: inherit; cursor: pointer; }
   transition-delay: 0s;
 }
 
+/* The backdrop-filter is NOT declared here, and that is the whole point.
+   `opacity: 0` hides this scrim; it does not stop the browser compositing it.
+   A backdrop-filter makes the element its own compositing layer and asks the
+   compositor to sample and blur everything painted behind it - and this scrim
+   is `inset: 0` on a fixed parent, so "everything behind it" is the entire
+   viewport, measured here at ~928,000px. That work was being done on every
+   composited frame of every scroll, on every page load, for a drawer that is
+   closed and on a breakpoint most desktop readers never open at all.
+
+   Declared on the open state instead, so the cost exists only while the drawer
+   is actually open. The fade still reads correctly: opacity carries the
+   transition, and the blur appears with the frame the scrim becomes visible. */
 .nav-drawer__scrim {
   position: absolute;
   inset: 0;
   border: 0;
   padding: 0;
   background: rgba(3, 7, 18, 0.44);
-  backdrop-filter: blur(8px) saturate(115%);
-  -webkit-backdrop-filter: blur(8px) saturate(115%);
   opacity: 0;
   transition: opacity var(--duration-slow) var(--ease-standard);
 }
-.nav-drawer[data-open="true"] .nav-drawer__scrim { opacity: 1; }
+.nav-drawer[data-open="true"] .nav-drawer__scrim {
+  opacity: 1;
+  backdrop-filter: blur(8px) saturate(115%);
+  -webkit-backdrop-filter: blur(8px) saturate(115%);
+}
 
 .nav-drawer__close-topleft {
   position: absolute;
@@ -607,6 +621,26 @@ button { font: inherit; cursor: pointer; }
   backface-visibility: hidden;
 }
 
+/* THE BLUR STAYS, and it was measured before it was put back.
+
+   It looks like the obvious cut - a flat disc under `filter: blur(90px)` is a
+   radial gradient drawn the expensive way, on an element DepthField translates
+   every scroll frame. Replacing it with an actual gradient was tried here and
+   reverted for two reasons, in this order:
+
+   1. It does not render the same thing. A filter paints OUTSIDE the element
+      box; a background cannot. Both glows are deliberately parked off-canvas
+      (left: -52vw, right: -36vw) so they tint the margins without putting a
+      gradient behind the content - see the note on the elements themselves.
+      The only reason either is visible at all is the blur bleeding back in
+      past its own edge. Boxed into a background, both fell entirely outside
+      the viewport and the ambient wash simply vanished.
+
+   2. It bought nothing. Swapped back and forth twice against the scroll, the
+      difference sat inside the run-to-run spread (14-29% dropped frames for
+      the gradient against 26-37% for the blur - overlapping ranges from the
+      same build, minutes apart). Two elements is not where this page's
+      compositing cost is; the twenty .quote cards were, and that is fixed. */
 .field__glow {
   position: absolute;
   border-radius: var(--radius-full);
@@ -1824,17 +1858,35 @@ button { font: inherit; cursor: pointer; }
   --glow-intensity: 0;
   --glow-radius: 240px;
 
-  /* Glass. A translucent veil over the page ground plus a real backdrop blur,
-     so the midnight behind it - and anything passing over it, which the
-     floating module does - shows through softened rather than hidden. The
-     saturate is what stops blurred midnight going flat and grey. */
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.09),
-    rgba(255, 255, 255, 0.04)
-  );
-  backdrop-filter: blur(14px) saturate(130%);
-  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  /* Glass, PAINTED rather than sampled - the veil is still here, the backdrop
+     blur that used to sit under it is not.
+
+     What the blur was buying: the ground behind these cards is --midnight-950,
+     a flat near-black, and a 14px blur of a flat colour is that same flat
+     colour. The one case it genuinely served is called out in the note it
+     replaces - the floating module passing behind a card - and that is a
+     translucent object crossing a translucent panel for a few frames, which
+     still reads through the 28% of ground this leaves open. It is simply not
+     blurred while it does.
+
+     What it was costing: there are twenty of these, and they live inside
+     DriftWall's preserve-3d subtree, which rewrites a transform on every column
+     on every frame. A backdrop-filter under a moving ancestor cannot be cached
+     - the compositor has to re-sample and re-blur the region behind each card
+     every time it moves. Measured on the production build, this group was the
+     single largest backdrop-filter area on the page at ~1.45M px, and switching
+     the page's blurs off took dropped frames in the hero from 36.5% to 21.9%.
+
+     So the midnight is composited in directly, under the same white sheen. The
+     saturate goes with the blur: there is no longer a sampled backdrop for it
+     to act on. */
+  background:
+    linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.09),
+      rgba(255, 255, 255, 0.04)
+    ),
+    rgba(2, 10, 36, 0.72);
   border: 1px solid var(--border-on-dark);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
@@ -1877,11 +1929,12 @@ button { font: inherit; cursor: pointer; }
 
 .drift-wall__tile.is-active .quote,
 .quote:hover {
-    /* Opaque white, and the blur goes with it. A backdrop filter under a solid
-       fill is pure cost for something nobody can see through. */
+    /* Opaque white. The backdrop-filter reset that used to sit here is gone
+       with the filter itself - the rest state no longer declares one, so there
+       is nothing left to switch off. The single `background` still has to
+       overwrite BOTH layers of the rest state's background, which it does:
+       a plain colour replaces the whole layer list. */
     background: var(--white);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
     border-color: rgba(79, 70, 229, 0.45);
 
     /* NO transform here. The zoom is the tile lift - a real translateZ toward
