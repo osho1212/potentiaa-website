@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import Hero from "./Hero";
 import FlowSection from "./FlowSection";
 
-import type { HeroParticlesHandle } from "../HeroParticles";
 import HeroLabels from "../HeroLabels";
 import HeroFlowStream from "../HeroFlowStream";
 import type { FlowProgress } from "../HeroLabels";
@@ -190,7 +189,6 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
 }
 
 export default function FlowStage() {
-  const particlesRef = useRef<HeroParticlesHandle>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const flowRef = useRef<FlowProgress>({ t: 0, offsetY: 0, releaseY: 0 });
   const liveCardsRef = useRef<LiveCardState[]>([]);
@@ -452,11 +450,11 @@ export default function FlowStage() {
         {/* Under the cards: the line runs THROUGH the stations, behind them. */}
         <HeroFlowStream flowRef={flowRef} liveCardsRef={liveCardsRef} />
         <div className="flow-stage__art">
-          <HeroLabels particlesRef={particlesRef} flowRef={flowRef} liveCardsRef={liveCardsRef} />
+          <HeroLabels flowRef={flowRef} liveCardsRef={liveCardsRef} />
         </div>
       </div>
 
-      <Hero particlesRef={particlesRef} />
+      <Hero />
       <FlowSection />
     </div>
   );

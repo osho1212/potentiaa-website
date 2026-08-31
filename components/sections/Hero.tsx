@@ -1,28 +1,24 @@
 "use client";
 
-import type { RefObject } from "react";
 import Reveal from "../Reveal";
-import HeroParticles from "../HeroParticles";
-import type { HeroParticlesHandle } from "../HeroParticles";
 import { useContact } from "../ContactContext";
 import { site } from "@/lib/site";
 
 /**
- * The hero: copy on the left, the module render and the particle swarm on the
- * right.
+ * The hero: copy on the left, the module render on the right.
  *
- * The swarm lives HERE and scrolls away with this section - it is part of the
- * hero. Only the flow cards are pinned across into the section below, from
- * components/sections/FlowStage.
+ * THE PARTICLE SWARM IS GONE. It was a 24,000-point three.js formation that sat
+ * behind the module still, and it took the whole of three with it into the
+ * homepage bundle - including for the two components that only wanted its
+ * colour ramp. It also constructed a WebGLRenderer inside an effect with no
+ * support detection and no try/catch, which on a machine that cannot create a
+ * context threw straight past a tree with no error boundary in it and replaced
+ * the page.
  *
- * `particlesRef` is owned by FlowStage and threaded down, because the pinned
- * cards drive this swarm's hover glow and the two are no longer siblings.
+ * The colour ramp survives in lib/brandGradient, which has no dependencies.
+ * The hero's background is rebuilt separately - see the Scanner work.
  */
-export default function Hero({
-  particlesRef,
-}: {
-  particlesRef?: RefObject<HeroParticlesHandle | null>;
-}) {
+export default function Hero() {
   const { open } = useContact();
 
   return (
@@ -79,7 +75,6 @@ export default function Hero({
         </div>
 
         <div className="hero__art">
-          <HeroParticles ref={particlesRef} />
           <img
             className="hero__art-image"
             src="/assets/hero/module.webp"

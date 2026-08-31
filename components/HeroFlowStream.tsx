@@ -5,7 +5,7 @@ import type { RefObject } from "react";
 import { gsap } from "gsap";
 import type { FlowProgress } from "./HeroLabels";
 import { nodeProximity, pathAt, seatAt, type LiveCardState } from "@/lib/flowLayout";
-import { sampleGradientCss } from "@/lib/heroParticles";
+import { sampleGradientCss } from "@/lib/brandGradient";
 import { site } from "@/lib/site";
 
 /**

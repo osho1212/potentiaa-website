@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { RefObject } from "react";
-import type { HeroParticlesHandle } from "./HeroParticles";
-import { sampleGradientCss } from "@/lib/heroParticles";
+import { sampleGradientCss } from "@/lib/brandGradient";
 import { CUBE, isNarrow, seatAt, type LiveCardState } from "@/lib/flowLayout";
 import { site } from "@/lib/site";
 import GlassSurface from "./GlassSurface";
@@ -114,11 +113,9 @@ function FlowIcon({ index }: { index: number }) {
 }
 
 export default function HeroLabels({
-  particlesRef,
   flowRef,
   liveCardsRef,
 }: {
-  particlesRef: RefObject<HeroParticlesHandle | null>;
   flowRef?: RefObject<FlowProgress>;
   liveCardsRef?: RefObject<LiveCardState[]>;
 }) {
@@ -325,20 +322,28 @@ export default function HeroLabels({
       intersectionObserver.disconnect();
       cancelAnimationFrame(animationFrameId);
     };
-  }, [cards, particlesRef, flowRef, liveCardsRef]);
+  }, [cards, flowRef, liveCardsRef]);
 
+  /**
+   * Hover still records WHICH station the pointer is on - the eased hover scale
+   * in `place()` and the CSS hover state both read it - but it no longer lights
+   * a particle swarm, because there is no swarm.
+   *
+   * The removed call was `particlesRef.current?.glow(...)`, reaching sideways
+   * out of this component into a sibling WebGL layer to brighten the region
+   * behind the hovered card. That layer is gone with the three.js eviction, and
+   * with it the only reason this component ever needed a ref to anything
+   * outside itself.
+   */
   const handleEnter = useCallback((event: React.MouseEvent<HTMLElement>) => {
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
     hoveredRef.current = event.currentTarget;
-    const r = event.currentTarget.getBoundingClientRect();
-    particlesRef.current?.glow(true, r.left + r.width / 2, r.top + r.height / 2);
-  }, [particlesRef]);
+  }, []);
 
   const handleLeave = useCallback(() => {
     if (hoveredRef.current === null) return;
     hoveredRef.current = null;
-    particlesRef.current?.glow(false, 0, 0);
-  }, [particlesRef]);
+  }, []);
 
   return (
     <div className="hero__labels" ref={containerRef}>
