@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { site } from "@/lib/site";
 import GlassSurface from "./GlassSurface";
 import { sampleGradientCss } from "@/lib/heroParticles";
+import { constellationState } from "@/lib/constellationState";
 
 const ORBITS = [
   { rx: 0.44, ry: 0.36, cx: 0.5, cy: 0.48 },
@@ -185,14 +186,26 @@ export default function HeroFlowConstellation() {
         const x = orbitX * (1 - k) + seatX * k;
         const y = orbitY * (1 - k) + seatY * k;
 
-        // 3D tilt in orbit that straightens flat when seated
-        const tilt = Math.max(0, 1 - k * 1.2);
-        const pitch = Math.sin(phi + i * 1.2) * 14 * tilt;
-        const yaw = Math.cos(phi + i * 1.6) * 18 * tilt;
-        const roll = Math.sin(phi * 0.8 + i) * 8 * tilt;
-        const scale = 1.0 + Math.sin(phi) * 0.06 * tilt;
+        // Deep 3D spatial trajectory when moving to the bottleneck section
+        const orbitZ = Math.sin(phi * 2.0) * 32;
+        const swoopZ = Math.sin(k * Math.PI) * -110;
+        const dockElevationZ = 30; // elevated 3D glass slab in bottleneck section
+        const z = orbitZ * (1 - k) + (swoopZ + dockElevationZ) * k;
 
-        el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) rotateX(${pitch.toFixed(1)}deg) rotateY(${yaw.toFixed(1)}deg) rotateZ(${roll.toFixed(1)}deg) scale(${scale.toFixed(3)})`;
+        // 3D perspective orientation
+        const pitch = Math.sin(phi + i * 1.2) * 16 * (1 - k) + (10 * k); // forward 3D tilt in bottleneck
+        const yaw = Math.cos(phi + i * 1.6) * 18 * (1 - k) + (-5 * (i - 2.5) * k); // perspective fanout
+        const roll = Math.sin(phi * 0.8 + i) * 8 * (1 - k);
+        const scale = (1.0 + Math.sin(phi) * 0.06 * (1 - k)) * (1.0 + k * 0.06);
+
+        el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) rotateX(${pitch.toFixed(1)}deg) rotateY(${yaw.toFixed(1)}deg) rotateZ(${roll.toFixed(1)}deg) scale(${scale.toFixed(3)})`;
+
+        // Update live screen coordinates for particle filament physics (always active)
+        if (constellationState.nodes[i]) {
+          constellationState.nodes[i].x = winW * 0.5 + x;
+          constellationState.nodes[i].y = y;
+          constellationState.nodes[i].active = 1.0;
+        }
 
         const labelEl = labelRefs.current[i];
         if (labelEl) {
@@ -225,6 +238,9 @@ export default function HeroFlowConstellation() {
             } as unknown as React.CSSProperties
           }
         >
+          {/* Volumetric shadow plane for 3D depth */}
+          <div className="constellation-node__shadow" aria-hidden="true" />
+
           <GlassSurface
             className="constellation-node__glass"
             width={80}
@@ -252,15 +268,9 @@ export default function HeroFlowConstellation() {
             }}
             className="constellation-node__label"
           >
-            <div className="constellation-node__header">
-              <span className="constellation-node__idx">{node.index}</span>
-              <span className="constellation-node__title">{node.title}</span>
-            </div>
+            <span className="constellation-node__badge">{node.index}</span>
+            <span className="constellation-node__title">{node.title}</span>
             <span className="constellation-node__note">{node.note}</span>
-            <div className="constellation-node__badge">
-              <span className="constellation-node__dot" />
-              <span>Live Sync</span>
-            </div>
           </div>
         </div>
       ))}

@@ -13,6 +13,7 @@
  */
 
 import * as THREE from "three";
+import { constellationState } from "./constellationState";
 
 /**
  * The brand gradient ramp: Deep Blue -> Electric Blue -> Magenta -> Coral.
@@ -151,12 +152,14 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
   uniform float uScale;
   uniform vec3 uRepel;
   uniform vec3 uGlow;
+  uniform vec2 uHeroCenter;
+  uniform vec3 uNodes[6];
   uniform float uTime;
 
   varying vec3 vColor;
   varying vec3 vGrain;
 
-  const float LUMA = 1.35;
+  const float LUMA = 1.45;
 
   void main() {
     float foldPhaseCos = uFold.x;
@@ -172,33 +175,143 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
     float jitCCos = uJitC.x;
     float jitCSin = uJitC.y;
 
-    // 1. Organic Neural Manifold with harmonic breathing (enlarged hero presence)
+    // 1. Dynamic Central Hero Pattern Metamorphosis:
+    // Anchored at uHeroCenter.xy (exact center of hero section, moves naturally with page scroll)
     float harmonic1 = aFold.x * (aFold.y * foldPhaseCos - aFold.z * foldPhaseSin);
     float harmonic2 = sin(aDirection.x * 6.0 + uTime * 0.8) * cos(aDirection.y * 5.0 - uTime * 0.6) * 0.15;
-    float fold = 0.82 + harmonic1 * 0.85 + harmonic2;
-    float baseRadius = 34.0 * fold;
+    
+    // Dynamic spoke attraction reaching out from hero center towards the 6 orbiting constellation nodes
+    float nodeSpokeLobe = 0.0;
+    vec2 pDir2D = normalize(aDirection.xy + vec2(0.0001));
+    for (int i = 0; i < 6; i++) {
+      if (uNodes[i].z > 0.05) {
+        vec2 nodeVec = uNodes[i].xy - uHeroCenter.xy;
+        float nodeDist = length(nodeVec);
+        vec2 nDir = (nodeDist > 0.001) ? (nodeVec / nodeDist) : vec2(0.0, 1.0);
+        float align = max(0.0, dot(pDir2D, nDir));
+        float lobe = pow(align, 4.0) * (nodeDist * 0.45);
+        nodeSpokeLobe = max(nodeSpokeLobe, lobe);
+      }
+    }
 
-    // 2. Synaptic bridges & radial neural ripples
+    float fold = 0.82 + harmonic1 * 0.85 + harmonic2;
+    float baseRadius = 38.0 * fold + nodeSpokeLobe;
+
+    // 2. Synaptic ripples & breathing waves
     float ripple = 0.07 * sin(baseRadius * 0.35 - uTime * 2.2 + aWave.x * 3.14159);
     float radius = baseRadius * (1.0 + ripple);
 
-    float x = radius * aDirection.x;
-    float y = radius * aDirection.y;
+    float x = uHeroCenter.x + radius * aDirection.x;
+    float y = uHeroCenter.y + radius * aDirection.y;
     float z = radius * aDirection.z;
 
     // Organic neural filament concentration
     if (aTract > 0.5) {
-      x *= 0.22;
-      y *= 0.88;
-      z *= 0.45;
+      x = uHeroCenter.x + (radius * aDirection.x) * 0.25;
+      y = uHeroCenter.y + (radius * aDirection.y) * 0.88;
+      z = (radius * aDirection.z) * 0.45;
     }
 
-    // 3. Interactive Anti-Chaos Harmonic Shape Formation (Forms structured crystal torus ring on hover)
+    // 3. Dynamic Constellation Network: Chaotic Weak Links -> Solid Organized Operational Conduits
+    float filamentGlow = 0.0;
+    float systemOrganization = 0.0; // 0 = chaotic weak links, 1 = solid organized system
+
+    // Interactive boost from cursor / hover activity
+    float activeOrgBoost = clamp(uRepel.z * 0.25 + uGlow.z * 0.35, 0.0, 1.0);
+
+    // Dynamic seeking wave across time (particles constantly seeking, connecting, and solidifying)
+    float seekingWave = sin(uTime * 1.8 + aDirection.x * 4.0) * 0.5 + 0.5;
+    float currentSolidification = clamp(0.35 + seekingWave * 0.45 + activeOrgBoost * 0.5, 0.0, 1.0);
+
+    // PATHWAY A: Perimeter Conduit between consecutive nodes (0->1->2->3->4->5->0)
+    for (int i = 0; i < 6; i++) {
+      int nextIdx = (i == 5) ? 0 : i + 1;
+      vec3 nA = uNodes[i];
+      vec3 nB = uNodes[nextIdx];
+
+      if (nA.z > 0.05 && nB.z > 0.05) {
+        vec2 A = nA.xy;
+        vec2 B = nB.xy;
+        vec2 AB = B - A;
+        float segLen2 = dot(AB, AB);
+
+        if (segLen2 > 1.0) {
+          float param = clamp(dot(vec2(x, y) - A, AB) / segLen2, 0.0, 1.0);
+          vec2 segPoint = A + param * AB;
+          vec2 segDiff = vec2(x, y) - segPoint;
+          float segDist2 = dot(segDiff, segDiff);
+          float maxFilamentDist = 20.0;
+
+          if (segDist2 < maxFilamentDist * maxFilamentDist) {
+            float dist = sqrt(segDist2);
+            float distFalloff = 1.0 - dist / maxFilamentDist;
+
+            // Connected ~ disconnected quantum filament pulse
+            // Oscillates between weak searching flicker and solid conduit
+            float filamentPulse = sin(param * 14.0 - uTime * 4.5 + float(i) * 1.047);
+            float weakFlicker = smoothstep(-0.35, 0.45, filamentPulse);
+            float connectionStrength = mix(weakFlicker, 1.0, currentSolidification * 0.7) * nA.z * nB.z;
+
+            // Fraction of particles coalesce to form the line
+            float isFilamentParticle = step(0.32, fract(aDirection.x * 19.3 + aDirection.y * 29.7 + float(i) * 0.17));
+            float pull = distFalloff * distFalloff * connectionStrength * isFilamentParticle * (0.65 + currentSolidification * 0.35);
+
+            // Pull chaotic particles into coherent line
+            x -= segDiff.x * pull;
+            y -= segDiff.y * pull;
+
+            // Traveling energy pulse / data packets moving through the pipeline
+            float packet = sin(param * 26.0 - uTime * 7.5 + float(i) * 1.2) * 0.5 + 0.5;
+            filamentGlow += distFalloff * connectionStrength * (1.2 + packet * 1.8);
+            systemOrganization = max(systemOrganization, distFalloff * connectionStrength);
+          }
+        }
+      }
+    }
+
+    // PATHWAY B: Central Hub-to-Node Arterial Spokes (uHeroCenter -> Node i)
+    for (int i = 0; i < 6; i++) {
+      vec3 node = uNodes[i];
+      if (node.z > 0.05) {
+        vec2 A = uHeroCenter.xy;
+        vec2 B = node.xy;
+        vec2 AB = B - A;
+        float segLen2 = dot(AB, AB);
+
+        if (segLen2 > 1.0) {
+          float param = clamp(dot(vec2(x, y) - A, AB) / segLen2, 0.0, 1.0);
+          vec2 segPoint = A + param * AB;
+          vec2 segDiff = vec2(x, y) - segPoint;
+          float segDist2 = dot(segDiff, segDiff);
+          float maxSpokeDist = 18.0;
+
+          if (segDist2 < maxSpokeDist * maxSpokeDist) {
+            float dist = sqrt(segDist2);
+            float distFalloff = 1.0 - dist / maxSpokeDist;
+
+            float spokePulse = sin(param * 10.0 - uTime * 3.8 + float(i) * 1.047);
+            float spokeConnection = smoothstep(-0.2, 0.6, spokePulse) * node.z;
+
+            float isSpokeParticle = step(0.42, fract(aDirection.z * 23.1 + aDirection.x * 11.7));
+            float pull = distFalloff * distFalloff * spokeConnection * isSpokeParticle * 0.65;
+
+            x -= segDiff.x * pull;
+            y -= segDiff.y * pull;
+
+            float spokeSpark = sin(param * 20.0 - uTime * 6.0) * 0.5 + 0.5;
+            filamentGlow += distFalloff * spokeConnection * (0.95 + spokeSpark * 1.4);
+            systemOrganization = max(systemOrganization, distFalloff * spokeConnection);
+          }
+        }
+      }
+    }
+
+    // 4. Interactive Anti-Chaos Harmonic Shape Formation (Ring around cursor on hover)
     float attractStrength = 0.0;
     if (uRepel.z > 0.001) {
       vec2 diff = vec2(x, y) - uRepel.xy;
       float d2 = dot(diff, diff);
-      float rMax = 32.0;
+      float rMax = 34.0;
       float rMax2 = rMax * rMax;
       if (d2 < rMax2 && d2 > 0.0001) {
         float d = sqrt(d2);
@@ -206,17 +319,14 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
         falloff = falloff * falloff;
         attractStrength = falloff * uRepel.z;
 
-        // Structured geometric ring radius around cursor
         float ringR = 10.0;
         float distToRing = d - ringR;
         vec2 dir = diff / d;
         vec2 tangent = vec2(-dir.y, dir.x);
 
-        // Strongly pull particles into coherent geometric ring (zero scattering)
         x -= dir.x * (distToRing * 0.88 * attractStrength);
         y -= dir.y * (distToRing * 0.88 * attractStrength);
 
-        // Harmonic orbital streamlines around the ring
         float theta = atan(diff.y, diff.x);
         float spin = sin(theta * 2.0 + uTime * 2.6) * 1.8 * attractStrength;
         x += tangent.x * spin;
@@ -225,16 +335,18 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
       }
     }
 
-    // 4. Brownian turbulence - 100% damped near cursor to eliminate chaos
-    float dampChaos = 1.0 - attractStrength * 0.95;
-    float jiggle = (aTract > 0.5 ? 0.02 : 0.18) * dampChaos;
+    // 5. Dynamic Chaos Damping:
+    // Chaotic wandering particles are calmed & organized when captured into the constellation system
+    float totalDamp = clamp(systemOrganization * 0.85 + attractStrength * 0.95, 0.0, 0.98);
+    float dampChaos = 1.0 - totalDamp;
+    float jiggle = (aTract > 0.5 ? 0.02 : 0.22) * dampChaos;
     float jX = (aJit.x * jitACos + aJit.y * jitASin) * jiggle;
     float jY = (aJit.z * jitBCos - aJit.w * jitBSin) * jiggle;
     float jZ = (jitCSin * aJit.y - jitCCos * aJit.x) * jiggle;
 
     vec3 pos = vec3(x + jX, y + jY, z + jZ);
 
-    // 5. Energy firing pulses across synaptic nodes
+    // 6. Energy firing pulses across synaptic nodes
     float s = aFire.x * firePhaseCos + aFire.y * firePhaseSin;
     float spike = 0.0;
     if (s > 0.0) {
@@ -247,7 +359,7 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
     float wave = (aWave.x * wavePhaseCos - aWave.y * wavePhaseSin + 1.0) * 0.5;
     float depth = 0.45 + 0.55 * (pos.z * (1.0 / 34.0) * 0.5 + 0.5);
 
-    // 6. Structured hover illumination
+    // 7. Structured hover illumination
     float glowBoost = attractStrength * 0.85;
     if (uGlow.z > 0.001) {
       vec2 gdiff = pos.xy - uGlow.xy;
@@ -263,13 +375,13 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
     float seed2 = fract(seed * 197.31);
     float grainAngle = seed * 6.2831853;
 
-    // Soft edge falloff allowing particles to reach naturally across sections
-    float edgeAlpha = smoothstep(68.0, 52.0, length(pos.xy));
+    // Soft edge falloff allowing particles to reach naturally across sections with zero clipping
+    float edgeAlpha = smoothstep(112.0, 75.0, length(pos.xy));
     vGrain = vec3(cos(grainAngle), sin(grainAngle), seed2 * edgeAlpha);
 
     float temper = 0.35 + 0.65 * seed2 * seed2;
-    float level = (0.52 + wave * 0.28 + spike * 1.85 * temper + (aTract > 0.5 ? 0.3 : 0.0) + glowBoost) * depth * LUMA;
-    float hot = (spike * 0.65 * temper + glowBoost * 0.4) * LUMA;
+    float level = (0.52 + wave * 0.28 + spike * 1.85 * temper + filamentGlow * 1.25 + (aTract > 0.5 ? 0.3 : 0.0) + glowBoost) * depth * LUMA;
+    float hot = (spike * 0.65 * temper + glowBoost * 0.4 + filamentGlow * 0.95) * LUMA;
 
     vColor = aBaseColor * level + vec3(hot * 0.8, hot * 0.85, hot);
 
@@ -331,7 +443,7 @@ export class ParticlesSwarm {
   private readonly baseB: Float32Array;
   private readonly tract: Uint8Array;
 
-  private readonly scale = 46;
+  private readonly scale = 65;
   private readonly complexity = 7;
 
   private raf = 0;
@@ -514,6 +626,17 @@ export class ParticlesSwarm {
         uScale: { value: height * 0.5 },
         uRepel: { value: new THREE.Vector3(0, 0, 0) },
         uGlow: { value: new THREE.Vector3(0, 0, 0) },
+        uHeroCenter: { value: new THREE.Vector2(0, 0) },
+        uNodes: {
+          value: [
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, 0, 0),
+          ],
+        },
         uTime: { value: 0 },
       },
       vertexShader: PARTICLE_VERTEX_SHADER,
@@ -591,10 +714,9 @@ export class ParticlesSwarm {
     this.renderFrame(this.clock.getElapsedTime());
   }
 
-  private unproject(clientX: number, clientY: number, rect: DOMRect): { x: number; y: number } | null {
+  private unproject(clientX: number, clientY: number, rect: DOMRect): { x: number; y: number } {
     const px = (clientX - rect.left) / rect.width;
     const py = (clientY - rect.top) / rect.height;
-    if (px < 0 || px > 1 || py < 0 || py > 1) return null;
 
     const halfHeight = Math.tan((this.camera.fov * Math.PI) / 360) * this.camera.position.z;
     const worldX = (px * 2 - 1) * halfHeight * this.camera.aspect;
@@ -618,19 +740,21 @@ export class ParticlesSwarm {
       if (rect.width > 0 && rect.height > 0) {
         if (wantsPointer) {
           const p = this.unproject(this.pointerClientX, this.pointerClientY, rect);
-          if (p) {
+          if (this.pointerClientX >= rect.left && this.pointerClientX <= rect.right &&
+              this.pointerClientY >= rect.top && this.pointerClientY <= rect.bottom) {
             pointerInside = true;
-            this.repelX = p.x;
-            this.repelY = p.y;
           }
+          this.repelX = p.x;
+          this.repelY = p.y;
         }
         if (this.glowActive) {
           const p = this.unproject(this.glowClientX, this.glowClientY, rect);
-          if (p) {
+          if (this.glowClientX >= rect.left && this.glowClientX <= rect.right &&
+              this.glowClientY >= rect.top && this.glowClientY <= rect.bottom) {
             glowInside = true;
-            this.glowX = p.x;
-            this.glowY = p.y;
           }
+          this.glowX = p.x;
+          this.glowY = p.y;
         }
       }
     }
@@ -660,6 +784,30 @@ export class ParticlesSwarm {
       this.glowY,
       this.glowInfluence > 0.001 ? GLOW_STRENGTH * this.glowInfluence : 0,
     );
+
+    const rect = this.container.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      // 1. Update live Hero Center in 3D simulation coordinates (anchored to hero section)
+      const heroEl = document.querySelector<HTMLElement>(".hero");
+      if (heroEl) {
+        const heroRect = heroEl.getBoundingClientRect();
+        const heroCenterX = heroRect.left + heroRect.width * 0.5;
+        const heroCenterY = heroRect.top + heroRect.height * 0.5;
+        const h = this.unproject(heroCenterX, heroCenterY, rect);
+        u.uHeroCenter.value.set(h.x, h.y);
+      }
+
+      // 2. Update live 3D constellation node positions for connected ~ disconnected filaments
+      for (let i = 0; i < 6; i++) {
+        const node = constellationState.nodes[i];
+        if (node && node.active > 0.01) {
+          const p = this.unproject(node.x, node.y, rect);
+          u.uNodes.value[i].set(p.x, p.y, node.active);
+        } else {
+          u.uNodes.value[i].set(0, 0, 0);
+        }
+      }
+    }
 
     this.renderer.render(this.scene, this.camera);
   }

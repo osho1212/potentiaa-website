@@ -15,6 +15,31 @@ import { site } from "@/lib/site";
  * - 6 Fluid orbiting 3D squircle icons moving dynamically around the page
  * - Seamless scroll alignment into the Flow section
  */
+function AnimatedWord({ text, isAccent = false }: { text: string; isAccent?: boolean }) {
+  return (
+    <span
+      className={`hero__hover-word ${isAccent ? "hero__hover-word--accent" : ""}`}
+      data-text={text}
+    >
+      {text}
+    </span>
+  );
+}
+
+function AnimatedLine({ line, isAccent = false }: { line: string; isAccent?: boolean }) {
+  const words = line.split(" ");
+  return (
+    <span className={`hero__title-line ${isAccent ? "hero__title-line--accent" : ""}`}>
+      {words.map((word, i) => (
+        <span key={`${word}-${i}`} className="hero__word-wrap">
+          <AnimatedWord text={word} isAccent={isAccent} />
+          {i < words.length - 1 ? " " : ""}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export default function Hero({
   particlesRef,
 }: {
@@ -56,14 +81,10 @@ export default function Hero({
           <Reveal delay={80}>
             <h1 className="hero__title">
               {site.hero.titleLead.map((line) => (
-                <span key={line} className="hero__title-line">
-                  {line}{" "}
-                </span>
+                <AnimatedLine key={line} line={line} isAccent={false} />
               ))}
               {site.hero.titleAccent.map((line) => (
-                <span key={line} className="hero__title-line hero__title-line--accent">
-                  {line}{" "}
-                </span>
+                <AnimatedLine key={line} line={line} isAccent={true} />
               ))}
             </h1>
           </Reveal>

@@ -1,168 +1,145 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React from "react";
 import Reveal from "../Reveal";
-import DepthCarousel, { type DepthCarouselItem } from "../DepthCarousel";
+import { CardContainer, CardBody, CardItem } from "@/components/ui/3d-card";
 
-export interface ProjectItem extends DepthCarouselItem {
+export interface ProjectCardData {
   id: string;
-  image: string;
-  alt: string;
   title: string;
-  category: string;
-  industry: string;
   description: string;
-  impact: string;
+  imagePlaceholder: string;
+  imageAlt: string;
   features: string[];
-  tags: string[];
 }
 
-const PROJECTS: ProjectItem[] = [
+const PROJECTS: ProjectCardData[] = [
   {
-    id: "erp-dispatch",
-    image: "/assets/work/erp-dispatch.jpg",
-    alt: "NexLogix Warehouse and Dispatch System",
-    title: "NexLogix Warehouse Hub",
-    category: "WAREHOUSE & STOCK",
-    industry: "Wholesale & Distribution",
-    description:
-      "Tablet-based warehouse app replacing paper registers with barcode scanning and instant challans.",
-    impact: "+45% faster dispatch • Zero lost stock",
-    features: ["Barcode Scanner", "1-Click Challans", "Low-Stock Alerts"],
-    tags: ["Tablet App", "Multi-godown", "Offline Ready"],
+    id: "fquad-website",
+    title: "FQUAD Website",
+    description: "Website, SEO engine, real-time analytics & custom CMS.",
+    imagePlaceholder:
+      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=1200&auto=format&fit=crop",
+    imageAlt: "FQUAD Website Analytics & CMS Dashboard",
+    features: ["Website", "SEO Engine", "Analytics", "CMS"],
   },
   {
-    id: "billing-reconcile",
-    image: "/assets/work/billing-reconcile.jpg",
-    alt: "ReconcileHub Automated Billing and Invoicing",
-    title: "ReconcileHub 1-Click Billing",
-    category: "BILLING & ACCOUNTS",
-    industry: "B2B Supply & Manufacturing",
-    description:
-      "Fast GST invoicing with automated WhatsApp payment reminders and live daily cashflow reports.",
-    impact: "Saves 2 hrs/day • Dues collected 14 days faster",
-    features: ["WhatsApp Invoices", "Payment Reminders", "Live Profit Report"],
-    tags: ["1-Click GST", "Customer Ledger", "Daily P&L"],
+    id: "raghuvansh-website",
+    title: "Raghuvansh Website",
+    description: "Luxury brand website, SEO engine, real-time analytics & CMS.",
+    imagePlaceholder:
+      "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=1200&auto=format&fit=crop",
+    imageAlt: "Raghuvansh Luxury Flagship Web Platform",
+    features: ["Website", "SEO Engine", "Analytics", "CMS"],
   },
   {
-    id: "field-ops",
-    image: "/assets/work/field-ops.jpg",
-    alt: "FieldOps Mobile Service Management App",
-    title: "FieldOps Service App",
-    category: "FIELD & REPAIR SERVICES",
-    industry: "On-site Repairs & Maintenance",
-    description:
-      "Mobile job assignments, spare parts tracking, and digital customer sign-off on the spot.",
-    impact: "2x completed jobs • 100% digital receipts",
-    features: ["Mobile Dispatch", "Digital Sign-off", "Instant Mobile Bills"],
-    tags: ["Mobile App", "Live Status", "SMS & WhatsApp"],
+    id: "dental-erp",
+    title: "Dental Practice Management",
+    description: "Revenue tracking, patient history, lab work pipeline, clinic ledger & chemist management.",
+    imagePlaceholder:
+      "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=1200&auto=format&fit=crop",
+    imageAlt: "Dental Practice Management System Dashboard",
+    features: ["Revenue Tracking", "Patient History", "Lab Pipeline", "Clinic Ledger", "Chemist"],
   },
   {
-    id: "strata-analytics",
-    image: "/assets/work/strata-analytics.jpg",
-    alt: "Strata Executive Business Dashboard",
-    title: "Strata All-in-One Portal",
-    category: "OWNER DASHBOARD",
-    industry: "Multi-branch Retail & Commerce",
-    description:
-      "Multi-branch sales, stock, and expense dashboard accessible directly from the owner's phone.",
-    impact: "Zero evening paperwork • Live phone metrics",
-    features: ["Multi-Store Sales", "Expense Tracker", "Automated Daily P&L"],
-    tags: ["Mobile Dashboard", "Multi-Store", "Live Metrics"],
+    id: "event-erp",
+    title: "Event Management App",
+    description: "Complete organisation billing, inventory, labour tracking & revenue tracking.",
+    imagePlaceholder:
+      "https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=1200&auto=format&fit=crop",
+    imageAlt: "Event Operations & Production Management System",
+    features: ["Billing", "Inventory", "Labour Tracking", "Revenue Tracking"],
+  },
+  {
+    id: "warehouse-hub",
+    title: "Warehouse & Dispatch Hub",
+    description: "Barcode scanning, 1-click challans, inventory tracking & multi-godown stock sync.",
+    imagePlaceholder:
+      "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1200&auto=format&fit=crop",
+    imageAlt: "Warehouse & Logistics Inventory Management System",
+    features: ["Warehouse ERP", "Barcode Scanner", "1-Click Challans", "Stock Sync"],
+  },
+  {
+    id: "retail-pos",
+    title: "Retail POS & Multi-Store",
+    description: "1-click GST retail billing, customer credit ledgers & live profit margin tracking.",
+    imagePlaceholder:
+      "https://images.unsplash.com/photo-1556742049-0a67c5576839?q=80&w=1200&auto=format&fit=crop",
+    imageAlt: "Retail Cloud POS & Multi-Store Dashboard",
+    features: ["Retail POS", "1-Click GST", "Customer Ledger", "Profit Tracking"],
   },
 ];
 
 export default function OurWork() {
-  const [activeIdx, setActiveIdx] = useState(0);
-  const activeProject = PROJECTS[activeIdx] || PROJECTS[0];
-
-  const handleCarouselChange = useCallback((idx: number) => {
-    setActiveIdx(idx);
-  }, []);
-
   return (
     <section className="section our-work-section" id="projects" data-theme-key="work">
       <div className="container our-work__container">
         {/* Section Header */}
         <div className="our-work__head">
           <Reveal>
-            <p className="eyebrow">Real Solutions & Results</p>
+            <p className="eyebrow">Selected Builds</p>
           </Reveal>
           <Reveal delay={80}>
             <h2 className="section-title">Our Work</h2>
           </Reveal>
-          <Reveal delay={140}>
-            <p className="lede our-work__lede">
-              Real systems and dashboards we built for growing businesses to eliminate paperwork, connect staff, and track profits.
-            </p>
-          </Reveal>
         </div>
 
-        {/* 1-Viewport Split: Carousel on Left, White Description Box on Right */}
-        <div className="our-work__grid-layout">
-          {/* Left: 3D DepthCarousel with Bigger Images */}
-          <div className="our-work__carousel-pane">
-            <DepthCarousel
-              items={PROJECTS}
-              cardWidth={500}
-              cardHeight={360}
-              radius={16}
-              depth={190}
-              spread={70}
-              tilt={16}
-              tiltDirection="right"
-              perspective={1400}
-              visibleCards={3}
-              falloff={0.18}
-              blur={4}
-              autoplay={false}
-              loop
-              showControls
-              showIndicators
-              onChange={handleCarouselChange}
-            />
-          </div>
+        {/* 6 Ultra-Transparent Glass 3D Cards with Creative Staggered Placement */}
+        <div className="our-work__cards-grid">
+          {PROJECTS.map((project, idx) => (
+            <div key={project.id} className={`our-work__slot our-work__slot--${idx}`}>
+              <Reveal delay={60 * (idx % 3)}>
+                <CardContainer className="w-full">
+                  <CardBody className="our-work__glass-card group/card">
+                    {/* Popping 3D Parallax Image expanding beyond card on hover */}
+                    <CardItem
+                      translateZ={90}
+                      scaleHover={1.12}
+                      className="our-work__image-wrapper"
+                    >
+                      <div className="our-work__image-box">
+                        <img
+                          src={project.imagePlaceholder}
+                          alt={project.imageAlt}
+                          loading="lazy"
+                          className="our-work__image"
+                        />
+                        <div className="our-work__image-overlay" />
+                      </div>
+                    </CardItem>
 
-          {/* Right: White Description Card */}
-          <div className="our-work__details-pane">
-            <Reveal key={activeProject.id} delay={40}>
-              <div className="our-work__white-card">
-                <div className="our-work__card-header">
-                  <span className="our-work__category-badge">{activeProject.category}</span>
-                  <span className="our-work__industry-tag">{activeProject.industry}</span>
-                </div>
+                    <div className="our-work__content-box">
+                      {/* Title */}
+                      <CardItem
+                        translateZ={45}
+                        className="our-work__card-title"
+                      >
+                        {project.title}
+                      </CardItem>
 
-                <h3 className="our-work__card-title">{activeProject.title}</h3>
+                      {/* Short Feature Description */}
+                      <CardItem
+                        as="p"
+                        translateZ={30}
+                        className="our-work__card-desc"
+                      >
+                        {project.description}
+                      </CardItem>
 
-                <p className="our-work__card-desc">{activeProject.description}</p>
-
-                {/* Impact Highlight */}
-                <div className="our-work__impact-card">
-                  <span className="our-work__impact-label">Business Impact</span>
-                  <p className="our-work__impact-text">{activeProject.impact}</p>
-                </div>
-
-                {/* Key Capabilities List */}
-                <div className="our-work__features-list">
-                  {activeProject.features.map((feat) => (
-                    <div key={feat} className="our-work__feature-item">
-                      <span className="our-work__feature-check">✓</span>
-                      <span>{feat}</span>
+                      {/* Feature Tags */}
+                      <CardItem translateZ={40} className="our-work__tags-row">
+                        {project.features.map((feat) => (
+                          <span key={feat} className="our-work__tag-pill">
+                            {feat}
+                          </span>
+                        ))}
+                      </CardItem>
                     </div>
-                  ))}
-                </div>
-
-                {/* Tag Pills */}
-                <div className="our-work__tags-row">
-                  {activeProject.tags.map((tag) => (
-                    <span key={tag} className="our-work__tag-pill">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </Reveal>
-          </div>
+                  </CardBody>
+                </CardContainer>
+              </Reveal>
+            </div>
+          ))}
         </div>
       </div>
     </section>

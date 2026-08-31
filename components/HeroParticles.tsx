@@ -80,8 +80,8 @@ const HeroParticles = forwardRef<HeroParticlesHandle>(function HeroParticles(_pr
        Points land near 3-8 device pixels, still clear of the one-pixel floor
        where dots start dropping out and twinkling. */
     const swarm = new ParticlesSwarm(container, {
-      count: narrow ? 16000 : 24000,
-      particleSize: narrow ? 0.76 : 0.7,
+      count: narrow ? 5500 : 8500,
+      particleSize: narrow ? 0.72 : 0.65,
     });
     swarmRef.current = swarm;
 
@@ -93,7 +93,7 @@ const HeroParticles = forwardRef<HeroParticlesHandle>(function HeroParticles(_pr
 
     const intersectionObserver = new IntersectionObserver(
       ([entry]) => (entry.isIntersecting ? swarm.start() : swarm.stop()),
-      { rootMargin: "100px" },
+      { rootMargin: "400px" },
     );
     intersectionObserver.observe(container);
 

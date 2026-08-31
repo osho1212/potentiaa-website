@@ -271,11 +271,13 @@ function shapeAt(p: number): { reach: number; scale: number; rise: number } {
 export default function ModuleStack() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const shadowRef = useRef<HTMLDivElement>(null);
   const [framesMissing, setFramesMissing] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
     const canvas = canvasRef.current;
+    const shadow = shadowRef.current;
     if (!container || !canvas) return;
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -496,8 +498,14 @@ export default function ModuleStack() {
       // Only the far plane is hazed. A forward pass stays in focus even when it
       // is translucent - blurring it as well would read as a smudge on the
       // screen rather than as an object between the reader and the page.
-      const blur = inFront ? "0" : ((1 - flight.depth) * 2.4).toFixed(2);
-      container.style.filter = blur === "0" ? "" : `blur(${blur}px)`;
+      // Dynamic directional shadow cast onto the page & text when floating in front
+      if (shadow) {
+        const shadowIntensity = inFront ? Math.max(0, Math.min(1, flight.depth)) : 0;
+        shadow.style.opacity = String((shadowIntensity * 0.95).toFixed(3));
+        const shadowOffX = (flight.x - window.innerWidth / 2) * 0.05;
+        const shadowOffY = 32 + shadowIntensity * 28;
+        shadow.style.transform = `translate3d(${shadowOffX.toFixed(1)}px, ${shadowOffY.toFixed(1)}px, 0) scale(${Math.max(0.65, 1.05 - shadowIntensity * 0.15).toFixed(3)})`;
+      }
 
       container.style.visibility = flight.opacity < 0.02 ? "hidden" : "visible";
 
@@ -733,6 +741,8 @@ export default function ModuleStack() {
 
   return (
     <div ref={containerRef} className="module-stack" aria-hidden="true">
+      {/* Real directional shadow cast onto the website and text when moving in front */}
+      <div ref={shadowRef} className="module-stack__shadow" aria-hidden="true" />
       {framesMissing ? (
         <>
           <LogoMark className="module-stack__canvas" />

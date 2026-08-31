@@ -11,12 +11,23 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: var(--bg-page-dark);
+  background: #000000;
   color: var(--text-on-dark);
   font-family: var(--font-body);
   font-size: var(--fs-base);
   line-height: var(--lh-normal);
   -webkit-font-smoothing: antialiased;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* Lenis owns the scroll; never let the browser fight it */
@@ -242,10 +253,23 @@ button { font: inherit; cursor: pointer; }
   align-items: center;
   height: var(--header-h);
   border-radius: var(--radius-full);
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.25),
+    0 0 24px rgba(38, 93, 255, 0.18);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+}
+
+.header__pill:hover {
+  border-color: rgba(76, 121, 255, 0.65);
+  box-shadow:
+    0 20px 45px rgba(0, 0, 0, 0.65),
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.35),
+    0 0 36px rgba(38, 93, 255, 0.35);
 }
 
 .header__pill--nav {
@@ -533,16 +557,42 @@ button { font: inherit; cursor: pointer; }
   backface-visibility: hidden;
 }
 
+/* Realistic volumetric occlusion shadow cast onto the page and text */
+.module-stack__shadow {
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse 65% 55% at 50% 50%,
+    rgba(0, 0, 0, 0.98) 0%,
+    rgba(0, 0, 0, 0.85) 35%,
+    rgba(0, 0, 0, 0.45) 60%,
+    transparent 78%
+  );
+  filter: blur(28px);
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+  transform-origin: center center;
+  z-index: -1;
+  transition: opacity 0.2s ease-out;
+}
+
 .module-stack__canvas {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(var(--shadow-art-lg));
+  filter:
+    drop-shadow(0 32px 50px rgba(0, 0, 0, 0.95))
+    drop-shadow(0 14px 22px rgba(0, 0, 0, 0.85))
+    drop-shadow(0 4px 8px rgba(0, 0, 0, 0.75));
   transition: filter var(--duration-fast) var(--ease-out);
 }
 
 .module-stack--landed .module-stack__canvas {
-  filter: none;
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.45));
 }
 
 /* Shown until the frame sequence is generated - see /studio */
@@ -582,20 +632,11 @@ button { font: inherit; cursor: pointer; }
   z-index: var(--z-field);
   pointer-events: none;
   overflow: hidden;
+  background: transparent;
 }
 
-/* Shards are confined to the page margins, outside the content container.
-   They were drifting behind the copy, and while they sit below it in the
-   stacking order, glyphs still ended up set over artwork - bar.md M7. */
-/* The ambient section tint. Very low alpha and a soft falloff: it has to shift
-   the ground's temperature between sections without ever becoming a shape you
-   notice, and without lifting the background enough to cost body-copy
-   contrast. */
 .field__wash {
-  position: absolute;
-  inset: 0;
-  opacity: 0.16;
-  transition: none;
+  display: none;
 }
 
 .field__shard {
@@ -608,13 +649,7 @@ button { font: inherit; cursor: pointer; }
 }
 
 .field__glow {
-  position: absolute;
-  border-radius: var(--radius-full);
-  background: var(--field-accent, var(--blue-700));
-  filter: blur(90px);
-  opacity: 0.5;
-  will-change: transform;
-  backface-visibility: hidden;
+  display: none;
 }
 
 /* ---------------------------------------------------------------
@@ -697,16 +732,51 @@ button { font: inherit; cursor: pointer; }
   margin-top: var(--space-3);
 }
 
-.hero__title-line--accent {
+.hero__word-wrap {
+  display: inline-block;
+  white-space: pre;
+}
+
+.hero__hover-word {
+  display: inline-block;
+  cursor: default;
+  pointer-events: auto;
+  transition:
+    transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+    text-shadow 0.35s ease,
+    color 0.35s ease,
+    filter 0.35s ease;
+  will-change: transform, text-shadow, filter;
+  transform-origin: center bottom;
+  position: relative;
+}
+
+.hero__hover-word:hover {
+  transform: translateY(-8px) scale(1.08) rotate(-1.5deg);
+  text-shadow:
+    0 0 24px rgba(96, 165, 250, 0.9),
+    0 0 48px rgba(244, 114, 182, 0.7),
+    0 10px 20px rgba(0, 0, 0, 0.8);
+  filter: brightness(1.25);
+  color: #ffffff;
+}
+
+.hero__hover-word--accent {
   background: linear-gradient(
     100deg,
-    var(--blue-500) 0%,
+    var(--blue-400) 0%,
     var(--magenta-500) 52%,
-    var(--coral-500) 100%
+    var(--coral-400) 100%
   );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  display: inline-block;
+}
+
+.hero__hover-word--accent:hover {
+  transform: translateY(-8px) scale(1.08) rotate(1.5deg);
+  filter: brightness(1.35) drop-shadow(0 0 20px rgba(250, 69, 146, 0.85));
 }
 
 .hero__actions {
@@ -817,10 +887,10 @@ button { font: inherit; cursor: pointer; }
 /* ---- The object ------------------------------------------------------- */
 
 .hero__art {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   pointer-events: none;
   z-index: 1;
   overflow: visible;
@@ -1199,32 +1269,13 @@ button { font: inherit; cursor: pointer; }
    image - inset negative so the sphere reads as surrounding the module
    instead of being clipped to its box. */
 .hero__art-particles {
-  position: absolute;
-  inset: -40%;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
   z-index: 1;
   pointer-events: none;
-
-  /* GONE BEFORE THE FLOW IS WHOLE.
-
-     The swarm belongs to the hero and scrolls away with it - but `inset: -40%`
-     means it reaches far outside `.hero__art`, so its lower edge trails 40% of
-     the artwork's height behind. Measured at the frame the last card seats:
-     `.hero__art` was long gone above the fold and this was still painting down
-     to y=188, over the top of a glass panel that starts at y=100 and out
-     around the header. The finished flow was sharing the viewport with the
-     hero's atmosphere.
-
-     Scrolling cannot fix that without moving the swarm off its own artwork, so
-     it fades instead - on the same --flow-t everything else in this transition
-     is timed from.
-
-     HELD AT FULL UNTIL t=0.35, then gone by 0.8. A straight ramp from t=0
-     started dimming the swarm the instant the reader touched the wheel -
-     measured 0.75 opacity at t=0.20, with the hero still 80% on screen and
-     still the thing being looked at. The hero keeps its atmosphere for as long
-     scroll. Zero at 0.8 is just before the flow completes at t=1, which reads
-     correctly too: the cards lift off the swarm, and it dissolves behind them
-     as they go. */
+  overflow: visible;
   opacity: 1;
 }
 
@@ -1257,6 +1308,21 @@ button { font: inherit; cursor: pointer; }
   transition: filter 0.25s ease;
 }
 
+/* Volumetric 3D drop shadow plane */
+.constellation-node__shadow {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translateZ(-20px);
+  border-radius: 26px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.5) 45%, transparent 70%);
+  filter: blur(14px);
+  pointer-events: none;
+  z-index: -1;
+}
+
 .constellation-node__glass {
   position: relative;
   width: 80px !important;
@@ -1268,18 +1334,22 @@ button { font: inherit; cursor: pointer; }
   align-items: center;
   justify-content: center;
   box-shadow:
-    0 16px 36px rgba(0, 0, 0, 0.45),
+    0 20px 42px rgba(0, 0, 0, 0.65),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.35),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.5),
     0 0 28px var(--node-glow, rgba(38, 93, 255, 0.28));
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transform-style: preserve-3d;
   transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 
 .constellation-node:hover .constellation-node__glass {
   border-color: var(--node-tint, rgba(38, 93, 255, 0.75));
   box-shadow:
-    0 24px 50px rgba(0, 0, 0, 0.6),
+    0 28px 56px rgba(0, 0, 0, 0.75),
+    inset 0 2px 3px rgba(255, 255, 255, 0.5),
     0 0 42px var(--node-glow, rgba(38, 93, 255, 0.55));
-  transform: scale(1.08);
+  transform: scale(1.08) translateZ(12px);
 }
 
 .constellation-node__icon {
@@ -1287,6 +1357,7 @@ button { font: inherit; cursor: pointer; }
   place-items: center;
   color: var(--node-tint, #ffffff);
   filter: drop-shadow(0 0 10px var(--node-glow, rgba(38, 93, 255, 0.5)));
+  transform: translateZ(16px);
 }
 
 .constellation-node__icon svg {
@@ -1375,14 +1446,7 @@ button { font: inherit; cursor: pointer; }
 
 /* Luminous ambient background bloom for Flow Section (Screen 2) */
 .flow-section::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 90% 65% at 50% 45%, rgba(38, 93, 255, 0.20) 0%, rgba(250, 69, 146, 0.12) 45%, transparent 75%),
-    radial-gradient(ellipse 60% 40% at 85% 60%, rgba(255, 106, 91, 0.10) 0%, transparent 60%);
-  pointer-events: none;
-  z-index: 0;
+  display: none;
 }
 
 .flow-section__container {
@@ -1479,17 +1543,7 @@ button { font: inherit; cursor: pointer; }
 }
 
 .hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(80% 60% at 50% 40%, rgba(38, 93, 255, 0.20) 0%, rgba(99, 102, 241, 0.12) 40%, transparent 70%),
-    linear-gradient(180deg,
-      rgba(4, 4, 12, 0.65) 0%,
-      rgba(4, 4, 12, 0.65) 58%,
-      rgba(4, 4, 12, 0) 100%);
+  display: none;
 }
 
 /* ---- Narrow ------------------------------------------------------------ */
@@ -1599,14 +1653,7 @@ button { font: inherit; cursor: pointer; }
 }
 
 .testimonials::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 85% 60% at 50% 50%, rgba(139, 92, 246, 0.16) 0%, rgba(38, 93, 255, 0.10) 45%, transparent 70%),
-    radial-gradient(ellipse 50% 35% at 90% 70%, rgba(250, 69, 146, 0.08) 0%, transparent 60%);
-  pointer-events: none;
-  z-index: 0;
+  display: none;
 }
 
 .testimonials__head {
@@ -1946,14 +1993,7 @@ button { font: inherit; cursor: pointer; }
 }
 
 .work-section::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 80% 55% at 50% 50%, rgba(38, 93, 255, 0.18) 0%, rgba(6, 182, 212, 0.12) 45%, transparent 70%),
-    radial-gradient(ellipse 50% 40% at 85% 65%, rgba(99, 102, 241, 0.10) 0%, transparent 60%);
-  pointer-events: none;
-  z-index: 0;
+  display: none;
 }
 
 .work-section .container {
@@ -2580,14 +2620,7 @@ button { font: inherit; cursor: pointer; }
 
 /* Luminous ambient background bloom for Method */
 .method-section::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 85% 60% at 50% 50%, rgba(250, 69, 146, 0.18) 0%, rgba(255, 106, 91, 0.12) 45%, transparent 75%),
-    radial-gradient(ellipse 50% 35% at 80% 30%, rgba(38, 93, 255, 0.12) 0%, transparent 60%);
-  pointer-events: none;
-  z-index: 0;
+  display: none;
 }
 
 .method__container {
@@ -3036,29 +3069,17 @@ button { font: inherit; cursor: pointer; }
 }
 
 /* ---------------------------------------------------------------
-   Our Work Showcase (Single Viewport, Left Carousel, Right White Card)
+   Our Work Showcase (6 Floating Refractive Glass 3D Cards)
    --------------------------------------------------------------- */
 .our-work-section {
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding-block: var(--space-8) var(--space-12);
   position: relative;
   z-index: var(--z-content);
-  margin-top: 0;
-  overflow: hidden;
+  padding-block: clamp(var(--space-12), 6vh, var(--space-20));
+  overflow: visible;
 }
 
 .our-work-section::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 80% 55% at 50% 50%, rgba(38, 93, 255, 0.16) 0%, rgba(16, 185, 129, 0.10) 45%, transparent 70%),
-    radial-gradient(ellipse 45% 35% at 15% 30%, rgba(99, 102, 241, 0.10) 0%, transparent 60%);
-  pointer-events: none;
-  z-index: 0;
+  display: none;
 }
 
 .our-work__container {
@@ -3067,197 +3088,180 @@ button { font: inherit; cursor: pointer; }
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-8);
 }
 
 .our-work__head {
-  flex: 0 0 auto;
-  margin-bottom: var(--space-2);
+  max-width: 860px;
 }
 
-.our-work__lede {
-  max-width: 52ch;
-  line-height: 1.45;
-  margin-top: var(--space-2);
-  color: var(--text-on-dark-secondary);
-}
-
-.our-work__grid-layout {
+.our-work__cards-grid {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: clamp(var(--space-6), 3vw, var(--space-10));
-  align-items: center;
-  flex: 1 1 auto;
-  min-height: 0;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: clamp(24px, 2.5vw, 36px);
+  row-gap: clamp(40px, 4vw, 64px);
+  width: 100%;
+  padding-bottom: 40px;
 }
 
-.our-work__carousel-pane {
-  position: relative;
+@media (min-width: 1121px) {
+  .our-work__slot--0 { margin-top: 0px; }
+  .our-work__slot--1 { margin-top: 54px; }
+  .our-work__slot--2 { margin-top: -18px; }
+  .our-work__slot--3 { margin-top: 20px; }
+  .our-work__slot--4 { margin-top: 72px; }
+  .our-work__slot--5 { margin-top: 8px; }
+}
+
+@media (max-width: 1120px) and (min-width: 721px) {
+  .our-work__cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    row-gap: 48px;
+  }
+  .our-work__slot--1,
+  .our-work__slot--3,
+  .our-work__slot--5 {
+    margin-top: 42px;
+  }
+}
+
+@media (max-width: 720px) {
+  .our-work__cards-grid {
+    grid-template-columns: 1fr;
+    row-gap: 32px;
+  }
+}
+
+/* Equisized Ultra-Transparent Glass 3D Cards */
+.our-work__glass-card {
   width: 100%;
   height: 100%;
-  max-height: 440px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.our-work__details-pane {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.our-work__white-card {
-  background: rgba(10, 18, 46, 0.55);
-  color: var(--text-on-dark);
-  border-radius: clamp(18px, 2.5vw, 26px);
-  padding: clamp(var(--space-6), 3.2vw, var(--space-10));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.5),
-    0 4px 16px rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--glass-border);
+  min-height: auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  border-radius: 24px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.015);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.65),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.22),
+    0 0 24px rgba(38, 93, 255, 0.12);
+  transition:
+    border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: visible;
+  position: relative;
 }
 
-.our-work__card-header {
+.group\/card:hover .our-work__glass-card,
+.our-work__glass-card:hover {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(76, 121, 255, 0.65);
+  box-shadow:
+    0 30px 65px rgba(0, 0, 0, 0.8),
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.4),
+    0 0 42px rgba(38, 93, 255, 0.35);
+}
+
+.our-work__image-wrapper {
+  width: 100%;
+  position: relative;
+  overflow: visible;
+  z-index: 10;
+}
+
+.our-work__image-box {
+  position: relative;
+  width: 100%;
+  height: 195px;
+  border-radius: 16px;
+  overflow: visible;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #000000;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7);
+  transition: box-shadow 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.our-work__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 16px;
+  transition:
+    transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.45s ease,
+    filter 0.45s ease;
+  will-change: transform, box-shadow;
+}
+
+/* Hover: Image expands and pops beyond card frame in 3D parallax */
+.group\/card:hover .our-work__image {
+  transform: scale(1.14) translateY(-6px);
+  box-shadow:
+    0 24px 45px rgba(0, 0, 0, 0.95),
+    0 0 35px rgba(38, 93, 255, 0.35);
+  filter: brightness(1.08) contrast(1.05);
+}
+
+.our-work__image-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.6) 100%);
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.group\/card:hover .our-work__image-overlay {
+  opacity: 0.3;
+}
+
+.our-work__content-box {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-
-.our-work__category-badge {
-  font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: var(--fw-bold);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--blue-400);
-  background: rgba(38, 93, 255, 0.15);
-  border: 1px solid rgba(38, 93, 255, 0.35);
-  padding: 4px 12px;
-  border-radius: 999px;
-}
-
-.our-work__industry-tag {
-  font-size: var(--fs-xs);
-  color: var(--text-on-dark-muted);
-  font-weight: var(--fw-medium);
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .our-work__card-title {
   font-family: var(--font-display);
-  font-size: clamp(20px, 2vw, 26px);
+  font-size: clamp(18px, 1.3vw, 21px);
   font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-tight);
-  line-height: var(--lh-snug);
+  line-height: var(--lh-tight);
   color: var(--text-on-dark);
   margin: 0;
 }
 
 .our-work__card-desc {
   font-family: var(--font-body);
-  font-size: var(--fs-sm);
-  line-height: var(--lh-relaxed);
-  color: var(--text-on-dark-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.65);
   margin: 0;
-}
-
-.our-work__impact-card {
-  background: linear-gradient(135deg, rgba(38, 93, 255, 0.12) 0%, rgba(250, 69, 146, 0.12) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-md, 14px);
-  padding: var(--space-4) var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.our-work__impact-label {
-  font-family: var(--font-body);
-  font-size: 10px;
-  font-weight: var(--fw-bold);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--coral-400);
-}
-
-.our-work__impact-text {
-  font-family: var(--font-body);
-  font-size: 12.5px;
-  font-weight: var(--fw-semibold);
-  color: var(--text-on-dark);
-  line-height: 1.35;
-  margin: 0;
-}
-
-.our-work__features-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.our-work__feature-item {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 12px;
-  font-weight: var(--fw-medium);
-  color: var(--text-on-dark-secondary);
-}
-
-.our-work__feature-check {
-  display: grid;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: rgba(34, 197, 94, 0.2);
-  color: #4ade80;
-  font-size: 10px;
-  font-weight: bold;
-  flex-shrink: 0;
 }
 
 .our-work__tags-row {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
   flex-wrap: wrap;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%;
+  margin-top: var(--space-2);
 }
 
 .our-work__tag-pill {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: var(--fw-medium);
-  color: var(--text-on-dark-secondary);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 2px 8px;
-  border-radius: 5px;
-}
-
-@media (max-width: 900px) {
-  .our-work-section {
-    height: auto;
-    min-height: auto;
-    max-height: none;
-    padding-block: var(--space-12);
-  }
-
-  .our-work__grid-layout {
-    grid-template-columns: 1fr;
-    gap: var(--space-8);
-  }
-
-  .our-work__carousel-pane {
-    height: 340px;
-  }
+  color: #93c5fd;
+  background: rgba(38, 93, 255, 0.12);
+  border: 1px solid rgba(38, 93, 255, 0.28);
+  padding: 3px 9px;
+  border-radius: 6px;
 }
 
 /* ---------------------------------------------------------------
@@ -3307,9 +3311,11 @@ button { font: inherit; cursor: pointer; }
    Redesigned Site Footer (Full Bleed)
    --------------------------------------------------------------- */
 .site-footer {
+  position: relative;
+  z-index: var(--z-content);
   width: 100%;
-  background: #060b18;
-  border-top: none;
+  background: #000000;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-block: clamp(var(--space-8), 4vw, var(--space-12));
   margin-top: 0;
   color: var(--text-on-dark-secondary);
