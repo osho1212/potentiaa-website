@@ -34,15 +34,39 @@ export const site = {
     whatsapp: "",
   },
 
+  /**
+   * THE HERO LEADS WITH THE CATEGORY NOW, not with the insight.
+   *
+   * It used to open on "Your business already has a system. It just isn't
+   * connected." That is the best line on the site and it has not been thrown
+   * away - it moves to `support` below, where it does the job it is actually
+   * good at: naming the reader's problem once they know who is talking.
+   *
+   * What it could not do was answer "what is this company". A visitor arriving
+   * cold could not tell whether Potentiaa sells software they log into, a team
+   * that builds software, or consulting - the title tag said billing and
+   * inventory, the offerings said custom internal tools, the footer added
+   * websites and mobile apps. The eyebrow and H1 below settle that in the first
+   * two lines a reader sees.
+   *
+   * `assurances` are capability statements, not outcomes, and each one has to
+   * be true of the actual offer. No metric, no percentage, no promise of a
+   * result. If one of these stops being true, delete it rather than soften it.
+   */
   hero: {
-    /* The headline breaks across four lines by design - the last two carry the
-       gradient, so they are held separately rather than being found by a
-       word count at render time. */
-    titleLead: ["Your business", "already has a system."],
-    titleAccent: ["It just isn't", "connected."],
-    primary: "Explore Solutions",
+    eyebrow: "Operational software for growing businesses",
+    /* Two lines by design at desktop widths; the break is not load-bearing, so
+       this is a single string and the type scale is free to re-wrap it. */
+    title: "Run your business from one connected system.",
+    body: "Potentiaa builds tailored billing, inventory, workflow and management software that replaces scattered registers, spreadsheets and WhatsApp handoffs.",
+    support: "Your business already has a system. It just isn't connected.",
+    primary: "Book a workflow audit",
     secondary: "See how it works",
-    hint: ["Move your mouse", "to explore"],
+    assurances: [
+      "Built around your workflow",
+      "Works on phone and desktop",
+      "Implementation and ongoing support",
+    ],
   },
 
   /**
@@ -53,7 +77,7 @@ export const site = {
    * enquiry enters at `Customer` and the answer is wanted back at `Owner`,
    * and the whole point of the section is that today it travels that far by
    * hand. The cards are tinted along the brand ramp by their index, so first
-   * is deep blue and last is coral - see lib/heroParticles sampleGradientCss,
+   * is deep blue and last is coral - see lib/brandGradient sampleGradientCss,
    * which is the same ramp the particles themselves are coloured from.
    *
    * `note` is set in the mono face deliberately: it is the artefact the step

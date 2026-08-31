@@ -1,0 +1,87 @@
+/* =====================================================================
+   Scanner - WebGL signal-scan field, from React Bits (reactbits.dev).
+   Paired with components/Scanner.tsx.
+
+   Imported from app/globals.css with the other sheets rather than from the
+   component file: Next's App Router restricts plain-CSS imports, and every
+   other style on this site is reached that way.
+   ===================================================================== */
+
+.scanner-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* THE HERO'S BACKGROUND LAYER.
+
+   Out of flow on purpose, and that is what makes the fallback swap free of
+   layout shift: `.hero` takes its height from `min-height: 100svh` and its own
+   padding, never from this element. So the only question is whether this box
+   paints, never whether it exists. The shader and the static fallback occupy
+   the identical rectangle.
+
+   pointer-events: none so it never takes a click from the headline's buttons.
+   Scanner's own pointer tracking listens on the window for exactly that reason
+   - see the note in the component. */
+.hero__scanner,
+.hero__scanner-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Masked at the bottom edge so the field dissolves into the page ground
+   instead of ending on a hard horizontal line where the section stops. */
+.hero__scanner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 55%,
+    var(--midnight-950) 100%
+  );
+}
+
+/* WHAT RENDERS WHEN THE SHADER CANNOT.
+
+   Reached four ways - no WebGL, a renderer that threw, a context lost twice, or
+   reduced motion - and it looks the same in all four, so the hero has one
+   degraded appearance rather than four.
+
+   Pure CSS: two radial washes in the brand accents over the page ground, plus
+   the same bottom dissolve the live layer uses. No image request and no
+   JavaScript, because a fallback with dependencies can fail the way the thing
+   it replaces did.
+
+   It is not trying to imitate the scan bands. A still frame of a sweep reads as
+   a broken animation; an ambient wash reads as a deliberate ground. */
+.hero__scanner-fallback {
+  background:
+    radial-gradient(
+      70% 55% at 22% 18%,
+      color-mix(in srgb, var(--blue-700) 42%, transparent) 0%,
+      transparent 68%
+    ),
+    radial-gradient(
+      60% 50% at 82% 30%,
+      color-mix(in srgb, var(--coral-700) 24%, transparent) 0%,
+      transparent 66%
+    ),
+    linear-gradient(to bottom, transparent 55%, var(--midnight-950) 100%);
+}
+
+@supports not (color: color-mix(in srgb, red 50%, transparent)) {
+  /* Same two washes, pre-mixed. color-mix is widely supported but this layer is
+     specifically the path for old and unusual browsers, so it may not assume it. */
+  .hero__scanner-fallback {
+    background:
+      radial-gradient(70% 55% at 22% 18%, rgba(18, 63, 204, 0.42) 0%, transparent 68%),
+      radial-gradient(60% 50% at 82% 30%, rgba(226, 74, 63, 0.24) 0%, transparent 66%),
+      linear-gradient(to bottom, transparent 55%, var(--midnight-950) 100%);
+  }
+}

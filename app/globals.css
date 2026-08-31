@@ -2,6 +2,7 @@
 @import "../styles/motion.css";
 @import "../styles/glass-surface.css";
 @import "../styles/drift-wall.css";
+@import "../components/Scanner.css";
 
 /* ---------------------------------------------------------------
    Reset & base
@@ -667,27 +668,27 @@ button { font: inherit; cursor: pointer; }
   padding-block: calc(var(--space-20) + var(--space-6)) var(--space-8);
 }
 
+/* ONE CENTRED COLUMN, because there is no second thing in the fold.
+
+   This was `minmax(0, 34rem) minmax(0, 1fr)` - copy left, module render right -
+   with asymmetric padding overrides reserving up to 500px on the right for the
+   art. All of that is gone with the art. Centred is the composition the hero
+   actually has now: a background with no subject, one block of type, and six
+   cubes orbiting it. Anything left-aligned leaves the ring lopsided, because it
+   has to be centred on something and the copy is the only thing in frame.
+
+   The asymmetric `!important` overrides are deliberately NOT replaced. They
+   existed to reserve the art's column; with them gone the hero takes the
+   standard container gutters like every other section, which is also what stops
+   the copy and the orbit disagreeing about where centre is. */
 .hero__grid {
   position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 34rem) minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-8);
+  grid-template-columns: minmax(0, 46rem);
+  justify-content: center;
+  align-content: center;
   width: 100%;
-}
-
-@media (min-width: 1280px) {
-  .hero__grid.container {
-    padding-left: 100px !important;
-    padding-right: 500px !important;
-  }
-}
-
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .hero__grid.container {
-    padding-left: clamp(40px, 5vw, 80px) !important;
-    padding-right: clamp(140px, 18vw, 280px) !important;
-  }
 }
 
 @media (max-width: 1023px) {
@@ -698,19 +699,71 @@ button { font: inherit; cursor: pointer; }
 
 .hero__copy {
   display: grid;
-  justify-items: start;
-  /* Only one gap left in this grid since the eyebrow and lede came out -
-     between the title and the actions row - so this is scoped to exactly
-     that one boundary rather than several. Widened for more breathing room
-     below "connected." before the buttons. */
-  gap: var(--space-8);
-  /* Over the artwork, which bleeds left behind it. */
+  justify-items: center;
+  text-align: center;
+  gap: var(--space-6);
   position: relative;
   z-index: 1;
 }
 
+.hero__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--tracking-wide);
+  color: var(--blue-300);
+  margin: 0;
+}
+
+/* The body sits between the headline and the buttons and is the first place a
+   reader learns what is actually built. Held to a readable measure rather than
+   the full 46rem column - display type can run wide, reading copy cannot. */
+.hero__body {
+  max-width: 40rem;
+  font-size: var(--fs-md);
+  line-height: var(--lh-relaxed);
+  color: var(--text-on-dark-secondary);
+  margin: 0;
+}
+
+/* Capability statements under the CTAs. A row on desktop, a stack on a phone,
+   with a hairline separating them rather than a bullet - these are assurances,
+   not a list of features, and dots would make them read as the latter. */
+.hero__assurances {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3) var(--space-6);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hero__assurance {
+  position: relative;
+  font-size: var(--fs-sm);
+  color: var(--text-on-dark-muted);
+}
+
+.hero__assurance + .hero__assurance::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--space-3) * -1);
+  top: 50%;
+  width: 1px;
+  height: 1em;
+  transform: translateY(-50%);
+  background: var(--border-on-dark);
+}
+
+@media (max-width: 560px) {
+  /* The separators are meaningless once the row wraps to a column. */
+  .hero__assurance + .hero__assurance::before { display: none; }
+}
+
 .hero__title {
-  display: grid;
+  max-width: 20ch;
+  text-wrap: balance;
   font-family: var(--font-display);
   /* Set explicitly rather than inherited from the h1 rule. This originally
      existed because a second, cloned copy of the page rendered the title as a
@@ -740,41 +793,22 @@ button { font: inherit; cursor: pointer; }
   color: var(--text-on-dark);
 }
 
-.hero__title-line { display: block; }
+/* The per-line spans and their gradient are gone with the old headline.
 
-/* A break between the lead lines and the accent lines - the two read as
-   separate statements ("...a system." / "It just isn't connected.") and were
-   sitting on bare line-height with no air between them.
-   Not :first-of-type: every line here is a <span>, so "first of type" among
-   siblings is the very first lead line, which never carries this class - the
-   selector would silently match nothing. This targets the first accent line
-   specifically, by requiring its immediately preceding sibling to lack the
-   accent class - true only at the group boundary, not between the two accent
-   lines themselves. */
-.hero__title-line:not(.hero__title-line--accent) + .hero__title-line--accent {
-  margin-top: var(--space-6);
-}
-
-/* The gradient is per LINE, not across the block.
-   background-clip: text clips to an element's own text, and each line is its
-   own span - so the ramp restarts on each of them, which is what the reference
-   does and what keeps "connected." from ending mid-orange. */
-.hero__title-line--accent {
-  background: linear-gradient(
-    100deg,
-    var(--blue-500) 0%,
-    var(--magenta-500) 52%,
-    var(--coral-500) 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
+   The H1 was four <span>s - two lead lines and two "accent" lines carrying a
+   blue -> magenta -> coral ramp through background-clip: text. Two reasons it
+   did not survive the rewrite. Structurally, the new headline is one sentence
+   and the type scale is free to wrap it, so there are no hand-authored lines to
+   style. And a three-hue sweep through magenta across the largest type on the
+   site is what made the mark's own gradient the loudest thing in the fold -
+   which is the "logo-centric" note, stated as plainly as a page can state it.
+   The headline is set in one colour now; the accent moved to the eyebrow. */
 
 .hero__actions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
+  justify-content: center;
   gap: var(--space-6);
 }
 
@@ -1398,20 +1432,53 @@ button { font: inherit; cursor: pointer; }
    forward. */
 .flow-stage__pin--over { z-index: 11; }
 
-/* The swarm and the cards' resting box - `.hero__art`'s, so they sit exactly
-   where they did when they were children of it.
+/* THE FLOW CARDS' ORBIT BOX. This rule is its single source of truth.
 
-   Position and size are set from JS, by MEASURING `.hero__art` rather than by
-   restating its layout here. Its box is the product of a container width, a
-   grid column, `justify-self: end`, two negative margins and a transform, all
-   of which change at two breakpoints - a second copy of that arithmetic was
-   written first and landed 221px left and 381px high of the real thing. The
-   measured box cannot drift, because it is the real thing.
+   It used to be written from JS, by measuring `.hero__art` and copying its rect
+   into inline styles. That was correct while the art existed - its box came out
+   of a container width, a grid column, `justify-self: end`, two negative
+   margins and a transform across two breakpoints, and a hand-copied version of
+   that arithmetic landed 221px out.
 
-   The measurement is one rect read per resize, not per frame. Reading the
-   TRANSFORMED box is deliberate: `.hero__art` carries a scale(0.9), and the
-   children's percentage insets compound with it identically either way. */
-.flow-stage__art { position: absolute; }
+   The art is gone: the hero is centred copy over a scan field. So the box is
+   declared, which it can be now, because this is a plain inset rectangle with
+   no arithmetic to get wrong.
+
+   CENTRED, because the copy is centred and the cubes ring it. The ring must not
+   cross the headline, and that constraint is NOT enforced here - this rule says
+   where the orbit may go; HeroLabels solves where within it the cubes actually
+   sit, against the measured copy block.
+
+   `min-height` is a floor, not a preference. The orbits run to nearly half the
+   box from its centre, so a short landscape phone that resolves this height to
+   almost nothing would pile all six cubes on one point. FlowStage carries a
+   dev-only assertion for exactly that case. */
+.flow-stage__art {
+  position: absolute;
+  left: var(--space-6);
+  right: var(--space-6);
+  top: calc(var(--header-h) + var(--space-6));
+  height: calc(100svh - var(--header-h) - var(--space-10));
+  min-height: 420px;
+}
+
+/* The orbit maths reads THIS element's client box, so the two must agree.
+   .hero__labels carries a negative inset of its own (see its rule) so the
+   constellation could swing wider than the art it circled - which was harmless
+   when that art sat mid-column with viewport either side, and is not harmless
+   now that the box is already inset to the gutters, where the overflow simply
+   leaves the screen. Zeroed here only; the negative inset stays correct for any
+   other context that mounts the component. */
+.flow-stage__art .hero__labels {
+  inset: 0;
+}
+
+@media (max-width: 1023px) {
+  .flow-stage__art {
+    left: var(--space-4);
+    right: var(--space-4);
+  }
+}
 
 /* The glass the flow lands on.
 

@@ -194,41 +194,54 @@ export default function FlowStage() {
   const liveCardsRef = useRef<LiveCardState[]>([]);
 
   /**
-   * Park the pinned art on `.hero__art`'s box by measuring it.
+   * THE ORBIT BOX IS DECLARED IN CSS NOW, not measured here.
    *
-   * Not by restating its layout in CSS: that box is the product of a container
+   * What used to live here: an effect that read `.hero__art`'s rect and wrote
+   * left/top/width/height onto `.flow-stage__art` in inline styles. That was
+   * the right call at the time - the art's box was the product of a container
    * width, a grid column, `justify-self: end`, two negative margins and a
-   * transform, all of which move at two breakpoints. A hand-copied version of
-   * that arithmetic was written first and landed 221px left and 381px high of
-   * the real element. Measuring cannot drift.
+   * transform across two breakpoints, and a hand-copied version of that
+   * arithmetic landed 221px out.
    *
-   * Both boxes scroll together, so the difference between their rects is a
-   * layout constant - it only changes on resize, never on scroll.
+   * It is the wrong call now for a blunt reason: `.hero__art` no longer exists.
+   * The hero is centred copy over a scan field, and there is nothing left to
+   * measure.
+   *
+   * Worse than useless, in fact. The effect began `if (!heroArt || ...) return;`
+   * - a SILENT early return. With the art gone it did not throw and did not
+   * warn; it simply left `.flow-stage__art` at whatever the stylesheet said,
+   * which was `position: absolute` and nothing else, so the box collapsed to
+   * 0x0 and all six cubes stacked on a single point. A failure that says
+   * nothing is worse than one that crashes.
+   *
+   * So the box is a stated thing: see `.flow-stage__art` in globals.css, which
+   * is now its single source of truth. The dev-only assertion below is what
+   * replaces the silence - if the box ever measures zero again, it says so by
+   * name.
    */
   useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
     const stage = stageRef.current;
     if (!stage) return;
 
-    const heroArt = stage.querySelector<HTMLElement>(".hero__art");
-    const artLayers = stage.querySelectorAll<HTMLElement>(".flow-stage__art");
-    if (!heroArt || artLayers.length === 0) return;
-
-    const place = () => {
-      const s = stage.getBoundingClientRect();
-      const a = heroArt.getBoundingClientRect();
-      artLayers.forEach((layer) => {
-        layer.style.left = `${a.left - s.left}px`;
-        layer.style.top = `${a.top - s.top}px`;
-        layer.style.width = `${a.width}px`;
-        layer.style.height = `${a.height}px`;
+    const check = () => {
+      stage.querySelectorAll<HTMLElement>(".flow-stage__art").forEach((layer) => {
+        const r = layer.getBoundingClientRect();
+        if (r.width < 1 || r.height < 1) {
+          console.error(
+            "[FlowStage] .flow-stage__art measured %dx%d. The flow cards orbit " +
+              "inside this box, so at zero they will all stack on one point. " +
+              "Its size comes from the .flow-stage__art rule in app/globals.css.",
+            Math.round(r.width),
+            Math.round(r.height),
+          );
+        }
       });
     };
 
-    place();
-    const observer = new ResizeObserver(place);
-    observer.observe(stage);
-    observer.observe(heroArt);
-    return () => observer.disconnect();
+    // After layout, not during it.
+    const id = requestAnimationFrame(check);
+    return () => cancelAnimationFrame(id);
   }, []);
 
   useEffect(() => {

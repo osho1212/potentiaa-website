@@ -41,6 +41,20 @@ const HOVER_SCALE = 1.08;
 /** How much of the scroll each card waits before it leaves its orbit. */
 const STAGGER = 0.08;
 
+/**
+ * How far the innermost orbit clears the hero copy.
+ *
+ * K is geometry, not taste: an ellipse whose semi-axes equal a rectangle's
+ * half-extents passes through the rectangle and cuts its corners off, so
+ * containing it requires scaling those axes by sqrt(2). 1.46 is that, with a
+ * little over so the corners are cleared rather than grazed.
+ *
+ * PAD is the design half. sqrt(2) alone makes the ring tangent to the copy's
+ * corners, and tangent reads as touching. This is the gap.
+ */
+const KEEPOUT_K = 1.46;
+const KEEPOUT_PAD = 26;
+
 /** Smoothstep ease. */
 function ease(x: number): number {
   const c = Math.max(0, Math.min(1, x));
@@ -153,6 +167,9 @@ export default function HeroLabels({
 
     const pin = container.closest<HTMLElement>(".flow-stage__pin");
 
+    /** The hero copy's half-extents about this container's centre, or null. */
+    let keepOut: { hw: number; hh: number } | null = null;
+
     const measure = () => {
       boxW = container.clientWidth;
       boxH = container.clientHeight;
@@ -166,6 +183,32 @@ export default function HeroLabels({
       container.style.setProperty("--card-w", `${CUBE.w}px`);
       container.style.setProperty("--card-h", `${CUBE.h}px`);
       container.style.setProperty("--card-radius", `${CUBE.radius}px`);
+
+      /**
+       * The hero copy, as half-extents about THIS container's centre.
+       *
+       * The ring has to enclose the headline without crossing it, and the two
+       * boxes are centred by different means - the copy by a centred grid
+       * column inside .container's gutters, this by absolute insets on the pin.
+       * They agree to within a few pixels, not exactly, so taking the LARGER
+       * distance on each axis means the keep-out still covers the copy when the
+       * centres differ.
+       *
+       * One read per resize. The copy does not move on scroll; the ring is
+       * recomputed every frame from these numbers, but they are not re-read.
+       */
+      const copy = document.querySelector<HTMLElement>(".hero__copy");
+      if (copy) {
+        const cr = copy.getBoundingClientRect();
+        const cx = c.left + c.width / 2;
+        const cy = c.top + c.height / 2;
+        keepOut = {
+          hw: Math.max(Math.abs(cr.left - cx), Math.abs(cr.right - cx)),
+          hh: Math.max(Math.abs(cr.top - cy), Math.abs(cr.bottom - cy)),
+        };
+      } else {
+        keepOut = null;
+      }
     };
 
     const seat = (i: number) => {
@@ -180,9 +223,45 @@ export default function HeroLabels({
       const releaseY = flow ? flow.releaseY : 0;
       const window_ = Math.max(0.01, 1 - STAGGER * (count - 1));
 
-      // Orbit scales with viewport so the constellation fits on phones without
-      // crashing into the hero copy or flying off screen.
-      const orbitScale = Math.min(boxW, boxH) < 600 ? 0.72 : 1;
+      /**
+       * A RING AROUND THE COPY, solved rather than authored.
+       *
+       * The cards used to ride six hand-placed ellipses with different centres,
+       * sized by a two-value breakpoint scale (`< 600 ? 0.72 : 1`). That was
+       * right when they orbited the hero art off to one side. The hero is
+       * centred copy over a scan field now, so the constellation has to ring the
+       * headline - and must never cross it.
+       *
+       * Both bounds are measured, so this holds at any viewport:
+       *
+       *   INNER  the smallest ellipse that fully contains the copy block. An
+       *          ellipse whose semi-axes equal a rectangle's half-extents passes
+       *          THROUGH the rectangle and cuts its corners; containing it needs
+       *          those axes scaled by sqrt(2). KEEPOUT_K is that, with a little
+       *          over, and KEEPOUT_PAD keeps the cubes off the text rather than
+       *          tangent to it.
+       *   OUTER  the largest ellipse that keeps a whole cube inside the box.
+       *
+       * Each card sits on its own ellipse spread across that band, so they read
+       * as a constellation at different depths rather than one flat ring -
+       * which is what the varied hand-authored ellipses used to buy.
+       *
+       * If the copy is large enough that INNER would exceed OUTER, inner is
+       * clamped beneath it: the band collapses toward the outer edge and the
+       * cards stay on screen. Overlap is possible only in that degenerate case,
+       * which is a viewport too small to hold both.
+       */
+      const halfW = boxW / 2;
+      const halfH = boxH / 2;
+      const outerA = Math.max(40, halfW - CUBE.w / 2 - 4);
+      const outerB = Math.max(40, halfH - CUBE.h / 2 - 4);
+
+      let innerA = outerA * 0.45;
+      let innerB = outerB * 0.45;
+      if (keepOut) {
+        innerA = Math.min(outerA * 0.92, keepOut.hw * KEEPOUT_K + KEEPOUT_PAD);
+        innerB = Math.min(outerB * 0.92, keepOut.hh * KEEPOUT_K + KEEPOUT_PAD);
+      }
 
       for (let i = 0; i < count; i++) {
         const el = cardRefs.current[i];
@@ -195,10 +274,19 @@ export default function HeroLabels({
         const u = i / count + (dir * time) / timing.duration;
         const phi = u * Math.PI * 2;
 
-        const orbitX =
-          (orbit.cx - 0.5) * boxW + orbit.rx * boxW * orbitScale * Math.sin(phi);
-        const orbitY =
-          (orbit.cy - 0.5) * boxH - orbit.ry * boxH * orbitScale * Math.cos(phi) + offsetY;
+        // Where this card sits across the band: 0 hugging the copy, 1 at the
+        // edge. `orbit.rx` still supplies the per-card variation, now as a
+        // position in the band rather than an ellipse of its own.
+        const depth = count > 1 ? i / (count - 1) : 0;
+        const band = Math.max(
+          0,
+          Math.min(1, depth * 0.82 + 0.09 + (orbit.rx - 0.42) * 0.6),
+        );
+        const ax = innerA + (outerA - innerA) * band;
+        const by = innerB + (outerB - innerB) * band;
+
+        const orbitX = ax * Math.sin(phi);
+        const orbitY = -by * Math.cos(phi) + offsetY;
 
         let x = orbitX;
         let y = orbitY;
