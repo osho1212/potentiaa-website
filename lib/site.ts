@@ -1,14 +1,13 @@
 /**
  * Site content.
  *
- * Copy targeted directly at small-to-medium business owners (ICP):
- * - Focuses on eliminating paper registers and manual data entry.
- * - Live visibility into revenue, expenses, and stock from mobile/PC.
- * - Seamless handoff between staff without constant phone calls or WhatsApp.
- * - Fast modern websites and digital tools to scale with minimal management overhead.
+ * Ultra-minimal, visual-first copy tailored for non-technical small business owners:
+ * - 1-line punchy value props
+ * - Crisp "Problem -> Fix" structure
+ * - No paragraphs or filler text
  */
 
-const STOP_RUNNING_ON_PAPER = "Stop running your business on memory, calls, and paper.";
+const ZERO_PAPERWORK_HEADLINE = "One order. Six steps. Zero paperwork.";
 
 export const site = {
   name: "Potentiaa",
@@ -20,73 +19,71 @@ export const site = {
   },
 
   hero: {
-    titleLead: ["Run your entire business", "without the paperwork."],
-    titleAccent: ["Custom software & dashboards", "built for your workflow."],
+    titleLead: ["Run your business", "without paperwork."],
+    titleAccent: ["One live dashboard.", "Zero chaos."],
     primary: "Book a Free Call",
-    secondary: "See how it works",
+    secondary: "See How It Works",
     hint: ["Move your mouse", "to explore"],
   },
 
   /**
-   * The flow cards - the journey an order takes across your business.
-   * Demonstrates how operations seamlessly connect from customer to owner.
+   * The 6 flow stages - short 2-3 word badges representing the live operational pipeline.
    */
   flow: [
-    { title: "Customer", note: "places order / enquiry" },
-    { title: "Front Desk", note: "logs it once on screen" },
-    { title: "Team & Staff", note: "sees job & executes" },
-    { title: "Stock & Store", note: "inventory auto-updates" },
-    { title: "Billing", note: "1-click GST invoice sent" },
-    { title: "Owner", note: "live profit & sales report" },
+    { title: "Customer", note: "Order placed" },
+    { title: "Front Desk", note: "Logged on screen" },
+    { title: "Team & Staff", note: "Job assigned" },
+    { title: "Stock", note: "Auto-synced" },
+    { title: "Billing", note: "1-click GST bill" },
+    { title: "Owner", note: "Live profit report" },
   ],
 
-  /** The section the flow cards settle into as the hero scrolls away. */
   flowSection: {
-    eyebrow: "The Daily Bottleneck",
-    title: STOP_RUNNING_ON_PAPER,
-    body: "When an order arrives, it shouldn't take four phone calls, handwritten notebooks, and WhatsApp messages just to get it done. We connect your entire team on one simple screen.",
+    eyebrow: "The Bottleneck",
+    title: ZERO_PAPERWORK_HEADLINE,
+    body: "No phone calls, handwritten registers, or WhatsApp confusion. One simple screen from order to profit.",
   },
 
   intro: {
-    eyebrow: "Common Frustrations",
-    title: "Do any of these sound familiar?",
-    punchline: "You don't need complex IT. You just need a system that does the routine work for you.",
+    eyebrow: "Daily Headaches",
+    title: "Sound familiar?",
+    punchline: "Replace daily guesswork with instant clarity on your phone.",
     problems: [
       {
         index: "01",
-        quote: "“I have to call 3 different people just to know today's sales.”",
-        diagnosis: "One live dashboard on your phone showing today's revenue, pending orders, and cash flow.",
+        quote: "“I call 3 people to check today's sales.”",
+        diagnosis: "Live revenue, expenses, and cashflow on your phone.",
       },
       {
         index: "02",
-        quote: "“We write it in a register first, then type it into a computer later.”",
-        diagnosis: "Enter data once. Invoices, stock counts, and customer records update across all screens instantly.",
+        quote: "“We write in a notebook, then type it later.”",
+        diagnosis: "Enter once. Invoices and stock update everywhere instantly.",
       },
       {
         index: "03",
-        quote: "“If my key manager is absent, work comes to a complete halt.”",
-        diagnosis: "Your business procedures and customer records stay organized centrally so anyone can step in.",
+        quote: "“If one key person is absent, work stops.”",
+        diagnosis: "Central records so any team member can step in.",
       },
       {
         index: "04",
-        quote: "“Stock is missing or we order items we already have in the back.”",
-        diagnosis: "Live inventory alerts whenever an item is sold, transferred, or runs low.",
+        quote: "“Warehouse stock never matches our books.”",
+        diagnosis: "Real-time inventory alerts on every sale or dispatch.",
       },
       {
         index: "05",
-        quote: "“Staff spend half their day forwarding WhatsApp messages and papers.”",
-        diagnosis: "Automatic task handoffs between front-desk, field workers, and accounts without endless calls.",
+        quote: "“Staff waste hours in WhatsApp groups.”",
+        diagnosis: "Automatic job handoffs between staff without calls.",
       },
       {
         index: "06",
-        quote: "“Calculating monthly profit and expense takes days of spreadsheet work.”",
-        diagnosis: "Automated daily P&L reports and expense summaries ready with a single click.",
+        quote: "“Monthly profit takes days to calculate.”",
+        diagnosis: "1-click daily P&L and expense summaries.",
       },
     ],
   },
 
   /**
-   * Offerings: "What We Build" (tools) and "Who We Help" (industries).
+   * Offerings: 1 short, visual sentence per card.
    */
   work: {
     title: "Our Offerings",
@@ -94,74 +91,74 @@ export const site = {
       {
         id: "build",
         label: "What We Build",
-        lede: "We don't sell complicated off-the-shelf software. We build simple, customized tools that match how you already work.",
+        lede: "Simple custom tools built for how your business already works.",
         items: [
           {
             icon: "chart" as const,
             title: "Owner Dashboards",
-            body: "See daily sales, total expenses, profit margins, and pending work at a glance on your mobile phone or laptop.",
+            body: "Live sales, expenses, and profits on your phone or PC.",
           },
           {
             icon: "database" as const,
-            title: "Paperless Billing & Accounts",
-            body: "Create fast GST invoices, send automated payment reminders on WhatsApp, and track who owes you money.",
+            title: "Paperless Billing",
+            body: "Fast GST invoices and automated WhatsApp payment reminders.",
           },
           {
             icon: "package" as const,
-            title: "Live Inventory Tracking",
-            body: "Never run out of fast-moving items or lose track of warehouse stock with real-time barcode and batch tracking.",
+            title: "Live Inventory",
+            body: "Real-time stock tracking with low-stock alerts.",
           },
           {
             icon: "network" as const,
-            title: "Staff & Task Management",
-            body: "Assign work to team members, track job status in real time, and eliminate internal miscommunications.",
+            title: "Staff & Tasks",
+            body: "Assign jobs, track status, and stop miscommunications.",
           },
           {
             icon: "link" as const,
-            title: "Growth Websites & SEO",
-            body: "Modern, high-converting websites to attract local customers, rank higher on Google, and build trust.",
+            title: "Growth Websites",
+            body: "Modern, fast websites to attract local customers.",
           },
           {
             icon: "cycle" as const,
-            title: "WhatsApp & SMS Automation",
-            body: "Automatically send order confirmations, dispatch receipts, and customer updates without typing them by hand.",
+            title: "WhatsApp Automation",
+            body: "Instant order receipts and automated customer updates.",
           },
         ],
       },
       {
         id: "help",
         label: "Who We Help",
-        lede: "Established businesses run by owners who want to spend less time micromanaging daily operations and more time expanding.",
+        lede: "Built for business owners who want less chaos and faster growth.",
         items: [
           {
             icon: "package" as const,
-            title: "Wholesalers & Distributors",
-            body: "Stop order mix-ups. Track multi-warehouse stock, dispatch challans, and customer credit limits effortlessly.",
+            title: "Wholesale & Distribution",
+            body: "Multi-godown stock, fast challans, and customer credit tracking.",
           },
           {
             icon: "pulse" as const,
-            title: "Clinics & Diagnostic Labs",
-            body: "Connect patient appointments, doctor prescriptions, pharmacy inventory, and lab billing into one seamless flow.",
+            title: "Clinics & Diagnostics",
+            body: "Patient visits, pharmacy stock, and 1-click billing.",
           },
           {
             icon: "headset" as const,
-            title: "Service & Repair Workshops",
-            body: "Track job cards, technician assignments, spare parts used, and generate instant bills upon completion.",
+            title: "Workshops & Service",
+            body: "Mobile job cards, spare parts tracking, and instant bills.",
           },
           {
             icon: "factory" as const,
-            title: "Manufacturers & Small Factories",
-            body: "Track raw materials, daily production output, machine maintenance, and dispatch records accurately.",
+            title: "Small Factories",
+            body: "Raw materials, daily production output, and dispatch logs.",
           },
           {
             icon: "bell" as const,
-            title: "Retail & Multi-Branch Stores",
-            body: "Manage billing, stock transfers, and daily branch sales from a single central screen on your phone.",
+            title: "Retail & Multi-Branch",
+            body: "Central billing and stock sync across all your stores.",
           },
           {
             icon: "graduation" as const,
-            title: "Training Institutes & Academies",
-            body: "Manage student admissions, fee payment reminders, attendance, and batch scheduling in one place.",
+            title: "Institutes & Academies",
+            body: "Student admissions, fee reminders, and attendance in one place.",
           },
         ],
       },
@@ -169,7 +166,7 @@ export const site = {
   },
 
   /**
-   * The method: straightforward 6-step onboarding designed for non-technical owners.
+   * The method: simplified, direct 6 steps.
    */
   method: {
     eyebrow: "Method",
@@ -179,77 +176,69 @@ export const site = {
       {
         n: "01",
         label: "Understand",
-        title: "We learn how your business actually runs.",
+        title: "We learn your daily routine.",
         detail: {
-          lead: "We sit down with you and your key team members to understand the daily routine:",
+          lead: "We sit with you to see where time and money get lost:",
           chips: [
-            "how customer orders come in",
-            "who writes them down",
-            "what gets recorded on paper",
-            "where stock is tracked",
-            "where money or receipts get delayed",
-            "what staff have to do manually",
-            "what causes daily confusion",
-            "what takes up the owner's personal time",
+            "Customer orders",
+            "Paper registers",
+            "Stock tracking",
+            "Staff handoffs",
+            "Payment delays",
+            "Owner time",
           ],
-          close: "No assumptions. We observe your real operations.",
+          close: "We observe your real operations.",
         },
       },
       {
         n: "02",
         label: "Map",
-        title: "We map the entire flow from enquiry to cash in bank.",
+        title: "We map the entire workflow.",
         detail: {
-          lead: "We lay out every step so you can see your business clearly on one page:",
+          lead: "Every step visible on one screen:",
           flow: [
             "Customer enquiry",
-            "Front desk / reception",
-            "Staff assignment",
-            "Work execution",
+            "Front desk",
+            "Staff execution",
             "Stock update",
-            "Billing & GST",
-            "Payment collection",
-            "Owner dashboard",
+            "GST billing",
+            "Owner report",
           ],
-          close:
-            "Then we spot the bottlenecks: Where is information entered twice? Where are staff calling each other? Where is money slipping through the cracks?",
+          close: "We remove double entry and phone call bottlenecks.",
         },
       },
       {
         n: "03",
         label: "Identify",
-        title: "We pinpoint the high-impact fixes.",
+        title: "We target high-impact fixes.",
         detail: {
-          lead: "You don't need complicated tech everywhere. We focus on the high-ROI fixes that save the most time and money:",
+          lead: "We focus on changes that save the most hours:",
           chips: [
-            "eliminating handwritten paper registers",
-            "automatic WhatsApp bills & receipts",
-            "1-click daily cash & sales reports",
-            "instant low-stock alerts",
-            "connecting branch sales to head office",
-            "streamlining staff job approvals",
-            "automated customer follow-ups",
-            "custom mobile-friendly screens",
+            "Remove paper registers",
+            "WhatsApp bills & receipts",
+            "Live mobile stock",
+            "1-click P&L reports",
+            "Multi-branch sync",
           ],
         },
       },
       {
         n: "04",
         label: "Build",
-        title: "We build custom screens for your exact workflow.",
-        body: "Your software is tailored to your business terms and daily habits—not a rigid, generic template that forces your staff to change how they talk.",
+        title: "We build screens for your team.",
+        body: "Tailored to your exact workflow—simple, fast, and easy to use.",
       },
       {
         n: "05",
         label: "Train",
-        title: "We train your team hands-on until they're 100% confident.",
-        body: "Your staff don't need any computer expertise. If they can send a message on WhatsApp, they can use our software. We guide them step-by-step during launch.",
+        title: "Hands-on staff training.",
+        body: "If your team can use WhatsApp, they can use our system. Zero tech skills needed.",
       },
       {
         n: "06",
         label: "Scale",
-        title: "Your system grows as your business expands.",
-        body: "When you open a new branch, hire more staff, or add new products, your system adapts seamlessly without rebuilding from scratch.",
+        title: "Grows with your business.",
+        body: "Add branches, staff, or products without starting from scratch.",
         accent: true,
       },
     ],
@@ -258,69 +247,69 @@ export const site = {
   process: {
     eyebrow: "How it works",
     title: "Start. Connect. Scale.",
-    lede: "A practical 3-phase roadmap that delivers results in weeks, not months.",
+    lede: "Live results in weeks, not months.",
     steps: [
       {
         name: "Start",
         active: 1,
-        body: "We pick the single bottleneck costing you the most time or money (like manual billing or lost stock) and fix it first. Live in 2 to 3 weeks.",
+        body: "We fix your biggest bottleneck (billing or stock) first. Live in 2 to 3 weeks.",
       },
       {
         name: "Connect",
         active: 2,
-        body: "We link your billing, inventory, and staff tasks together. You stop typing the same customer or product details twice.",
+        body: "We sync your billing, inventory, and staff tasks. Stop entering data twice.",
       },
       {
         name: "Scale",
         active: 3,
-        body: "With the daily chaos automated, we help you grow with modern marketing websites, customer portals, and multi-branch dashboards.",
+        body: "Grow with modern websites, customer portals, and multi-branch dashboards.",
       },
     ],
   },
 
   testimonials: {
     eyebrow: "What owners say",
-    title: "The proof is in the hours you get back.",
-    lede: "Real experiences from business owners who simplified their operations.",
+    title: "Hours back in your week.",
+    lede: "Real results from business owners who simplified their operations.",
     items: [
       {
         quote:
-          "We used to spend 4 hours every evening tallying paper registers and dispatch notes. Now it takes 15 minutes on a tablet, and I can see today's profit from home.",
+          "Closing the daily books used to take 4 hours every evening. Now it takes 15 minutes on a tablet.",
         name: "Ramesh Aggarwal",
         role: "Aggarwal Wholesale & Distribution",
         avatar: "/assets/testimonials/anita.svg",
       },
       {
         quote:
-          "Stock and billing used to cause endless arguments between our warehouse and sales desk. Now they sync automatically—we stopped ordering items we already had.",
+          "Stock and billing sync automatically now. We stopped paying for items we already had in the back.",
         name: "Devraj Mehta",
         role: "Mehta Hardware & Electricals",
         avatar: "/assets/testimonials/devraj.svg",
       },
       {
         quote:
-          "I run three clinic branches directly from my mobile phone. I know how many patients visited and total collections without having to call each receptionist.",
+          "I run three clinic branches from my phone. I see patient visits and collections without calling staff.",
         name: "Dr. Farah Sheikh",
         role: "CarePlus Clinics (3 Branches)",
         avatar: "/assets/testimonials/farah.svg",
       },
       {
         quote:
-          "They built the exact billing system we needed in under 3 weeks. No confusing menus, no expensive IT consultants—just a screen that works.",
+          "They built the exact billing tool we needed in under 3 weeks. Fast, simple, and zero confusion.",
         name: "Gopal Nair",
         role: "Nair Logistics & Freight",
         avatar: "/assets/testimonials/gopal.svg",
       },
       {
         quote:
-          "Two staff members used to spend every Friday re-typing customer orders into spreadsheets. Now invoices and challans generate with one click.",
+          "Two staff members used to spend every Friday re-typing orders. Now invoices generate in 1 click.",
         name: "Meera Krishnan",
         role: "Krishnan Packaged Foods",
         avatar: "/assets/testimonials/meera.svg",
       },
       {
         quote:
-          "What convinced me was their honesty: they told me which ideas were a waste of money. The custom system we built paid for itself in two months.",
+          "They told me honestly what not to build. The custom system we did build paid for itself in 2 months.",
         name: "Suresh Pillai",
         role: "Pillai Auto & Heavy Repair Works",
         avatar: "/assets/testimonials/suresh.svg",
@@ -329,8 +318,8 @@ export const site = {
   },
 
   cta: {
-    title: "Ready to get your business off paper and onto autopilot?",
-    body: "Book a free 15-minute consultation. We'll show you exactly where software can save you hours every day—in plain words, no tech jargon.",
+    title: "Ready to run your business on autopilot?",
+    body: "Book a free 15-minute call. Plain words, zero tech jargon.",
   },
 
   nav: [
