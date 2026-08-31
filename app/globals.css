@@ -82,28 +82,33 @@ button { font: inherit; cursor: pointer; }
   border-radius: var(--radius-sm);
 }
 
+/* SECTIONS ARE FULL BLEED; THIS IS WHAT KEEPS THE CONTENT OFF THE EDGES.
+
+   Every section spans the viewport - grounds, bands and panels all run edge to
+   edge - so .container is the single thing standing between that and the copy,
+   and therefore the only place the page's gutters are defined.
+
+   One clamp replaces the three breakpoint overrides that used to live here.
+   They had already drifted apart from each other (100px / 40-80px / 16-32px at
+   three different breakpoints), which is what three sources for one value
+   always does. See --container-max in tokens.css for why the cap matters. */
 .container {
   width: 100%;
-  max-width: 100%;
-  padding-inline: 100px;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
 }
 
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .container {
-    padding-inline: clamp(40px, 6vw, 80px);
-  }
-}
-
-@media (max-width: 1023px) {
-  .container {
-    padding-inline: clamp(var(--space-4), 4vw, var(--space-8));
-  }
+/* For the cases that genuinely need to break the cap - a band of colour, a
+   wall, a carousel. Opting in beats fighting the cap with overrides. */
+.container--wide {
+  max-width: none;
 }
 
 .section {
   position: relative;
   z-index: var(--z-content);
-  padding-block: clamp(var(--space-20), 12vh, var(--space-24));
+  padding-block: var(--section-pad);
 }
 
 .eyebrow {
@@ -690,11 +695,11 @@ button { font: inherit; cursor: pointer; }
   width: 100%;
 }
 
-@media (max-width: 1023px) {
-  .hero__grid.container {
-    padding-inline: clamp(var(--space-4), 4vw, var(--space-8)) !important;
-  }
-}
+/* The hero's own gutter override is gone with the art it was reserving space
+   for. It ran clamp(16px, 4vw, 32px), which put 16px of edge padding on a
+   390px phone - under the 20px floor every other section now uses, and enough
+   for the headline to read as touching the bezel. The hero takes the standard
+   --container-pad like everything else. */
 
 .hero__copy {
   display: grid;
@@ -3216,7 +3221,11 @@ button { font: inherit; cursor: pointer; }
     display: flex;
     min-height: 0;
     width: 100%;
-    padding-inline: clamp(12px, 3.5vw, 24px);
+    /* Was clamp(12px, 3.5vw, 24px), which resolved to 13.65px on a 390px
+       phone - under the 20px floor every other container now uses. The card
+       inside carries its own padding, so this only sets how close the card's
+       edge comes to the bezel, and it should match the rest of the page. */
+    padding-inline: var(--container-pad);
   }
   .method__card {
     flex: 1;

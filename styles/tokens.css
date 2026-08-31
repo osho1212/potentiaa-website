@@ -209,7 +209,32 @@
      stay because they are content breakpoints - they mark where those two
      specific layouts break, which is the right reason to have one. */
 
-  --container-max: 100%;
+  /* ---- Layout: the reading column, and the air around it ----
+
+     --container-max WAS `100%`, which is not a ceiling. At 100% the container is
+     whatever the display happens to be, and 100px of padding either side of an
+     unbounded box is still an unbounded box: measured at 1920x900, body copy in
+     the Work section set 151 characters to the line, and a 2560px monitor makes
+     it worse. Measure is a property of reading, not of the screen someone owns.
+
+     1280 is the cap. Sections stay full bleed - their grounds, bands and panels
+     all run edge to edge - and this constrains their CONTENTS, which is the only
+     thing between a full-bleed ground and copy running into the bezel.
+
+     --section-pad is the vertical rhythm, as one curve rather than three
+     breakpoint overrides. Solved against the three targets rather than guessed:
+
+         375px viewport  ->  ~72px   (mobile target 56-72)
+         768px viewport  ->  ~88px   (tablet target 80-96)
+        1280px viewport  ->  ~110px  (desktop target 104-128)
+        1920px viewport  ->   128px  (capped)
+
+     The rem term is load-bearing: a padding expressed purely in vw ignores the
+     reader's text-zoom setting, so the air around the type stops scaling with
+     the type. Same reason the display type scale keeps a rem term. */
+  --container-max: 1280px;
+  --container-pad: clamp(20px, 5vw, 64px);
+  --section-pad: clamp(56px, 3.5rem + 4.2vw, 128px);
 
   /* ---- The header, and the line everything must clear ---- */
 
