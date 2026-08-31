@@ -5,11 +5,19 @@
  * talks about time and money; second person for the reader, "we" for Potentiaa;
  * sentence case everywhere; no emoji; no hype.
  *
- * PLACEHOLDERS - replace before launch, all marked TODO:
- *   - contact.email / contact.phone / contact.whatsapp
- *   - trustSlots (dashed placeholder chips stand in for real client logos)
- *   - card image slots (design.md 6 forbids stock/generated imagery)
- * No metrics, client names or testimonials are invented anywhere in this file.
+ * THE RULE THIS FILE IS HELD TO: nothing here may claim something that is not
+ * true. No invented client, no invented metric, no invented quotation, no
+ * capability the business does not have.
+ *
+ * That rule was stated at the top of this file and then broken inside it. The
+ * header used to end "No metrics, client names or testimonials are invented
+ * anywhere in this file" while `testimonials` below carried six fabricated
+ * people with names, businesses and quantified outcomes - and the section's own
+ * lede told the reader they were samples. `trustSlots` published six "Client
+ * logo" placeholders on the homepage. Both are gone.
+ *
+ * If something cannot be said truthfully, it does not go here. Missing facts
+ * belong in CONTENT_INPUTS_REQUIRED.md, which is not published.
  */
 
 /**
@@ -27,11 +35,28 @@ export const site = {
   name: "Potentiaa",
   tagline: "Unlock. Transform. Grow.",
 
+  /**
+   * Every contact channel the site publishes, in one place.
+   *
+   * `whatsapp` used to be "" here while a hardcoded +91 82678 39736 was
+   * rendered in the footer, so the data layer said there was no number and the
+   * page showed one. Whatever is true, it is true in one place now.
+   *
+   * `instagram` is deliberately empty. The footer linked to instagram.com - the
+   * service's homepage, not a Potentiaa profile - which is worse than no link:
+   * it looks like a social presence and delivers a stranger's feed. The footer
+   * renders this row only when the value is non-empty.
+   *
+   * TODO(owner): confirm `email` is monitored, confirm the WhatsApp number is
+   * the right public one, and supply real social URLs or leave them blank.
+   * See CONTENT_INPUTS_REQUIRED.md.
+   */
   contact: {
-    // TODO: confirm the public inbox before launch
     email: "hello@potentiaa.com",
-    // TODO: add if you want a direct line on the site
-    whatsapp: "",
+    whatsapp: "918267839736",
+    whatsappDisplay: "+91 82678 39736",
+    instagram: "",
+    linkedin: "",
   },
 
   /**
@@ -366,73 +391,63 @@ export const site = {
     ],
   },
 
-  /* ============================================================
-     SAMPLE DATA - NOT REAL CLIENTS. REPLACE BEFORE LAUNCH.
-     ============================================================
-     Every name, business and sentence below was written to fill the layout,
-     and none of these people exist. That is fine for building against and is
-     NOT fine in production: a testimonial is a factual claim that a named
-     human said a thing, so shipping these as-is would put fabricated reviews
-     on a live business site.
-
-     Swap each entry for a real quote once you have it in writing, and point
-     `avatar` at a real photo the person has agreed to. The avatars here are
-     locally generated brand monograms, not stock photographs - design.md 6
-     supplies no imagery and rules out stock or generated stand-ins, and a
-     gradient monogram is brand furniture rather than a face that is not
-     theirs.
-
-     Set `pending: true` on any entry and the card styles itself as an empty
-     slot instead - the dashed placeholder treatment is still in the CSS.
-
-     Voice, per design.md 2: owner to owner, time and money, sentence case,
-     one idea a sentence, no hype. ============================================ */
-  testimonials: {
-    eyebrow: "What owners say",
-    title: "The proof is in the hours you get back.",
-    lede: "Short, specific, and from the people who run the place. These are samples until the real ones are signed off.",
+  /**
+   * WHAT REPLACED THE TESTIMONIALS.
+   *
+   * This block used to hold six quotations attributed to six named people at six
+   * named businesses - Anita Rao of Rao Textiles, Devraj Mehta of Mehta
+   * Hardware, four more - with quantified outcomes attached: "three days a month
+   * I got back", "it was live in six weeks", "paid for itself twice". None of
+   * those people exist. The comment above them said so in the source, and the
+   * section's own lede said so to the reader, in production: "These are samples
+   * until the real ones are signed off."
+   *
+   * A testimonial is a factual claim that a named human said a thing. Six
+   * invented ones, on a site asking businesses to trust it with their
+   * operational data, was the most damaging thing on this page - and printing an
+   * admission beside them did not make it honest. It made it worse: it told
+   * every reader that the proof on this site is decorative.
+   *
+   * They are NOT replaced with empty placeholder cards. A row of dashed slots
+   * advertises the absence more loudly than the absence itself does.
+   *
+   * They are replaced with something true. Nothing below claims a result,
+   * because results are not ours to promise. Every line describes how the work
+   * is done - which is verifiable by anyone who engages us, and is the one form
+   * of proof a young company actually owns.
+   *
+   * When real, written, approved quotations exist, they belong in a section of
+   * their own, with real names and real permission. Not here, and not before.
+   * See CONTENT_INPUTS_REQUIRED.md.
+   */
+  practice: {
+    eyebrow: "How we work with you",
+    title: "What you actually get, start to finish.",
+    lede: "We do not have client stories we are able to name yet. So here is the part we can be precise about: how the work runs, and what lands on your side of it.",
     items: [
       {
-        quote:
-          "We were closing the books four days after month end. Now it is the same afternoon. That is three days a month I got back for the price of one system.",
-        name: "Anita Rao",
-        role: "Rao Textiles, wholesale",
-        avatar: "/assets/testimonials/anita.svg",
+        title: "A workflow map before a quote",
+        body: "We sit with the people who do the job and follow one order end to end - who touches it, what each person writes down, where it waits. You keep that map whether or not you hire us.",
       },
       {
-        quote:
-          "Stock and billing used to be two different notebooks and one argument. They talk to each other now, and we stopped paying for things we already had.",
-        name: "Devraj Mehta",
-        role: "Mehta Hardware, retail",
-        avatar: "/assets/testimonials/devraj.svg",
+        title: "The smallest system that clears the bottleneck",
+        body: "Not a platform. We scope the one connection costing you the most and build that, so the first version is small enough to genuinely go live and be judged.",
       },
       {
-        quote:
-          "I run three branches from my phone. I can see what sold this morning without calling anyone, which means I stopped driving across town to find out.",
-        name: "Farah Sheikh",
-        role: "Sheikh Pharmacy, three branches",
-        avatar: "/assets/testimonials/farah.svg",
+        title: "Built around your vocabulary",
+        body: "Your forms, your terms, your steps. Staff should recognise the screens as their own process - software that demands a new vocabulary gets worked around rather than used.",
       },
       {
-        quote:
-          "They built the one thing that was costing us the most, and it was live in six weeks. No deck, no year-long project, no rebuild of what already worked.",
-        name: "Gopal Nair",
-        role: "Nair Logistics, transport",
-        avatar: "/assets/testimonials/gopal.svg",
+        title: "Your data stays yours",
+        body: "Records are exportable in a standard format from the first day. If you stop working with us, you leave with everything you put in.",
       },
       {
-        quote:
-          "Two staff used to spend every Friday typing the same orders in twice. That job does not exist any more, and neither of them lost their job over it.",
-        name: "Meera Krishnan",
-        role: "Krishnan Foods, manufacturing",
-        avatar: "/assets/testimonials/meera.svg",
+        title: "We are there when it goes live",
+        body: "Launch is staged, not flipped. We train the people who will use it daily and stay close through the first cycles, which is when the real gaps surface.",
       },
       {
-        quote:
-          "What sold me was that they told me which half of my idea was not worth building. The half we did build has paid for itself twice.",
-        name: "Suresh Pillai",
-        role: "Pillai Auto Works, service",
-        avatar: "/assets/testimonials/suresh.svg",
+        title: "It changes as the business changes",
+        body: "Operations move. We keep the system in step rather than handing over a build and disappearing.",
       },
     ],
   },
@@ -444,21 +459,56 @@ export const site = {
 
   /* Drives both the header and the mobile wheel - see components/MobileNav,
      which prepends Home and appends the CTA. An entry here must point at a
-     section that exists, or the anchor scrolls nowhere. */
+     section that exists, or the anchor scrolls nowhere.
+
+     THAT RULE WAS BEING BROKEN BY TWO OF THREE ENTRIES. "What we build" pointed
+     at #work while the section renders id="offerings", and "How it works"
+     pointed at #process - a section that is not mounted on this page at all, so
+     no id existed to find. Both failed silently: SmoothScroll's handler returns
+     before preventDefault when querySelector finds nothing, so the click fell
+     through to native behaviour, the URL gained a hash, and the page did not
+     move.
+
+     The third entry now points at #projects, which is a real section that had
+     no nav entry at all - so fixing the dead link also surfaces something that
+     was unreachable from the header. */
   nav: [
-    { label: "What we build", href: "#work" },
+    { label: "What we build", href: "#offerings" },
     { label: "How we work", href: "#method" },
-    { label: "How it works", href: "#process" },
+    { label: "Our work", href: "#projects" },
   ],
 
-  // TODO: swap for real client marks once permission is in place
-  trustSlots: [
-    "Client logo",
-    "Client logo",
-    "Client logo",
-    "Client logo",
-    "Client logo",
-    "Client logo",
+  /**
+   * The footer's link columns.
+   *
+   * These used to be nine <a> elements pointing at #work - one dead anchor,
+   * nine times, under two headings that named services with no destination
+   * between them. Nine links to one place is not navigation; it is the
+   * appearance of navigation.
+   *
+   * So the columns are honest about what exists: a section link where there is
+   * a section, a route where there is a route, and nothing where there is
+   * neither. Per-service pages are not invented here - when they exist, they go
+   * in this list and not before.
+   */
+  footerNav: [
+    {
+      heading: "Explore",
+      links: [
+        { label: "What we build", href: "#offerings" },
+        { label: "How we work", href: "#method" },
+        { label: "Our work", href: "#projects" },
+        { label: "What owners say", href: "#testimonials" },
+      ],
+    },
+    {
+      heading: "Company",
+      links: [
+        { label: "Contact", href: "/contact" },
+        { label: "Privacy Policy", href: "/privacy" },
+        { label: "Terms of Service", href: "/terms" },
+      ],
+    },
   ],
 };
 

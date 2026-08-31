@@ -1,5 +1,4 @@
 import Reveal from "../Reveal";
-import Marquee from "../Marquee";
 import MagicBento from "../MagicBento";
 import IntroCubes from "../IntroCubes";
 import { site } from "@/lib/site";
@@ -14,7 +13,6 @@ export default function Intro() {
   return (
     <section className="section intro-section" id="intro" data-theme-key="intro">
       <div className="container">
-        <Marquee />
 
         <div className="intro__container-card">
           <IntroCubes />
