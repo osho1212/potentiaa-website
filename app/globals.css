@@ -1,7 +1,6 @@
 @import "../styles/tokens.css";
 @import "../styles/motion.css";
 @import "../styles/glass-surface.css";
-@import "../styles/drift-wall.css";
 @import "../components/Scanner.css";
 
 /* ---------------------------------------------------------------
@@ -4517,4 +4516,94 @@ textarea.input { resize: vertical; min-height: 120px; }
   font-size: var(--fs-sm);
   line-height: var(--lh-relaxed);
   color: var(--text-on-dark-secondary);
+}
+
+/* ---------------------------------------------------------------
+   The illustrative workflow example - replaced the four case studies.
+
+   A before/after pair rather than a carousel: the two columns are meant to
+   be compared, and a carousel is the one layout that guarantees you cannot
+   see both at once.
+   --------------------------------------------------------------- */
+.example__head {
+  max-width: 46rem;
+}
+
+/* The label is a visible, deliberate piece of chrome, not a caption. A
+   reader has to be able to tell at a glance that this is an example rather
+   than a client story - that distinction is the entire reason the section
+   was rewritten. */
+.example__label {
+  display: inline-block;
+  margin: var(--space-4) 0 0;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--status-warning);
+  border-radius: var(--radius-full);
+  background: rgba(217, 142, 27, 0.12);
+  color: var(--status-warning);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.04em;
+}
+
+.example__lede {
+  margin-top: var(--space-4);
+}
+
+.example__grid {
+  display: grid;
+  gap: var(--space-6);
+  margin-top: var(--space-12);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 860px) {
+  .example__grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.example__col {
+  height: 100%;
+  padding: var(--space-6);
+  border: 1px solid var(--border-on-dark);
+  border-radius: var(--radius-md);
+  background: var(--veil-subtle);
+}
+
+/* The only colour difference between the two columns is the rule at the top:
+   today is neutral, connected is the accent. Enough to tell them apart while
+   scanning, not enough to make one look like a warning and the other a
+   success - both describe a real business, and one of them is the reader's. */
+.example__col--before { border-top: 2px solid var(--border-on-dark-strong); }
+.example__col--after { border-top: 2px solid var(--accent-primary); }
+
+.example__col-heading {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-medium);
+  color: var(--text-on-dark);
+  margin: 0 0 var(--space-4);
+}
+
+.example__steps {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: grid;
+  gap: var(--space-3);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-relaxed);
+  color: var(--text-on-dark-secondary);
+}
+
+.example__steps li::marker {
+  color: var(--text-on-dark-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+}
+
+.example__note {
+  max-width: 60ch;
+  margin: var(--space-8) 0 0;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-relaxed);
+  color: var(--text-on-dark-muted);
 }

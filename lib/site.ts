@@ -368,29 +368,6 @@ export const site = {
     ],
   },
 
-  process: {
-    eyebrow: "How it works",
-    title: "Start. Connect. Scale.",
-    lede: "The same three modules as the logo, in the same order.",
-    steps: [
-      {
-        name: "Start",
-        active: 1,
-        body: "We pick the single process that is costing you the most and build one system around it. Small enough to be live in weeks, not quarters.",
-      },
-      {
-        name: "Connect",
-        active: 2,
-        body: "The second module plugs into the first. Billing knows about stock, stock knows about purchases. You stop entering the same thing twice.",
-      },
-      {
-        name: "Scale",
-        active: 3,
-        body: "Once the core runs itself, we add what the growth needs - more locations, more staff, more reporting - without rebuilding what already works.",
-      },
-    ],
-  },
-
   /**
    * WHAT REPLACED THE TESTIMONIALS.
    *
@@ -450,6 +427,65 @@ export const site = {
         body: "Operations move. We keep the system in step rather than handing over a build and disappearing.",
       },
     ],
+  },
+
+  /**
+   * WHAT REPLACED THE CASE STUDIES.
+   *
+   * components/sections/OurWork.tsx held four of them, hardcoded outside this
+   * file so they escaped the discipline the header states: "NexLogix Warehouse
+   * & Dispatch Hub", "ReconcileHub Multi-tier Billing Engine", "FieldOps Pro",
+   * "Strata Executive Intelligence Portal" - with quantified outcomes attached
+   * (+45% faster dispatch, -80% bookkeeping overhead, doubled job capacity,
+   * 4-hour reports replaced by sub-second metrics), a "GST Compliant" claim, and
+   * four rendered dashboard mockups carrying an invented brand, an invented user
+   * named "Alek P.", and European dispatch routes on a site selling to Indian
+   * businesses.
+   *
+   * The section framed all of it as delivered work: eyebrow "Case Studies &
+   * Systems", lede "systems we have engineered". Nothing anywhere marked it as
+   * illustrative.
+   *
+   * WHY ONE EXAMPLE AND NOT FOUR. Four honest capability blurbs would have
+   * restated the Offerings section directly above, which already lists what gets
+   * built. What that section cannot do is show the shape of the work, and that
+   * is what this does: one order followed end to end, the same six hands the
+   * flow section names, before and after.
+   *
+   * IT IS LABELLED, prominently and in the markup, not in a footnote. An
+   * illustrative example presented without that label is a case study, whatever
+   * the intent.
+   *
+   * When a real client agrees to be named, this section is where their story
+   * goes - with their name, their numbers and their permission. See
+   * CONTENT_INPUTS_REQUIRED.md.
+   */
+  example: {
+    eyebrow: "Illustrative example",
+    title: "How a disconnected workflow becomes one system.",
+    label: "Illustrative example - not a client case study",
+    lede: "The same enquiry, followed through the same six pairs of hands, before and after. This is the shape of the work rather than an account of a particular client.",
+    before: {
+      heading: "Today",
+      steps: [
+        "The enquiry arrives on WhatsApp and is written into a register.",
+        "Someone checks stock by walking to the shelf, or by calling whoever knows.",
+        "The job is done and noted on paper, to be entered on a computer later.",
+        "Accounts asks for the same details again at the end of the week.",
+        "The owner phones three people to find out where anything stands.",
+      ],
+    },
+    after: {
+      heading: "With one connected system",
+      steps: [
+        "The enquiry is recorded once, by whoever takes it, on a phone.",
+        "Stock is checked against the same record the counter and store share.",
+        "Completing the job updates the record - there is no later re-entry.",
+        "Billing reads what was already entered instead of asking again.",
+        "The owner sees the current state without phoning anyone.",
+      ],
+    },
+    note: "Nothing above is a promise of a result. What it describes is how the pieces connect - what that is worth in your business is exactly what a workflow audit is for.",
   },
 
   cta: {
