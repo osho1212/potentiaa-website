@@ -79,9 +79,19 @@ const HeroParticles = forwardRef<HeroParticlesHandle>(function HeroParticles(_pr
        which is pure vertex ALU and costs nothing.
        Points land near 3-8 device pixels, still clear of the one-pixel floor
        where dots start dropping out and twinkling. */
+    /* SIZE, AFTER THE SPRITE CAME OUT. The 1.45/1.35 above were tuned against
+       a Gaussian sprite, where most of a dot's radius was skirt and the size
+       had to cover for it. The disc that replaced it (see the fragment shader
+       in lib/heroParticles) is opaque to its rim, so the same visual weight
+       arrives at a smaller radius - and the field now sits inside an ellipse
+       rather than spanning the frame, which concentrates it further.
+       The floor the measurements found still applies: below ~0.6 the
+       per-point cost dominates and dots start dropping out and twinkling.
+       0.9 keeps a comfortable margin above it while reading as a point rather
+       than a blob, and the fill it gives back pays for MAX_PIXEL_RATIO 2.0. */
     const swarm = new ParticlesSwarm(container, {
       count: narrow ? 5200 : 7600,
-      particleSize: narrow ? 1.45 : 1.35,
+      particleSize: narrow ? 0.62 : 0.58,
     });
     swarmRef.current = swarm;
 
