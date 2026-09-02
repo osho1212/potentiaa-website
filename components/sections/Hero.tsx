@@ -5,6 +5,7 @@ import Reveal from "../Reveal";
 import HeroParticles from "../HeroParticles";
 import type { HeroParticlesHandle } from "../HeroParticles";
 import HeroFlowConstellation from "../HeroFlowConstellation";
+import ParticleText from "../ParticleText";
 import { useContact } from "../ContactContext";
 import { site } from "@/lib/site";
 
@@ -78,16 +79,38 @@ export default function Hero({
       {/* Vertically & horizontally centered hero content */}
       <div className="hero__grid container">
         <div className="hero__copy">
-          <Reveal delay={80}>
+          <Reveal delay={60}>
             <h1 className="hero__title">
               {site.hero.titleLead.map((line) => (
                 <AnimatedLine key={line} line={line} isAccent={false} />
               ))}
-              {site.hero.titleAccent.map((line) => (
-                <AnimatedLine key={line} line={line} isAccent={true} />
-              ))}
+              <span className="hero__title-line hero__title-line--gradient-row">
+                <span className="hero__word-wrap">
+                  <AnimatedWord text="one" />{" "}
+                </span>
+                <ParticleText
+                  text={site.hero.titleGradient || "connected system."}
+                  color="#2D6BFF"
+                  highlightColor="#2D6BFF"
+                  particleSize={1.8}
+                  gap={3}
+                  hoverRadius={65}
+                  hoverStrength={4.2}
+                  returnSpeed={0.09}
+                  friction={0.88}
+                  className="hero__particle-text"
+                />
+              </span>
             </h1>
           </Reveal>
+
+          {site.hero.subtitle && (
+            <Reveal delay={120}>
+              <p className="hero__subtext">
+                {site.hero.subtitle}
+              </p>
+            </Reveal>
+          )}
 
           <Reveal delay={160}>
             <div className="hero__actions">

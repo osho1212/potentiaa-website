@@ -501,7 +501,7 @@ export default function ModuleStack() {
       // Dynamic directional shadow cast onto the page & text when floating in front
       if (shadow) {
         const shadowIntensity = inFront ? Math.max(0, Math.min(1, flight.depth)) : 0;
-        shadow.style.opacity = String((shadowIntensity * 0.95).toFixed(3));
+        shadow.style.opacity = String((shadowIntensity * 0.475).toFixed(3));
         const shadowOffX = (flight.x - window.innerWidth / 2) * 0.05;
         const shadowOffY = 32 + shadowIntensity * 28;
         shadow.style.transform = `translate3d(${shadowOffX.toFixed(1)}px, ${shadowOffY.toFixed(1)}px, 0) scale(${Math.max(0.65, 1.05 - shadowIntensity * 0.15).toFixed(3)})`;

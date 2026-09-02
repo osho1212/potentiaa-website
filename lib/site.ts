@@ -19,23 +19,32 @@ export const site = {
   },
 
   hero: {
-    titleLead: ["Run your business", "without paperwork."],
-    titleAccent: ["One live dashboard.", "Zero chaos."],
-    primary: "Book a Free Call",
-    secondary: "See How It Works",
+    eyebrow: "Operational software for growing businesses",
+    titleLead: ["Run your business from"],
+    titlePrefix: "one ",
+    titleGradient: "connected system.",
+    titleAccent: [] as string[],
+    subtitle:
+      "Potentiaa builds tailored billing, inventory, workflow and management software that replaces scattered registers, spreadsheets and WhatsApp handoffs.",
+    primary: "Book a workflow audit",
+    secondary: "See how it works",
     hint: ["Move your mouse", "to explore"],
+    badges: [
+      "Built around your workflow",
+      "Works on phone and desktop",
+      "Implementation and ongoing support",
+    ],
   },
 
   /**
-   * The 6 flow stages - short 2-3 word badges representing the live operational pipeline.
+   * The 5 flow stages - representing the live operational pipeline.
    */
   flow: [
-    { title: "Customer", note: "Order placed" },
-    { title: "Front Desk", note: "Logged on screen" },
-    { title: "Team & Staff", note: "Job assigned" },
-    { title: "Stock", note: "Auto-synced" },
-    { title: "Billing", note: "1-click GST bill" },
-    { title: "Owner", note: "Live profit report" },
+    { title: "Order Capture", note: "Front Desk / Sales" },
+    { title: "Capacity & Approval", note: "Operations Manager" },
+    { title: "Stock Movement", note: "Warehouse / Fulfilment" },
+    { title: "Billing & Ledger", note: "Accounts Team" },
+    { title: "Owner Visibility", note: "Business Owner" },
   ],
 
   flowSection: {
@@ -83,84 +92,86 @@ export const site = {
   },
 
   /**
-   * Offerings: 1 short, visual sentence per card.
+   * Offerings: 5 Tailored Capability modules.
    */
   work: {
     title: "Our Offerings",
+    eyebrow: "Tailored Capabilities",
     tabs: [
       {
-        id: "build",
-        label: "What We Build",
-        lede: "Simple custom tools built for how your business already works.",
-        items: [
-          {
-            icon: "chart" as const,
-            title: "Owner Dashboards",
-            body: "Live sales, expenses, and profits on your phone or PC.",
-          },
-          {
-            icon: "database" as const,
-            title: "Paperless Billing",
-            body: "Fast GST invoices and automated WhatsApp payment reminders.",
-          },
-          {
-            icon: "package" as const,
-            title: "Live Inventory",
-            body: "Real-time stock tracking with low-stock alerts.",
-          },
-          {
-            icon: "network" as const,
-            title: "Staff & Tasks",
-            body: "Assign jobs, track status, and stop miscommunications.",
-          },
-          {
-            icon: "link" as const,
-            title: "Growth Websites",
-            body: "Modern, fast websites to attract local customers.",
-          },
-          {
-            icon: "cycle" as const,
-            title: "WhatsApp Automation",
-            body: "Instant order receipts and automated customer updates.",
-          },
+        id: "billing",
+        label: "Billing & Collections",
+        eyebrow: "TAILORED CAPABILITY",
+        title: "Billing & Collections",
+        bottleneck: "Invoices created manually in separate tools delay collections and create accounting reconciliation headaches.",
+        capabilities: [
+          "GST-compliant invoicing & multi-tier tax rules",
+          "Automated WhatsApp payment links & follow-up reminders",
+          "Real-time customer ledger & outstanding tracking",
+          "Direct reconciliation with bank feeds and accounting exports",
         ],
+        whoUsesIt: "Billing Executives, Accountants & Owners",
+        howItConnects: "Directly reads inventory dispatch logs; automatically updates owner cashflow.",
       },
       {
-        id: "help",
-        label: "Who We Help",
-        lede: "Built for business owners who want less chaos and faster growth.",
-        items: [
-          {
-            icon: "package" as const,
-            title: "Wholesale & Distribution",
-            body: "Multi-godown stock, fast challans, and customer credit tracking.",
-          },
-          {
-            icon: "pulse" as const,
-            title: "Clinics & Diagnostics",
-            body: "Patient visits, pharmacy stock, and 1-click billing.",
-          },
-          {
-            icon: "headset" as const,
-            title: "Workshops & Service",
-            body: "Mobile job cards, spare parts tracking, and instant bills.",
-          },
-          {
-            icon: "factory" as const,
-            title: "Small Factories",
-            body: "Raw materials, daily production output, and dispatch logs.",
-          },
-          {
-            icon: "bell" as const,
-            title: "Retail & Multi-Branch",
-            body: "Central billing and stock sync across all your stores.",
-          },
-          {
-            icon: "graduation" as const,
-            title: "Institutes & Academies",
-            body: "Student admissions, fee reminders, and attendance in one place.",
-          },
+        id: "inventory",
+        label: "Inventory & Stock Movement",
+        eyebrow: "TAILORED CAPABILITY",
+        title: "Inventory & Stock Movement",
+        bottleneck: "Physical stock registers don't match computer numbers, leading to stockouts or dead inventory.",
+        capabilities: [
+          "Multi-location, branch & warehouse stock registers",
+          "Barcode & QR scanning for receiving and dispatches",
+          "Low-stock threshold alerts & automated reorder drafts",
+          "Batch & expiry tracking with audit log of movements",
         ],
+        whoUsesIt: "Store Managers, Dispatch Teams & Purchase Heads",
+        howItConnects: "Locks reserved stock on sales order; triggers purchase workflows on low stock.",
+      },
+      {
+        id: "workflows",
+        label: "Workflows & Approvals",
+        eyebrow: "TAILORED CAPABILITY",
+        title: "Workflows & Approvals",
+        bottleneck: "Critical jobs and approvals get trapped in WhatsApp chats and forgotten email threads.",
+        capabilities: [
+          "Configurable multi-step approval workflows (Discounts, POs, Leaves)",
+          "Field team task assignment with mobile signoffs & photo verification",
+          "Automated role-based escalation when tasks stall",
+          "Real-time customer status notifications via SMS & WhatsApp",
+        ],
+        whoUsesIt: "Floor Supervisors, Field Technicians & Department Heads",
+        howItConnects: "Passes completed field tasks directly into the billing engine.",
+      },
+      {
+        id: "dashboards",
+        label: "Management Dashboards",
+        eyebrow: "TAILORED CAPABILITY",
+        title: "Management Dashboards",
+        bottleneck: "Business owners spend hours asking three managers for reports before knowing where things stand.",
+        capabilities: [
+          "Live business pulse: daily orders, dispatches, margins & pending tasks",
+          "Branch-by-branch comparative performance charts",
+          "Automated end-of-day operational summary reports to mobile",
+          "Role-based permission controls to protect sensitive financial data",
+        ],
+        whoUsesIt: "Founders, Managing Directors & Operational Leaders",
+        howItConnects: "Pulls real-time aggregates from all active operational modules.",
+      },
+      {
+        id: "integrations",
+        label: "Integrations & Migration",
+        eyebrow: "TAILORED CAPABILITY",
+        title: "Integrations & Migration",
+        bottleneck: "Existing spreadsheets and isolated legacy tools trap historical data in silos.",
+        capabilities: [
+          "Clean historical data import from Excel, Google Sheets, or legacy databases",
+          "Connectors for WhatsApp Business API, SMS Gateways, and Payment Links",
+          "Integration with Tally, Zoho Books, or custom internal ERPs",
+          "Automated daily cloud backups and 1-click customer data export",
+        ],
+        whoUsesIt: "IT Leads, Operations Managers & Systems Admins",
+        howItConnects: "Provides the underlying data bridge keeping all tools in sync.",
       },
     ],
   },

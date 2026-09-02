@@ -6,82 +6,79 @@ import GlassSurface from "./GlassSurface";
 import { sampleGradientCss } from "@/lib/heroParticles";
 import { constellationState } from "@/lib/constellationState";
 
-const ORBITS = [
-  { rx: 0.44, ry: 0.36, cx: 0.5, cy: 0.48 },
-  { rx: 0.38, ry: 0.42, cx: 0.5, cy: 0.50 },
-  { rx: 0.46, ry: 0.38, cx: 0.5, cy: 0.52 },
-  { rx: 0.40, ry: 0.34, cx: 0.5, cy: 0.46 },
-  { rx: 0.48, ry: 0.40, cx: 0.5, cy: 0.50 },
-  { rx: 0.42, ry: 0.44, cx: 0.5, cy: 0.52 },
+// Faster, smoother, and more chaotic multi-harmonic orbital configurations
+// Faster, smoother, and more chaotic multi-harmonic orbital configurations for 5 nodes
+const CHAOTIC_ORBITS = [
+  { cx: -0.38, cy: 0.30, rx: 0.22, ry: 0.26, f1: 0.115, f2: 0.185, f3: 0.082, phase: 0.2 },
+  { cx: -0.40, cy: 0.68, rx: 0.24, ry: 0.26, f1: -0.098, f2: 0.165, f3: 0.104, phase: 1.8 },
+  { cx: 0.00, cy: 0.16, rx: 0.22, ry: 0.16, f1: 0.125, f2: -0.150, f3: 0.090, phase: 3.2 },
+  { cx: 0.40, cy: 0.36, rx: 0.24, ry: 0.28, f1: -0.108, f2: 0.178, f3: -0.088, phase: 0.9 },
+  { cx: 0.38, cy: 0.72, rx: 0.25, ry: 0.25, f1: 0.122, f2: -0.155, f3: 0.112, phase: 2.5 },
 ];
 
-const TIMING = [
-  { duration: 32, reverse: false },
-  { duration: 38, reverse: true },
-  { duration: 28, reverse: false },
-  { duration: 34, reverse: true },
-  { duration: 30, reverse: false },
-  { duration: 42, reverse: true },
+const MOBILE_CHAOTIC = [
+  { cx: -0.34, cy: 0.16, rx: 0.16, ry: 0.12, f1: 0.12, f2: 0.18, f3: 0.08, phase: 0.2 },
+  { cx: -0.40, cy: 0.52, rx: 0.12, ry: 0.18, f1: -0.10, f2: 0.16, f3: 0.09, phase: 1.8 },
+  { cx: 0.00, cy: 0.88, rx: 0.18, ry: 0.10, f1: 0.13, f2: -0.14, f3: 0.08, phase: 3.4 },
+  { cx: 0.38, cy: 0.32, rx: 0.14, ry: 0.18, f1: 0.12, f2: -0.15, f3: 0.10, phase: 2.5 },
+  { cx: 0.34, cy: 0.72, rx: 0.16, ry: 0.14, f1: -0.12, f2: 0.15, f3: -0.08, phase: 4.2 },
 ];
 
 const NODES = [
-  { title: "Customer", note: "Order placed", index: "01", tint: 0.05 },
-  { title: "Front Desk", note: "Logged on screen", index: "02", tint: 0.24 },
-  { title: "Team & Staff", note: "Job assigned", index: "03", tint: 0.44 },
-  { title: "Stock", note: "Auto-synced", index: "04", tint: 0.64 },
-  { title: "Billing", note: "1-click GST bill", index: "05", tint: 0.82 },
-  { title: "Owner", note: "Live profit report", index: "06", tint: 1.0 },
+  { title: "Order Capture", note: "Front Desk / Sales", index: "01", tint: "#60A5FA", glow: "rgba(45, 107, 255, 0.20)", tintVal: 0.05 },
+  { title: "Capacity & Approval", note: "Operations Manager", index: "02", tint: "#818CF8", glow: "rgba(99, 102, 241, 0.20)", tintVal: 0.28 },
+  { title: "Stock Movement", note: "Warehouse / Fulfilment", index: "03", tint: "#C084FC", glow: "rgba(168, 85, 247, 0.20)", tintVal: 0.52 },
+  { title: "Billing & Ledger", note: "Accounts Team", index: "04", tint: "#FB7185", glow: "rgba(250, 69, 146, 0.20)", tintVal: 0.76 },
+  { title: "Owner Visibility", note: "Business Owner", index: "05", tint: "#FF8C7F", glow: "rgba(255, 107, 92, 0.20)", tintVal: 1.0 },
 ];
 
 function NodeIcon({ index }: { index: number }) {
   switch (index) {
     case 0:
+      // Order Capture (Clipboard / Sales Order)
       return (
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+          <rect x="8" y="2" width="8" height="4" rx="1" />
+          <path d="m9 14 2 2 4-4" />
         </svg>
       );
     case 1:
+      // Capacity & Approval (Operations Manager Shield & Check)
       return (
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <rect width="20" height="14" x="2" y="3" rx="2" />
-          <line x1="8" x2="16" y1="21" y2="21" />
-          <line x1="12" x2="12" y1="17" y2="21" />
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+          <path d="m9 12 2 2 4-4" />
         </svg>
       );
     case 2:
+      // Stock Movement (Warehouse / Fulfilment Box)
       return (
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+          <path d="m3.3 7 8.7 5 8.7-5" />
+          <path d="M12 22V12" />
         </svg>
       );
     case 3:
+      // Billing & Ledger (Accounts Team Receipt / Ledger)
       return (
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <ellipse cx="12" cy="5" rx="9" ry="3" />
-          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-          <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
-        </svg>
-      );
-    case 4:
-      return (
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
           <path d="M14 8H8" />
           <path d="M16 12H8" />
           <path d="M13 16H8" />
         </svg>
       );
-    case 5:
+    case 4:
     default:
+      // Owner Visibility (Business Owner Growth Dashboard)
       return (
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-          <polyline points="16 7 22 7 22 13" />
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+          <path d="M3 20h18" />
         </svg>
       );
   }
@@ -92,8 +89,46 @@ function ease(x: number): number {
   return c * c * (3 - 2 * c);
 }
 
+function sampleStreamRgba(u: number, alpha: number): string {
+  const a = Math.max(0, Math.min(1, alpha));
+  if (u < 0.25) {
+    const t = u / 0.25;
+    const r = Math.round(45 + (129 - 45) * t);
+    const g = Math.round(107 + (140 - 107) * t);
+    const b = Math.round(255 + (248 - 255) * t);
+    return `rgba(${r}, ${g}, ${b}, ${a.toFixed(3)})`;
+  } else if (u < 0.50) {
+    const t = (u - 0.25) / 0.25;
+    const r = Math.round(129 + (192 - 129) * t);
+    const g = Math.round(140 + (132 - 140) * t);
+    const b = Math.round(248 + (252 - 248) * t);
+    return `rgba(${r}, ${g}, ${b}, ${a.toFixed(3)})`;
+  } else if (u < 0.75) {
+    const t = (u - 0.50) / 0.25;
+    const r = Math.round(192 + (251 - 192) * t);
+    const g = Math.round(132 + (113 - 132) * t);
+    const b = Math.round(252 + (133 - 252) * t);
+    return `rgba(${r}, ${g}, ${b}, ${a.toFixed(3)})`;
+  } else {
+    const t = (u - 0.75) / 0.25;
+    const r = Math.round(251 + (255 - 251) * t);
+    const g = Math.round(113 + (140 - 113) * t);
+    const b = Math.round(133 + (127 - 133) * t);
+    return `rgba(${r}, ${g}, ${b}, ${a.toFixed(3)})`;
+  }
+}
+
+interface StreamParticle {
+  u: number;
+  speed: number;
+  offset: number;
+  size: number;
+  phase: number;
+}
+
 export default function HeroFlowConstellation() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const streamCanvasRef = useRef<HTMLCanvasElement>(null);
   const nodeRefs = useRef<Array<HTMLDivElement | null>>([]);
   const labelRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [mounted, setMounted] = useState(false);
@@ -105,15 +140,35 @@ export default function HeroFlowConstellation() {
   useEffect(() => {
     if (!mounted) return;
     const container = containerRef.current;
-    if (!container) return;
+    const streamCanvas = streamCanvasRef.current;
+    if (!container || !streamCanvas) return;
+
+    const ctx = streamCanvas.getContext("2d");
+    if (!ctx) return;
 
     let rafId = 0;
     const started = performance.now();
+    let lastTime = started;
     const count = NODES.length;
+
+    // 1. Initialize 1,200 particle motes for the luminous pipeline stream
+    const STREAM_COUNT = 1200;
+    const streamParticles: StreamParticle[] = [];
+    for (let i = 0; i < STREAM_COUNT; i++) {
+      streamParticles.push({
+        u: i / STREAM_COUNT,
+        speed: 0.055 + Math.random() * 0.065,
+        offset: (Math.random() * 2 - 1) * Math.pow(Math.random(), 0.6),
+        size: 0.75 + Math.random() * 1.6,
+        phase: Math.random() * Math.PI * 2,
+      });
+    }
 
     const tick = () => {
       rafId = requestAnimationFrame(tick);
       const now = performance.now();
+      const dt = Math.min(0.1, (now - lastTime) / 1000);
+      lastTime = now;
       const elapsed = (now - started) / 1000;
 
       const heroEl = document.querySelector<HTMLElement>(".hero");
@@ -122,6 +177,19 @@ export default function HeroFlowConstellation() {
 
       const winW = window.innerWidth;
       const winH = window.innerHeight;
+
+      // Ensure stream canvas matches device pixel ratio
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (streamCanvas.width !== winW * dpr || streamCanvas.height !== winH * dpr) {
+        streamCanvas.width = winW * dpr;
+        streamCanvas.height = winH * dpr;
+        streamCanvas.style.width = `${winW}px`;
+        streamCanvas.style.height = `${winH}px`;
+      }
+
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, winW, winH);
 
       // Hero box dimensions for elliptical orbit
       const heroRect = heroEl?.getBoundingClientRect();
@@ -142,21 +210,43 @@ export default function HeroFlowConstellation() {
       const trackRect = trackEl?.getBoundingClientRect();
       const isMobile = winW < 768;
 
+      const nodeScreenCoords: Array<{ x: number; y: number }> = [];
+
       for (let i = 0; i < count; i++) {
         const el = nodeRefs.current[i];
         if (!el) continue;
 
-        const orbit = ORBITS[i % ORBITS.length];
-        const timing = TIMING[i % TIMING.length];
-        const dir = timing.reverse ? -1 : 1;
+        const cfg = isMobile ? MOBILE_CHAOTIC[i % MOBILE_CHAOTIC.length] : CHAOTIC_ORBITS[i % CHAOTIC_ORBITS.length];
 
-        // Continuous fluid orbital motion in Hero
-        const u = i / count + (dir * elapsed) / timing.duration;
-        const phi = u * Math.PI * 2;
-        const orbitScale = Math.min(boxW, boxH) < 600 ? 0.72 : 1.0;
+        // Multi-frequency chaotic harmonic trajectory
+        const t1 = elapsed * cfg.f1 * Math.PI * 2 + cfg.phase;
+        const t2 = elapsed * cfg.f2 * Math.PI * 2 + cfg.phase * 1.618;
+        const t3 = elapsed * cfg.f3 * Math.PI * 2 + cfg.phase * 2.718;
 
-        const orbitX = (orbit.cx - 0.5) * boxW * 0.92 + orbit.rx * boxW * 0.88 * orbitScale * Math.sin(phi);
-        const orbitY = heroCenterY + (orbit.cy - 0.5) * boxH * 0.88 - orbit.ry * boxH * 0.78 * orbitScale * Math.cos(phi);
+        const harmonicX = Math.sin(t1) * 0.62 + Math.sin(t2) * 0.28 + Math.cos(t3) * 0.10;
+        const harmonicY = Math.cos(t1 * 1.05) * 0.62 + Math.cos(t2 * 1.25) * 0.28 + Math.sin(t3 * 0.85) * 0.10;
+
+        let orbitX = cfg.cx * boxW + cfg.rx * boxW * harmonicX;
+        let orbitY = heroCenterY + (cfg.cy - 0.5) * boxH + cfg.ry * boxH * harmonicY;
+
+        // Smooth continuous text margin deflection
+        const heroCopy = heroEl?.querySelector<HTMLElement>(".hero__copy");
+        if (heroCopy) {
+          const copyBox = heroCopy.getBoundingClientRect();
+          const deadZoneHalfW = copyBox.width * 0.24;
+          const deadZoneHalfH = copyBox.height * 0.28;
+          const copyCenterY = copyBox.top + copyBox.height * 0.5;
+
+          const dy = orbitY - copyCenterY;
+          if (Math.abs(dy) < deadZoneHalfH) {
+            const pushFactor = Math.cos((dy / deadZoneHalfH) * (Math.PI * 0.5));
+            if (orbitX < 0 && orbitX > -deadZoneHalfW) {
+              orbitX = -deadZoneHalfW - pushFactor * 14;
+            } else if (orbitX >= 0 && orbitX < deadZoneHalfW) {
+              orbitX = deadZoneHalfW + pushFactor * 14;
+            }
+          }
+        }
 
         // Target seat in Flow Section pipeline
         let seatX = 0;
@@ -186,24 +276,26 @@ export default function HeroFlowConstellation() {
         const x = orbitX * (1 - k) + seatX * k;
         const y = orbitY * (1 - k) + seatY * k;
 
-        // Deep 3D spatial trajectory when moving to the bottleneck section
-        const orbitZ = Math.sin(phi * 2.0) * 32;
-        const swoopZ = Math.sin(k * Math.PI) * -110;
-        const dockElevationZ = 30; // elevated 3D glass slab in bottleneck section
-        const z = orbitZ * (1 - k) + (swoopZ + dockElevationZ) * k;
+        // Spatial trajectory - clean alignment with zero parallax in docked section
+        const orbitZ = Math.sin(t1 * 2.0) * 36 + Math.cos(t2) * 16;
+        const z = orbitZ * (1 - k);
 
-        // 3D perspective orientation
-        const pitch = Math.sin(phi + i * 1.2) * 16 * (1 - k) + (10 * k); // forward 3D tilt in bottleneck
-        const yaw = Math.cos(phi + i * 1.6) * 18 * (1 - k) + (-5 * (i - 2.5) * k); // perspective fanout
-        const roll = Math.sin(phi * 0.8 + i) * 8 * (1 - k);
-        const scale = (1.0 + Math.sin(phi) * 0.06 * (1 - k)) * (1.0 + k * 0.06);
+        // 3D banking - zero tilt/yaw/pitch in docked section
+        const pitch = (Math.sin(t1 + i * 1.2) * 20 + Math.cos(t2) * 8) * (1 - k);
+        const yaw = (Math.cos(t2 + i * 1.6) * 22 + Math.sin(t3) * 10) * (1 - k);
+        const roll = (Math.sin(t3 * 0.8 + i) * 16 + Math.cos(t1) * 8) * (1 - k);
+        const scale = 1.0 + Math.sin(t1) * 0.08 * (1 - k);
 
         el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) rotateX(${pitch.toFixed(1)}deg) rotateY(${yaw.toFixed(1)}deg) rotateZ(${roll.toFixed(1)}deg) scale(${scale.toFixed(3)})`;
 
-        // Update live screen coordinates for particle filament physics (always active)
+        const screenX = winW * 0.5 + x;
+        const screenY = y;
+        nodeScreenCoords.push({ x: screenX, y: screenY });
+
+        // Update live screen coordinates for particle filament physics
         if (constellationState.nodes[i]) {
-          constellationState.nodes[i].x = winW * 0.5 + x;
-          constellationState.nodes[i].y = y;
+          constellationState.nodes[i].x = screenX;
+          constellationState.nodes[i].y = screenY;
           constellationState.nodes[i].active = 1.0;
         }
 
@@ -214,6 +306,134 @@ export default function HeroFlowConstellation() {
           labelEl.style.transform = `translate3d(0, ${(1 - labelOpacity) * 8}px, 0)`;
         }
       }
+
+      // 2. Render Luminous Particle Stream Line between Floating Modules
+      // Stream is 100% invisible in Hero section (streamAlpha = 0), and begins appearing smoothly as we scroll to the bottleneck section
+      const streamAlpha = Math.max(0, Math.min(1.0, (t - 0.04) / 0.45));
+
+      if (nodeScreenCoords.length >= 2 && streamAlpha > 0.005) {
+        // Precompute cumulative segment lengths
+        const segLengths: number[] = [];
+        let totalLen = 0;
+        for (let i = 0; i < nodeScreenCoords.length - 1; i++) {
+          const dx = nodeScreenCoords[i + 1].x - nodeScreenCoords[i].x;
+          const dy = nodeScreenCoords[i + 1].y - nodeScreenCoords[i].y;
+          const len = Math.sqrt(dx * dx + dy * dy);
+          segLengths.push(len);
+          totalLen += len;
+        }
+
+        if (totalLen > 10) {
+          // A. Radiant Station Halos beneath each floating module
+          for (let i = 0; i < nodeScreenCoords.length; i++) {
+            const p = nodeScreenCoords[i];
+            const u = i / Math.max(1, nodeScreenCoords.length - 1);
+            const pulse = Math.sin(elapsed * 4.0 + i * 1.2) * 0.15 + 0.85;
+            const haloGrad = ctx.createRadialGradient(p.x, p.y, 4, p.x, p.y, 36 * pulse);
+            haloGrad.addColorStop(0, sampleStreamRgba(u, 0.45 * streamAlpha));
+            haloGrad.addColorStop(0.5, sampleStreamRgba(u, 0.18 * streamAlpha));
+            haloGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+            ctx.fillStyle = haloGrad;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 36 * pulse, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // B. Soft Radiant Core Backbone Line
+          ctx.beginPath();
+          ctx.moveTo(nodeScreenCoords[0].x, nodeScreenCoords[0].y);
+          for (let i = 1; i < nodeScreenCoords.length; i++) {
+            ctx.lineTo(nodeScreenCoords[i].x, nodeScreenCoords[i].y);
+          }
+          ctx.strokeStyle = sampleStreamRgba(0.5, 0.30 * streamAlpha);
+          ctx.lineWidth = 2.5;
+          ctx.shadowColor = "rgba(129, 140, 248, 0.65)";
+          ctx.shadowBlur = 14;
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          // C. 1,200 Luminous Flowing Shimmer Particles along the pipeline
+          for (let i = 0; i < streamParticles.length; i++) {
+            const sp = streamParticles[i];
+            sp.u = (sp.u + sp.speed * dt) % 1.0;
+
+            const targetDist = sp.u * totalLen;
+            let acc = 0;
+            let segIdx = 0;
+            let segT = 0;
+
+            for (let s = 0; s < segLengths.length; s++) {
+              if (acc + segLengths[s] >= targetDist || s === segLengths.length - 1) {
+                segIdx = s;
+                segT = segLengths[s] > 0 ? (targetDist - acc) / segLengths[s] : 0;
+                break;
+              }
+              acc += segLengths[s];
+            }
+
+            const pA = nodeScreenCoords[segIdx];
+            const pB = nodeScreenCoords[segIdx + 1] || pA;
+
+            // Base position on line
+            const bx = pA.x + (pB.x - pA.x) * segT;
+            const by = pA.y + (pB.y - pA.y) * segT;
+
+            // Normal perpendicular vector
+            const dx = pB.x - pA.x;
+            const dy = pB.y - pA.y;
+            const len = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+            const nx = -dy / len;
+            const ny = dx / len;
+
+            // Lateral Gaussian dispersion (pinches near stations, billows between them)
+            const spanSpread = (Math.sin(segT * Math.PI) * 18 + 3.5) * sp.offset;
+            const shimmer = Math.sin(sp.phase + elapsed * 5.5) * 2.2;
+            const px = bx + nx * (spanSpread + shimmer);
+            const py = by + ny * (spanSpread + shimmer);
+
+            const moteAlpha = (0.35 + 0.65 * (1 - Math.abs(sp.offset))) * streamAlpha;
+            ctx.fillStyle = sampleStreamRgba(sp.u, moteAlpha);
+            ctx.beginPath();
+            ctx.arc(px, py, sp.size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // D. Fast Travelling Energy Comets / Pulses racing through the stations
+          for (let c = 0; c < 3; c++) {
+            const cometU = ((elapsed * 0.18 + c * 0.333) % 1.0);
+            const cometDist = cometU * totalLen;
+            let acc = 0;
+            let segIdx = 0;
+            let segT = 0;
+
+            for (let s = 0; s < segLengths.length; s++) {
+              if (acc + segLengths[s] >= cometDist || s === segLengths.length - 1) {
+                segIdx = s;
+                segT = segLengths[s] > 0 ? (cometDist - acc) / segLengths[s] : 0;
+                break;
+              }
+              acc += segLengths[s];
+            }
+
+            const pA = nodeScreenCoords[segIdx];
+            const pB = nodeScreenCoords[segIdx + 1] || pA;
+            const cx = pA.x + (pB.x - pA.x) * segT;
+            const cy = pA.y + (pB.y - pA.y) * segT;
+
+            // Bright head
+            ctx.fillStyle = "#ffffff";
+            ctx.shadowColor = sampleStreamRgba(cometU, 1.0);
+            ctx.shadowBlur = 18;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 3.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+        }
+      }
+
+      ctx.restore();
     };
 
     rafId = requestAnimationFrame(tick);
@@ -224,6 +444,9 @@ export default function HeroFlowConstellation() {
 
   return (
     <div className="hero-constellation" ref={containerRef} aria-hidden="true">
+      {/* Luminous Particle Line Stream Canvas connecting floating modules */}
+      <canvas ref={streamCanvasRef} className="constellation-stream-canvas" />
+
       {NODES.map((node, i) => (
         <div
           key={node.title}
@@ -233,8 +456,8 @@ export default function HeroFlowConstellation() {
           className="constellation-node"
           style={
             {
-              "--node-tint": sampleGradientCss(node.tint, { lighten: 0.5 }),
-              "--node-glow": sampleGradientCss(node.tint, { alpha: 0.4 }),
+              "--node-tint": node.tint,
+              "--node-glow": node.glow,
             } as unknown as React.CSSProperties
           }
         >
@@ -243,17 +466,17 @@ export default function HeroFlowConstellation() {
 
           <GlassSurface
             className="constellation-node__glass"
-            width={80}
-            height={80}
-            borderRadius={22}
+            width={68}
+            height={68}
+            borderRadius={15}
             distortionScale={-85}
             redOffset={2}
             greenOffset={8}
             blueOffset={15}
-            brightness={62}
+            brightness={65}
             opacity={0.92}
             blur={10}
-            backgroundOpacity={0.08}
+            backgroundOpacity={0.12}
             saturation={1.3}
           >
             <div className="constellation-node__icon">

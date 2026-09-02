@@ -80,8 +80,8 @@ const HeroParticles = forwardRef<HeroParticlesHandle>(function HeroParticles(_pr
        Points land near 3-8 device pixels, still clear of the one-pixel floor
        where dots start dropping out and twinkling. */
     const swarm = new ParticlesSwarm(container, {
-      count: narrow ? 5500 : 8500,
-      particleSize: narrow ? 0.72 : 0.65,
+      count: narrow ? 5200 : 7600,
+      particleSize: narrow ? 1.45 : 1.35,
     });
     swarmRef.current = swarm;
 

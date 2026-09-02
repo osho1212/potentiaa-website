@@ -16,13 +16,13 @@ import * as THREE from "three";
 import { constellationState } from "./constellationState";
 
 /**
- * The brand gradient ramp: Deep Blue -> Electric Blue -> Magenta -> Coral.
+ * The brand gradient ramp: #2D6BFF (Electric Blue) -> #FF6B5C (Vibrant Coral)
  */
 const GRADIENT: Array<{ t: number; rgb: [number, number, number] }> = [
-  { t: 0.0, rgb: [0x0a / 255, 0x24 / 255, 0x70 / 255] }, // --midnight-700
-  { t: 0.28, rgb: [0x26 / 255, 0x5d / 255, 0xff / 255] }, // --blue-500
-  { t: 0.65, rgb: [0xfa / 255, 0x45 / 255, 0x92 / 255] }, // --magenta-500
-  { t: 1.0, rgb: [0xff / 255, 0x6a / 255, 0x5b / 255] }, // --coral-500
+  { t: 0.0, rgb: [0x2d / 255, 0x6b / 255, 0xff / 255] }, // #2D6BFF (Electric Blue)
+  { t: 0.45, rgb: [0x82 / 255, 0x50 / 255, 0xff / 255] }, // Deep Electric Violet
+  { t: 0.75, rgb: [0xe6 / 255, 0x4b / 255, 0x96 / 255] }, // Rich Magenta
+  { t: 1.0, rgb: [0xff / 255, 0x6b / 255, 0x5c / 255] }, // #FF6B5C (Vibrant Coral)
 ];
 
 const LUT_SIZE = 256;
@@ -106,7 +106,7 @@ function buildParticleSprite(): THREE.DataTexture {
       let alpha = 0;
       if (r < 1) {
         const core = Math.max(0, 1 - r);
-        alpha = Math.pow(core, 1.8);
+        alpha = Math.pow(core, 1.25); // richer, more radiant luminous particle halo
       }
 
       const idx = (y * SPRITE_SIZE + x) * 4;
@@ -153,13 +153,13 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
   uniform vec3 uRepel;
   uniform vec3 uGlow;
   uniform vec2 uHeroCenter;
-  uniform vec3 uNodes[6];
+  uniform vec3 uNodes[5];
   uniform float uTime;
 
   varying vec3 vColor;
   varying vec3 vGrain;
 
-  const float LUMA = 1.45;
+  const float LUMA = 1.56;
 
   void main() {
     float foldPhaseCos = uFold.x;
@@ -175,57 +175,44 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
     float jitCCos = uJitC.x;
     float jitCSin = uJitC.y;
 
-    // 1. Dynamic Central Hero Pattern Metamorphosis:
-    // Anchored at uHeroCenter.xy (exact center of hero section, moves naturally with page scroll)
-    float harmonic1 = aFold.x * (aFold.y * foldPhaseCos - aFold.z * foldPhaseSin);
-    float harmonic2 = sin(aDirection.x * 6.0 + uTime * 0.8) * cos(aDirection.y * 5.0 - uTime * 0.6) * 0.15;
-    
-    // Dynamic spoke attraction reaching out from hero center towards the 6 orbiting constellation nodes
-    float nodeSpokeLobe = 0.0;
-    vec2 pDir2D = normalize(aDirection.xy + vec2(0.0001));
-    for (int i = 0; i < 6; i++) {
-      if (uNodes[i].z > 0.05) {
-        vec2 nodeVec = uNodes[i].xy - uHeroCenter.xy;
-        float nodeDist = length(nodeVec);
-        vec2 nDir = (nodeDist > 0.001) ? (nodeVec / nodeDist) : vec2(0.0, 1.0);
-        float align = max(0.0, dot(pDir2D, nDir));
-        float lobe = pow(align, 4.0) * (nodeDist * 0.45);
-        nodeSpokeLobe = max(nodeSpokeLobe, lobe);
-      }
-    }
+    // 1. Organic 3D Morphing Sphere Field (Spanning Full Viewport):
+    float baseRadius = 68.0;
 
-    float fold = 0.82 + harmonic1 * 0.85 + harmonic2;
-    float baseRadius = 38.0 * fold + nodeSpokeLobe;
+    // Harmonic spherical noise displacement creating living fluid waves over the sphere
+    float morph1 = sin(aDirection.y * 3.4 + uTime * 0.85 + aFold.x * 2.2);
+    float morph2 = cos(aDirection.z * 3.8 - uTime * 0.75 + aFold.y * 2.2);
+    float morph3 = sin((aDirection.x * 2.6 + aDirection.y * 2.2) + uTime * 0.95);
+    float morph4 = cos(length(aDirection.xy) * 4.5 - uTime * 0.7);
 
-    // 2. Synaptic ripples & breathing waves
-    float ripple = 0.07 * sin(baseRadius * 0.35 - uTime * 2.2 + aWave.x * 3.14159);
-    float radius = baseRadius * (1.0 + ripple);
+    float ripple = (morph1 * 0.35 + morph2 * 0.30 + morph3 * 0.20 + morph4 * 0.15) * 14.0;
+    float breath = sin(uTime * 0.55 + aWave.x * 3.14159) * 4.5;
 
-    float x = uHeroCenter.x + radius * aDirection.x;
-    float y = uHeroCenter.y + radius * aDirection.y;
-    float z = radius * aDirection.z;
+    float currentRadius = baseRadius + ripple + breath;
+    vec3 spherePos = aDirection * currentRadius;
 
-    // Organic neural filament concentration
-    if (aTract > 0.5) {
-      x = uHeroCenter.x + (radius * aDirection.x) * 0.25;
-      y = uHeroCenter.y + (radius * aDirection.y) * 0.88;
-      z = (radius * aDirection.z) * 0.45;
-    }
+    // Horizontal and vertical scaling to fill screen generously
+    spherePos.x *= 1.35;
+    spherePos.y *= 1.05;
 
-    // 3. Dynamic Constellation Network: Chaotic Weak Links -> Solid Organized Operational Conduits
+    // Fluid continuous wave drifting
+    float waveX = sin(spherePos.y * 0.04 + uTime * 0.7) * 3.5;
+    float waveY = cos(spherePos.x * 0.04 - uTime * 0.6) * 3.5;
+    float waveZ = sin((spherePos.x + spherePos.y) * 0.025 + uTime * 0.8) * 2.5;
+
+    float x = uHeroCenter.x + spherePos.x + waveX;
+    float y = uHeroCenter.y + spherePos.y + waveY;
+    float z = spherePos.z + waveZ;
+
+    // 2. Dynamic Constellation Perimeter Conduits (connecting the 6 orbiting nodes)
     float filamentGlow = 0.0;
-    float systemOrganization = 0.0; // 0 = chaotic weak links, 1 = solid organized system
+    float systemOrganization = 0.0;
 
-    // Interactive boost from cursor / hover activity
     float activeOrgBoost = clamp(uRepel.z * 0.25 + uGlow.z * 0.35, 0.0, 1.0);
-
-    // Dynamic seeking wave across time (particles constantly seeking, connecting, and solidifying)
     float seekingWave = sin(uTime * 1.8 + aDirection.x * 4.0) * 0.5 + 0.5;
     float currentSolidification = clamp(0.35 + seekingWave * 0.45 + activeOrgBoost * 0.5, 0.0, 1.0);
 
-    // PATHWAY A: Perimeter Conduit between consecutive nodes (0->1->2->3->4->5->0)
-    for (int i = 0; i < 6; i++) {
-      int nextIdx = (i == 5) ? 0 : i + 1;
+    for (int i = 0; i < 5; i++) {
+      int nextIdx = (i == 4) ? 0 : i + 1;
       vec3 nA = uNodes[i];
       vec3 nB = uNodes[nextIdx];
 
@@ -240,78 +227,36 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
           vec2 segPoint = A + param * AB;
           vec2 segDiff = vec2(x, y) - segPoint;
           float segDist2 = dot(segDiff, segDiff);
-          float maxFilamentDist = 20.0;
+          float maxFilamentDist = 22.0;
 
           if (segDist2 < maxFilamentDist * maxFilamentDist) {
             float dist = sqrt(segDist2);
             float distFalloff = 1.0 - dist / maxFilamentDist;
 
-            // Connected ~ disconnected quantum filament pulse
-            // Oscillates between weak searching flicker and solid conduit
             float filamentPulse = sin(param * 14.0 - uTime * 4.5 + float(i) * 1.047);
             float weakFlicker = smoothstep(-0.35, 0.45, filamentPulse);
             float connectionStrength = mix(weakFlicker, 1.0, currentSolidification * 0.7) * nA.z * nB.z;
 
-            // Fraction of particles coalesce to form the line
-            float isFilamentParticle = step(0.32, fract(aDirection.x * 19.3 + aDirection.y * 29.7 + float(i) * 0.17));
-            float pull = distFalloff * distFalloff * connectionStrength * isFilamentParticle * (0.65 + currentSolidification * 0.35);
+            float isFilamentParticle = step(0.35, fract(aDirection.x * 19.3 + aDirection.y * 29.7 + float(i) * 0.17));
+            float pull = distFalloff * distFalloff * connectionStrength * isFilamentParticle * (0.6 + currentSolidification * 0.3);
 
-            // Pull chaotic particles into coherent line
             x -= segDiff.x * pull;
             y -= segDiff.y * pull;
 
-            // Traveling energy pulse / data packets moving through the pipeline
             float packet = sin(param * 26.0 - uTime * 7.5 + float(i) * 1.2) * 0.5 + 0.5;
-            filamentGlow += distFalloff * connectionStrength * (1.2 + packet * 1.8);
+            filamentGlow += distFalloff * connectionStrength * (1.2 + packet * 1.6);
             systemOrganization = max(systemOrganization, distFalloff * connectionStrength);
           }
         }
       }
     }
 
-    // PATHWAY B: Central Hub-to-Node Arterial Spokes (uHeroCenter -> Node i)
-    for (int i = 0; i < 6; i++) {
-      vec3 node = uNodes[i];
-      if (node.z > 0.05) {
-        vec2 A = uHeroCenter.xy;
-        vec2 B = node.xy;
-        vec2 AB = B - A;
-        float segLen2 = dot(AB, AB);
-
-        if (segLen2 > 1.0) {
-          float param = clamp(dot(vec2(x, y) - A, AB) / segLen2, 0.0, 1.0);
-          vec2 segPoint = A + param * AB;
-          vec2 segDiff = vec2(x, y) - segPoint;
-          float segDist2 = dot(segDiff, segDiff);
-          float maxSpokeDist = 18.0;
-
-          if (segDist2 < maxSpokeDist * maxSpokeDist) {
-            float dist = sqrt(segDist2);
-            float distFalloff = 1.0 - dist / maxSpokeDist;
-
-            float spokePulse = sin(param * 10.0 - uTime * 3.8 + float(i) * 1.047);
-            float spokeConnection = smoothstep(-0.2, 0.6, spokePulse) * node.z;
-
-            float isSpokeParticle = step(0.42, fract(aDirection.z * 23.1 + aDirection.x * 11.7));
-            float pull = distFalloff * distFalloff * spokeConnection * isSpokeParticle * 0.65;
-
-            x -= segDiff.x * pull;
-            y -= segDiff.y * pull;
-
-            float spokeSpark = sin(param * 20.0 - uTime * 6.0) * 0.5 + 0.5;
-            filamentGlow += distFalloff * spokeConnection * (0.95 + spokeSpark * 1.4);
-            systemOrganization = max(systemOrganization, distFalloff * spokeConnection);
-          }
-        }
-      }
-    }
-
-    // 4. Interactive Anti-Chaos Harmonic Shape Formation (Ring around cursor on hover)
+    // 3. Interactive Cursor Repulsion & Localized Energy Waves
     float attractStrength = 0.0;
     if (uRepel.z > 0.001) {
       vec2 diff = vec2(x, y) - uRepel.xy;
       float d2 = dot(diff, diff);
-      float rMax = 34.0;
+      float rMax = 38.0;
       float rMax2 = rMax * rMax;
       if (d2 < rMax2 && d2 > 0.0001) {
         float d = sqrt(d2);
@@ -319,13 +264,13 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
         falloff = falloff * falloff;
         attractStrength = falloff * uRepel.z;
 
-        float ringR = 10.0;
+        float ringR = 12.0;
         float distToRing = d - ringR;
         vec2 dir = diff / d;
         vec2 tangent = vec2(-dir.y, dir.x);
 
-        x -= dir.x * (distToRing * 0.88 * attractStrength);
-        y -= dir.y * (distToRing * 0.88 * attractStrength);
+        x -= dir.x * (distToRing * 0.85 * attractStrength);
+        y -= dir.y * (distToRing * 0.85 * attractStrength);
 
         float theta = atan(diff.y, diff.x);
         float spin = sin(theta * 2.0 + uTime * 2.6) * 1.8 * attractStrength;
@@ -335,18 +280,17 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
       }
     }
 
-    // 5. Dynamic Chaos Damping:
-    // Chaotic wandering particles are calmed & organized when captured into the constellation system
+    // 4. Subtle Quantum Jiggle
     float totalDamp = clamp(systemOrganization * 0.85 + attractStrength * 0.95, 0.0, 0.98);
     float dampChaos = 1.0 - totalDamp;
-    float jiggle = (aTract > 0.5 ? 0.02 : 0.22) * dampChaos;
+    float jiggle = 0.18 * dampChaos;
     float jX = (aJit.x * jitACos + aJit.y * jitASin) * jiggle;
     float jY = (aJit.z * jitBCos - aJit.w * jitBSin) * jiggle;
     float jZ = (jitCSin * aJit.y - jitCCos * aJit.x) * jiggle;
 
     vec3 pos = vec3(x + jX, y + jY, z + jZ);
 
-    // 6. Energy firing pulses across synaptic nodes
+    // 5. Energy firing pulses across synaptic nodes
     float s = aFire.x * firePhaseCos + aFire.y * firePhaseSin;
     float spike = 0.0;
     if (s > 0.0) {
@@ -357,17 +301,17 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
     }
 
     float wave = (aWave.x * wavePhaseCos - aWave.y * wavePhaseSin + 1.0) * 0.5;
-    float depth = 0.45 + 0.55 * (pos.z * (1.0 / 34.0) * 0.5 + 0.5);
+    float depth = 0.5 + 0.5 * (pos.z * (1.0 / 38.0) * 0.5 + 0.5);
 
-    // 7. Structured hover illumination
-    float glowBoost = attractStrength * 0.85;
+    // 6. Structured hover illumination (pure chromatic glow in #2D6BFF and #FF6B5C)
+    float glowBoost = attractStrength * 1.4;
     if (uGlow.z > 0.001) {
       vec2 gdiff = pos.xy - uGlow.xy;
       float gd2 = dot(gdiff, gdiff);
-      float gr2 = 24.0 * 24.0;
+      float gr2 = 30.0 * 30.0;
       if (gd2 < gr2) {
-        float gfall = 1.0 - sqrt(gd2) / 24.0;
-        glowBoost += gfall * gfall * uGlow.z;
+        float gfall = 1.0 - sqrt(gd2) / 30.0;
+        glowBoost += gfall * gfall * uGlow.z * 1.6;
       }
     }
 
@@ -375,15 +319,20 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
     float seed2 = fract(seed * 197.31);
     float grainAngle = seed * 6.2831853;
 
-    // Soft edge falloff allowing particles to reach naturally across sections with zero clipping
-    float edgeAlpha = smoothstep(112.0, 75.0, length(pos.xy));
-    vGrain = vec3(cos(grainAngle), sin(grainAngle), seed2 * edgeAlpha);
+    // Smooth central clearing zone around the hero text for readability & accessibility
+    vec2 toCenter = (pos.xy - uHeroCenter.xy) / vec2(50.0, 30.0);
+    float centerDist = length(toCenter);
+    float centralClearance = smoothstep(0.20, 0.95, centerDist);
 
+    float edgeAlpha = smoothstep(125.0, 85.0, length(pos.xy));
+    vGrain = vec3(cos(grainAngle), sin(grainAngle), seed2 * edgeAlpha * (0.08 + 0.92 * centralClearance));
+
+    // Pure chromatic emission: NO white washout, 100% vibrant #2D6BFF and #FF6B5C
+    float interactGlow = clamp(attractStrength * 1.8 + glowBoost * 1.6 + filamentGlow * 1.0, 0.0, 1.0);
     float temper = 0.35 + 0.65 * seed2 * seed2;
-    float level = (0.52 + wave * 0.28 + spike * 1.85 * temper + filamentGlow * 1.25 + (aTract > 0.5 ? 0.3 : 0.0) + glowBoost) * depth * LUMA;
-    float hot = (spike * 0.65 * temper + glowBoost * 0.4 + filamentGlow * 0.95) * LUMA;
+    float level = clamp((0.60 + wave * 0.22 + spike * 0.60 * temper + filamentGlow * 0.60 + interactGlow * 1.0) * depth * LUMA, 0.28, 1.16);
 
-    vColor = aBaseColor * level + vec3(hot * 0.8, hot * 0.85, hot);
+    vColor = aBaseColor * level;
 
     vec4 mv = modelViewMatrix * vec4(pos, 1.0);
     gl_PointSize = uSize * (uScale / -mv.z);
@@ -406,7 +355,7 @@ const PARTICLE_FRAGMENT_SHADER = /* glsl */ `
     if (dot(g, g) > 1.0) discard;
 
     float shape = texture2D(uSprite, g * 0.5 + 0.5).a;
-    float a = shape * (0.82 + 0.18 * vGrain.z);
+    float a = shape * (0.70 + 0.10 * vGrain.z);
     if (a < 0.003) discard;
 
     gl_FragColor = vec4(vColor, a);
@@ -534,12 +483,19 @@ export class ParticlesSwarm {
       const phi = (2 * Math.PI * i) / goldenRatio;
 
       const sinTheta = Math.sin(theta);
-      this.ux[i] = sinTheta * Math.cos(phi);
-      this.uy[i] = sinTheta * Math.sin(phi);
-      this.uz[i] = Math.cos(theta);
+      const sx = sinTheta * Math.cos(phi);
+      const sy = sinTheta * Math.sin(phi);
+      const sz = Math.cos(theta);
 
-      const phiC = phi * complexity;
-      this.foldAmp[i] = 0.24 * Math.sin(theta * complexity);
+      // Volume depth layering: morphing outer shell + soft volumetric inner dust
+      const radialFactor = 0.75 + 0.25 * Math.pow(Math.sin(i * 13.37) * 0.5 + 0.5, 0.5);
+
+      this.ux[i] = sx * radialFactor;
+      this.uy[i] = sy * radialFactor;
+      this.uz[i] = sz * radialFactor;
+
+      const phiC = (i * goldenRatio) * complexity;
+      this.foldAmp[i] = 0.22 * Math.sin(theta * complexity);
       this.foldCos[i] = Math.cos(phiC);
       this.foldSin[i] = Math.sin(phiC);
 
@@ -552,14 +508,14 @@ export class ParticlesSwarm {
       this.jit2Sin[i] = Math.sin(2 * i);
       this.jit2Cos[i] = Math.cos(2 * i);
 
-      const restY = this.uy[i] * scale * 0.1;
+      const restY = sy * scale * 0.1;
       this.waveSin[i] = Math.sin(restY);
       this.waveCos[i] = Math.cos(restY);
 
-      this.tract[i] = i % 48 === 0 ? 1 : 0;
+      this.tract[i] = i % 36 === 0 ? 1 : 0;
 
-      // Color mapped along vertical/radial gradient ramp
-      const t = Math.max(0, Math.min(1, 0.5 + this.uy[i] * 0.42 + this.ux[i] * 0.12));
+      // Smooth color mapping: Electric Blue (#2D6BFF) -> Coral (#FF6B5C)
+      const t = Math.max(0, Math.min(1, 0.5 + sy * 0.42 + sx * 0.18));
       const idx = Math.min(LUT_SIZE - 1, (t * (LUT_SIZE - 1)) | 0) * 3;
       this.baseR[i] = lut[idx];
       this.baseG[i] = lut[idx + 1];
@@ -634,7 +590,6 @@ export class ParticlesSwarm {
             new THREE.Vector3(0, 0, 0),
             new THREE.Vector3(0, 0, 0),
             new THREE.Vector3(0, 0, 0),
-            new THREE.Vector3(0, 0, 0),
           ],
         },
         uTime: { value: 0 },
@@ -642,7 +597,7 @@ export class ParticlesSwarm {
       vertexShader: PARTICLE_VERTEX_SHADER,
       fragmentShader: PARTICLE_FRAGMENT_SHADER,
       transparent: true,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
       depthWrite: false,
       depthTest: false,
     });
@@ -669,8 +624,8 @@ export class ParticlesSwarm {
 
     const aspect = width / height;
     this.camera.aspect = aspect;
-    // Step back camera so the enlarged organic swarm comfortably fits with generous padding
-    const targetZ = aspect < 1.0 ? 112 * Math.min(1.35, 0.85 / Math.max(0.4, aspect)) : 112;
+    // Calibrated camera framing allowing the expanded particle sphere to cover full screen
+    const targetZ = aspect < 1.0 ? 118 * Math.min(1.35, 0.85 / Math.max(0.4, aspect)) : 108;
     this.camera.position.set(0, 0, targetZ);
     this.camera.updateProjectionMatrix();
     if (!this.running) this.renderFrame(this.clock.getElapsedTime());
@@ -798,13 +753,15 @@ export class ParticlesSwarm {
       }
 
       // 2. Update live 3D constellation node positions for connected ~ disconnected filaments
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 5; i++) {
         const node = constellationState.nodes[i];
-        if (node && node.active > 0.01) {
-          const p = this.unproject(node.x, node.y, rect);
-          u.uNodes.value[i].set(p.x, p.y, node.active);
-        } else {
-          u.uNodes.value[i].set(0, 0, 0);
+        if (u.uNodes.value[i]) {
+          if (node && node.active > 0.01) {
+            const p = this.unproject(node.x, node.y, rect);
+            u.uNodes.value[i].set(p.x, p.y, node.active);
+          } else {
+            u.uNodes.value[i].set(0, 0, 0);
+          }
         }
       }
     }

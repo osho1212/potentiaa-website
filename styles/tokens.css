@@ -6,12 +6,12 @@
 
 :root {
   /* ---- Midnight — ink / dark surfaces ---- */
-  --midnight-950: #000000;
-  --midnight-900: #000000;
-  --midnight-800: #000000;
-  --midnight-700: #050505;
-  --midnight-600: #101010;
-  --midnight-500: #1a1a1a;
+  --midnight-950: #02040a;
+  --midnight-900: #030712;
+  --midnight-800: #050a1b;
+  --midnight-700: #091129;
+  --midnight-600: #101938;
+  --midnight-500: #1a254b;
   --midnight-100: #DFE5F5;
   --midnight-50:  #F1F3FB;
 
@@ -57,9 +57,9 @@
 
   /* ---- Semantic aliases ---- */
   --bg-page: var(--soft-white);
-  --bg-page-dark: #000000;
+  --bg-page-dark: #02040a;
   --surface-card: var(--white);
-  --surface-card-dark: #000000;
+  --surface-card-dark: #030712;
   --surface-muted: var(--gray-50);
   --surface-sunken: var(--gray-100);
 
