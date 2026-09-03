@@ -2,6 +2,7 @@
 
 import React, { useEffect, useId, useRef, useState } from "react";
 import Reveal from "../Reveal";
+import OfferingCardParticles from "../OfferingCardParticles";
 import { site } from "@/lib/site";
 
 const MOBILE_BREAKPOINT = 768;
@@ -10,10 +11,12 @@ function BentoCard({
   children,
   className = "",
   interactive = true,
+  formStep,
 }: {
   children: React.ReactNode;
   className?: string;
   interactive?: boolean;
+  formStep?: number;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +50,7 @@ function BentoCard({
     <div
       ref={cardRef}
       className={`offering-card ${className}`}
+      data-form-step={formStep}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
@@ -57,6 +61,8 @@ function BentoCard({
 }
 
 export default function Work() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const showcaseRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const [interactive, setInteractive] = useState(false);
 
@@ -102,22 +108,38 @@ export default function Work() {
   };
 
   return (
-    <section className="section work-section" id="offerings" data-theme-key="work">
+    <section className="section work-section" id="offerings" data-theme-key="work" ref={sectionRef}>
+      {/* Fills the section, not the card - the particles start scattered
+          across the section and the canvas clips them. */}
+      <OfferingCardParticles sectionRef={sectionRef} targetRef={showcaseRef} />
       <div className="container">
         {/* Section Header */}
         <div className="work__head">
           <Reveal>
-            <p className="eyebrow work__eyebrow">{site.work.eyebrow}</p>
+            {/* data-form-heading: rasterised into particle destinations and
+                faded in as the lettering hands back to real text. */}
+            <p className="eyebrow work__eyebrow" data-form-heading>
+              {site.work.eyebrow}
+            </p>
           </Reveal>
           <Reveal delay={60}>
-            <h2 className="section-title work__title">{site.work.title}</h2>
+            <h2 className="section-title work__title" data-form-heading>
+              {site.work.title}
+            </h2>
           </Reveal>
         </div>
 
         {/* 3D Glass Showcase Stage */}
-        <div className="offering-showcase">
+        <div className="offering-showcase" ref={showcaseRef}>
           {/* 1. Horizontal 3D Pill Tab Navigation */}
-          <div className="offering-tabs-wrapper" role="tablist" aria-label="Our Offerings">
+          {/* data-form-step orders the reveal top to bottom, driven from the
+              same scroll progress as the particles. */}
+          <div
+            className="offering-tabs-wrapper"
+            data-form-step={0}
+            role="tablist"
+            aria-label="Our Offerings"
+          >
             <div className="offering-tabs">
               {tabs.map((tab, i) => (
                 <button
@@ -151,7 +173,7 @@ export default function Work() {
             key={panel.id}
           >
             {/* Header with Title and "Discuss this module" CTA */}
-            <div className="offering-panel__header">
+            <div className="offering-panel__header" data-form-step={1}>
               <div className="offering-panel__title-group">
                 <span className="offering-panel__eyebrow">{panel.eyebrow}</span>
                 <h3 className="offering-panel__title">{panel.title}</h3>
@@ -181,7 +203,7 @@ export default function Work() {
             </div>
 
             {/* The Bottleneck Alert Banner */}
-            <div className="offering-bottleneck">
+            <div className="offering-bottleneck" data-form-step={2}>
               <div className="offering-bottleneck__icon" aria-hidden="true">
                 <svg
                   width="18"
@@ -207,7 +229,11 @@ export default function Work() {
             {/* 3D Bento Grid Layout */}
             <div className="offering-bento">
               {/* Left Column: Key Capabilities & Workflows */}
-              <BentoCard className="offering-bento__capabilities" interactive={interactive}>
+              <BentoCard
+                className="offering-bento__capabilities"
+                interactive={interactive}
+                formStep={3}
+              >
                 <h4 className="offering-bento__section-title">Key Capabilities & Workflows</h4>
                 <ul className="offering-bento__list">
                   {panel.capabilities.map((cap, idx) => (
@@ -233,7 +259,7 @@ export default function Work() {
               </BentoCard>
 
               {/* Right Column: Who Uses It & How It Connects */}
-              <div className="offering-bento__side-stack">
+              <div className="offering-bento__side-stack" data-form-step={4}>
                 {/* Top Card: WHO USES IT */}
                 <BentoCard className="offering-bento__who" interactive={interactive}>
                   <div className="offering-bento__tag-header">

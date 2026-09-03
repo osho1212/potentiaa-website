@@ -2112,21 +2112,57 @@ button { font: inherit; cursor: pointer; }
   overflow: hidden;
 }
 
+/* The canvas that draws the offerings card. It spans the whole section rather
+   than the card because the particles start scattered across the section and
+   arrive from outside the card, and a canvas clips its own drawing - which is
+   what keeps the scatter from spilling into the sections above and below.
+
+   WIDTH IS LOAD-BEARING. A canvas is a REPLACED element: given a specified
+   height and width:auto it takes its used width from the drawing buffer's
+   intrinsic aspect ratio and silently ignores right:0. Dropping it once laid
+   the canvas out 43% wider than its own section and put that much horizontal
+   overflow on the page.
+
+   The 8vh bleed top and bottom is where the field fades out, so its edge falls
+   outside the section instead of drawing a seam across it.
+   z-index 0 puts it behind .work-section .container, which is z-index 1. */
+.offering-particles {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 100%;
+  top: -8vh;
+  height: calc(100% + 16vh);
+  z-index: 0;
+  pointer-events: none;
+}
+
 .work-section::before {
   display: none;
 }
 
+/* The section is one viewport tall and centres its content, which left the
+   showcase card at its natural height with ~200px of unused viewport split
+   above and below it - fitting, but squeezed-looking. This chain lets the card
+   GROW into that slack instead: container, card and panel each take the height
+   offered, and the bento at the end absorbs what is left, so the breathing
+   room lands inside the cards where it reads. flex-shrink is 0 throughout -
+   the short-viewport blocks at the end of this file handle small screens, and
+   shrinking here would fight them. */
 .work-section .container {
   position: relative;
   z-index: 1;
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .work__head {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-5);
-  margin-bottom: var(--space-5);
+  gap: clamp(var(--space-2), 1.8vh, var(--space-5));
+  margin-bottom: clamp(var(--space-3), 3vh, var(--space-8));
 }
 
 .work__title {
@@ -2733,7 +2769,17 @@ button { font: inherit; cursor: pointer; }
 .method-section {
   position: relative;
   min-height: 100svh;
-  padding-block: clamp(var(--space-12), 6vh, var(--space-20));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* Header clearance, the same reservation .work-section makes. It matters
+     more now that every section is exactly one viewport tall: the top of this
+     one lands flush under the fixed header pill on any normal scroll, and step
+     01 sat directly behind it. The left column already assumed this -
+     .method__head is sticky at header-height + space-6 - the track was simply
+     never given the same allowance. */
+  padding-top: var(--below-header);
+  padding-bottom: var(--space-4);
   z-index: var(--z-content);
   overflow: visible;
 }
@@ -2875,7 +2921,9 @@ button { font: inherit; cursor: pointer; }
 }
 
 .method__step {
-  padding-block: var(--space-6);
+  /* Six steps x two paddings, so this one rule is most of the section height.
+     A flat 24px overflowed the viewport. */
+  padding-block: clamp(9px, 0.9vh, 26px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -3191,10 +3239,21 @@ button { font: inherit; cursor: pointer; }
 /* ---------------------------------------------------------------
    Our Work Showcase (6 Floating Refractive Glass 3D Cards)
    --------------------------------------------------------------- */
+/* FITTED TO ONE VIEWPORT. This section ran 1.50x the viewport - the worst of
+   the three - because every vertical driver in it was a fixed pixel value (a
+   195px image box, a 40px grid tail, stagger offsets up to 72px) chosen
+   independently of how tall the screen actually is. They are viewport-relative
+   below, so the section scales instead of hoping the constants add up. */
 .our-work-section {
   position: relative;
   z-index: var(--z-content);
-  padding-block: clamp(var(--space-16), 8vh, var(--space-24));
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* Same header clearance as the other full-viewport sections. */
+  padding-top: var(--below-header);
+  padding-bottom: clamp(var(--space-6), 3vh, var(--space-10));
   overflow: visible;
   background: transparent;
 }
@@ -3219,7 +3278,7 @@ button { font: inherit; cursor: pointer; }
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: clamp(var(--space-3), 2.4vh, var(--space-10));
 }
 
 .our-work__head {
@@ -3229,19 +3288,23 @@ button { font: inherit; cursor: pointer; }
 .our-work__cards-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  column-gap: clamp(24px, 2.5vw, 36px);
-  row-gap: clamp(40px, 4vw, 64px);
+  column-gap: clamp(20px, 2.5vw, 36px);
+  row-gap: clamp(16px, 2.8vh, 40px);
   width: 100%;
-  padding-bottom: 40px;
+  /* Was 40px of dead tail below the last row. It existed to give the hover
+     pop-out room, which overflow: visible already provides. */
+  padding-bottom: 0;
 }
 
 @media (min-width: 1121px) {
+  /* Same offsets at ~35%. The stagger is a rhythm, not a measurement, and at
+     the old amplitude one offset alone added 72px to the section height. */
   .our-work__slot--0 { margin-top: 0px; }
-  .our-work__slot--1 { margin-top: 54px; }
-  .our-work__slot--2 { margin-top: -18px; }
-  .our-work__slot--3 { margin-top: 20px; }
-  .our-work__slot--4 { margin-top: 72px; }
-  .our-work__slot--5 { margin-top: 8px; }
+  .our-work__slot--1 { margin-top: 19px; }
+  .our-work__slot--2 { margin-top: -6px; }
+  .our-work__slot--3 { margin-top: 7px; }
+  .our-work__slot--4 { margin-top: 25px; }
+  .our-work__slot--5 { margin-top: 3px; }
 }
 
 @media (max-width: 1120px) and (min-width: 721px) {
@@ -3270,9 +3333,9 @@ button { font: inherit; cursor: pointer; }
   min-height: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
   border-radius: 24px;
-  padding: 20px;
+  padding: clamp(12px, 2.6vh, 26px);
   background: rgba(255, 255, 255, 0.015);
   backdrop-filter: blur(28px) saturate(190%);
   -webkit-backdrop-filter: blur(28px) saturate(190%);
@@ -3309,7 +3372,8 @@ button { font: inherit; cursor: pointer; }
 .our-work__image-box {
   position: relative;
   width: 100%;
-  height: 195px;
+  /* Was a flat 195px. Two rows of that alone is 390px of an 803px viewport. */
+  height: clamp(92px, 12.5vh, 200px);
   border-radius: 16px;
   overflow: visible;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -4057,10 +4121,15 @@ textarea.input { resize: vertical; min-height: 120px; }
 /* ===============================================================
    3D Tailored Capability Showcase (Our Offerings - High-Contrast White)
    =============================================================== */
+/* A SECOND .work-section rule, ~2000 lines after the first. Being later and
+   equally specific it won outright, and its padding-block shorthand quietly
+   replaced BOTH of the first rule's paddings - including the header clearance.
+   It also sized vertical padding off viewport WIDTH, so a wide short laptop
+   got 82px top and bottom exactly where the room ran out. Padding is left to
+   the first rule, which is the one that knows about the header. */
 .work-section {
   position: relative;
   background: transparent;
-  padding-block: clamp(40px, 6vw, 90px);
   overflow: visible;
 }
 
@@ -4110,13 +4179,24 @@ textarea.input { resize: vertical; min-height: 120px; }
 .offering-showcase {
   position: relative;
   z-index: 1;
-  background: #FFFFFF;
+  /* Part of the fit-to-viewport chain: .work-section .container hands its
+     height down and this takes it, so the card fills the section instead of
+     sitting at its natural height with the slack split above and below. */
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  /* NO BACKGROUND AND NO SHADOW. The white surface is drawn by the particle
+     field behind this element - see lib/particleCardBackground. A background
+     here would hide it; a drop shadow would redraw the hard rounded rectangle
+     the particles exist to form, which is what made an earlier attempt read as
+     a card with an effect near it rather than a card made of the effect.
+     The border-radius stays because the particle corner radius is matched to
+     it, and because inner content still clips against it. */
+  background: transparent;
   border-radius: 28px;
-  padding: clamp(28px, 4.5vw, 48px);
-  box-shadow:
-    0 30px 80px -15px rgba(0, 0, 0, 0.55),
-    0 10px 30px -5px rgba(0, 0, 0, 0.3),
-    0 0 1px rgba(0, 0, 0, 0.15);
+  /* vh, not vw: sized off viewport WIDTH these hit their maximum exactly when
+     a wide short screen has least room for them. */
+  padding: clamp(18px, 3.4vh, 44px);
   perspective: 1200px;
   color: #0F172A;
 }
@@ -4176,7 +4256,10 @@ textarea.input { resize: vertical; min-height: 120px; }
 
 /* 2. Active Capability Panel */
 .offering-panel {
-  margin-top: clamp(28px, 3.5vw, 40px);
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  margin-top: clamp(14px, 2.6vh, 32px);
   animation: offeringFade 0.3s ease forwards;
 }
 
@@ -4254,8 +4337,8 @@ textarea.input { resize: vertical; min-height: 120px; }
 
 /* The Bottleneck Alert Banner (Warm Peach/Apricot) */
 .offering-bottleneck {
-  margin-top: 24px;
-  padding: 15px 22px;
+  margin-top: clamp(10px, 2.2vh, 22px);
+  padding: clamp(9px, 1.9vh, 18px) 22px;
   background: #FFF7ED;
   border: 1px solid #FFEDD5;
   border-radius: 14px;
@@ -4284,10 +4367,11 @@ textarea.input { resize: vertical; min-height: 120px; }
 
 /* 3D Bento Grid Layout */
 .offering-bento {
+  flex: 1 0 auto;
   display: grid;
   grid-template-columns: 1.45fr 1fr;
-  gap: 20px;
-  margin-top: 24px;
+  gap: clamp(12px, 2.4vh, 26px);
+  margin-top: clamp(10px, 2.4vh, 26px);
 }
 
 /* 3D Bento Card Component (Light Mode) */
@@ -4296,7 +4380,7 @@ textarea.input { resize: vertical; min-height: 120px; }
   background: #F8FAFC;
   border: 1px solid #E2E8F0;
   border-radius: 20px;
-  padding: clamp(22px, 2.5vw, 30px);
+  padding: clamp(14px, 3.2vh, 34px);
   overflow: hidden;
   transform-style: preserve-3d;
   transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease-out;
@@ -4325,6 +4409,15 @@ textarea.input { resize: vertical; min-height: 120px; }
   z-index: 1;
 }
 
+/* The card stretches, but its content wrapper was display: block, so the list
+   inside it could not take the leftover height and everything pooled at the
+   top. This is the link in the chain that was missing. */
+.offering-bento__capabilities > .offering-card__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Left Card: Key Capabilities & Workflows */
 .offering-bento__capabilities {
   display: flex;
@@ -4335,17 +4428,21 @@ textarea.input { resize: vertical; min-height: 120px; }
   font-size: 15.5px;
   font-weight: 700;
   color: #0F172A;
-  margin: 0 0 18px 0;
+  margin: 0 0 clamp(8px, 2.2vh, 22px) 0;
   letter-spacing: -0.01em;
 }
 
+/* The bento stretches to fill the card, so its contents distribute the height
+   rather than stacking at the top and leaving dead space under the last item. */
 .offering-bento__list {
   list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: 14px;
+  justify-content: space-evenly;
+  gap: clamp(7px, 2.1vh, 22px);
 }
 
 .offering-bento__list-item {
@@ -4369,10 +4466,19 @@ textarea.input { resize: vertical; min-height: 120px; }
 }
 
 /* Right Stack: Who Uses It & How It Connects */
+/* Both side cards share the column evenly and centre their own contents, so
+   the pair reads as a matched set rather than two short boxes at the top. */
 .offering-bento__side-stack {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: clamp(10px, 2.4vh, 26px);
+}
+
+.offering-bento__side-stack > .offering-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .offering-bento__tag-header {
@@ -4457,5 +4563,182 @@ textarea.input { resize: vertical; min-height: 120px; }
 
   .hero {
     padding-block: calc(var(--space-16) + var(--space-6)) var(--space-4);
+  }
+}
+
+
+/* ---------------------------------------------------------------
+   SHORT VIEWPORTS
+   ---------------------------------------------------------------
+   The vh-based clamps above fit every section into one viewport at 900px of
+   height and up, and then stop: below that their MINIMUMS bind, the spacing
+   goes rigid, and what is left over is type - which no amount of padding
+   trimming reaches. Method is the clearest case: its six steps carry ~705px of
+   text that does not scale, so under ~900px there is no arrangement of padding
+   that fits it once the header clearance is paid.
+   --------------------------------------------------------------- */
+@media (max-height: 900px) {
+  .method-section {
+    padding-bottom: var(--space-4);
+  }
+
+  .method__step {
+    padding-block: clamp(6px, 1.1vh, 12px);
+  }
+
+  .method__n {
+    margin-bottom: var(--space-1);
+  }
+
+  .method__label {
+    margin-bottom: 2px;
+  }
+
+  .method__step-title {
+    font-size: var(--fs-md);
+  }
+
+  .method__prose,
+  .method__lead,
+  .method__close {
+    font-size: var(--fs-xs);
+    margin-top: var(--space-1);
+  }
+
+  .offering-showcase {
+    padding: clamp(14px, 2.2vh, 22px);
+  }
+
+  .offering-panel {
+    margin-top: clamp(10px, 1.6vh, 16px);
+  }
+
+  .offering-card {
+    padding: clamp(12px, 2.2vh, 34px);
+  }
+
+  .offering-bento {
+    gap: clamp(10px, 1.6vh, 26px);
+    margin-top: clamp(8px, 1.6vh, 26px);
+  }
+
+  .offering-bento__section-title {
+    margin-bottom: clamp(6px, 1.4vh, 22px);
+  }
+
+  .offering-bento__side-stack {
+    gap: clamp(8px, 1.6vh, 26px);
+  }
+
+  .offering-bento__list {
+    gap: clamp(5px, 0.9vh, 9px);
+  }
+
+  .offering-bento__list-text,
+  .offering-bento__role-text,
+  .offering-bottleneck__text {
+    font-size: 13.5px;
+  }
+
+  .offering-bottleneck {
+    margin-top: clamp(8px, 1.5vh, 22px);
+    padding: clamp(8px, 1.3vh, 18px) 22px;
+  }
+
+  .work__head {
+    margin-bottom: clamp(var(--space-3), 2vh, var(--space-8));
+  }
+
+  /* The header clearance costs 73px against the padding it replaced, which is
+     most of a card row on a short screen. Trimmed back here, and the clearance
+     itself drops the 24px of slack --below-header carries on top of the header
+     proper. */
+  .our-work-section {
+    padding-top: calc(var(--space-3) + var(--header-h) + var(--space-3));
+  }
+
+  .our-work__image-box {
+    height: clamp(56px, 10vh, 200px);
+  }
+
+  .our-work__cards-grid {
+    row-gap: clamp(14px, 1.8vh, 40px);
+  }
+
+  .our-work__glass-card {
+    padding: clamp(10px, 1.3vh, 26px);
+  }
+
+  .our-work__container {
+    gap: clamp(var(--space-3), 2vh, var(--space-10));
+  }
+
+  .our-work__card-desc {
+    font-size: 12.5px;
+  }
+
+  .intro-section {
+    padding-block: var(--space-6);
+  }
+}
+
+/* Second tier, for the ~660-700px viewports a 1366x768 laptop actually gives
+   you once browser chrome is taken out. */
+@media (max-height: 700px) {
+  .our-work-section {
+    padding-top: calc(var(--space-2) + var(--header-h) + var(--space-2));
+  }
+
+  .our-work__image-box {
+    height: clamp(48px, 8.5vh, 168px);
+  }
+
+  .our-work__cards-grid {
+    row-gap: clamp(10px, 1.4vh, 28px);
+  }
+
+  .our-work__glass-card {
+    padding: clamp(8px, 1.1vh, 18px);
+    gap: var(--space-2);
+  }
+
+  .our-work__container {
+    gap: clamp(var(--space-2), 1.6vh, var(--space-6));
+  }
+
+  .our-work__card-desc {
+    font-size: 12px;
+  }
+
+  .offering-showcase {
+    padding: clamp(10px, 1.8vh, 22px);
+  }
+
+  .offering-tab {
+    padding: 6px 16px;
+    font-size: 12.5px;
+  }
+
+  .offering-bottleneck {
+    padding: 8px 16px;
+  }
+
+  .offering-card {
+    padding: clamp(10px, 1.6vh, 24px);
+  }
+
+  .offering-bento__list {
+    gap: clamp(4px, 0.8vh, 9px);
+  }
+
+  .offering-bento__list-text,
+  .offering-bento__role-text,
+  .offering-bottleneck__text {
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+
+  .offering-bento__section-title {
+    margin-bottom: clamp(5px, 1vh, 14px);
   }
 }
