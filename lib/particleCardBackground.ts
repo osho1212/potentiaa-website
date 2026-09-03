@@ -82,6 +82,45 @@ const PARTICLES_PER_CARD_PIXEL = 0.322;
 const CARD_CORNER_CSS = 28;
 
 /**
+ * Drawn radius of a HEADING particle, as a fraction of a card particle's.
+ *
+ * The card's dot size is solved for SURFACE opacity. Lettering has an outline
+ * to respect instead: a dot sits centred on an ink pixel and spills its radius
+ * past that outline, so at the card's 3.6px the particle heading came out
+ * fatter than the type it hands over to. Read together with GLYPH_STRIDE in
+ * components/OfferingCardParticles - stride and dot size only work as a pair,
+ * because a grid needs dots of at least stride*sqrt(2) to close without holes.
+ *
+ * Measured against the real glyphs, on the drawing buffer, with the heading
+ * settled. `coverage` is the share of true glyph pixels the particles actually
+ * reach; `halo` is mean alpha in the 3px ring just outside the outline, which
+ * is the spill (it also picks up the scattered field, so it is a ceiling, and
+ * the runs sat at slightly different scroll positions - treat halo as
+ * approximate and coverage/alpha as exact):
+ *
+ *                          title cov/alpha/halo   eyebrow cov/alpha/halo
+ *   stride 2, scale 1.00     0.982 / 250 / 49       0.857 / 217 / 50
+ *   stride 1, scale 0.85     1.000 / 255 / 61       1.000 / 255 / 64
+ *   stride 1, scale 0.70     1.000 / 255 / 50       1.000 / 252 / 40
+ *
+ * The first row is what was there, and its real fault is not the spill - it is
+ * the EYEBROW, at 0.857 coverage and 217 alpha. That is a patchy, dimmer copy
+ * of the type underneath it, and dimness is what wrecks the handoff: both
+ * layers are white glyphs crossfading, so if one is at 85% the sum dips in the
+ * middle no matter how well the curves are matched.
+ *
+ * The last row dominates the first - full coverage and full brightness at
+ * equal or less spill - so it is not a trade, and that is why it was worth
+ * measuring instead of picking a smaller number and assuming.
+ *
+ * NOT SMALLER THAN THIS. 0.45 was tried and looks like it should be sharper;
+ * it measured 0.73 coverage at 137 mean alpha - grey, holed lettering. The
+ * antialiasing band is a fixed ~1 device pixel, so below about 2.5 CSS px a dot
+ * is almost entirely that band and shrinking it buys nothing but faintness.
+ */
+const TEXT_DOT_SCALE = 0.7;
+
+/**
  * How much of the canvas the scatter fills, per axis.
  *
  * A full 1.0, because every edge of the canvas is somewhere the reader cannot
@@ -110,6 +149,29 @@ const COMPLETION_TIME = MAX_DELAY + SETTLE_TIME;
  */
 const STRIDE_BYTES = 9 * 4;
 
+/**
+ * THE BRAND RAMP, THE SAME ONE THE HERO SWARM USES.
+ *
+ * Electric Blue -> Deep Electric Violet -> Rich Magenta -> Coral. These stops
+ * are the GRADIENT array in lib/heroParticles, transcribed rather than
+ * imported: that module pulls in three.js, and importing it here to reach four
+ * colours would drag the whole of three into the offerings bundle, which a
+ * previous commit on this branch went to some trouble to evict. If the hero's
+ * ramp is ever retuned, retune these with it - they are meant to match.
+ */
+const BRAND_RAMP_GLSL = /* glsl */ `
+vec3 brandRamp(float t) {
+  t = clamp(t, 0.0, 1.0);
+  vec3 c0 = vec3(0.17647, 0.41961, 1.00000); // #2D6BFF electric blue
+  vec3 c1 = vec3(0.50980, 0.31373, 1.00000); // #8250FF deep electric violet
+  vec3 c2 = vec3(0.90196, 0.29412, 0.58824); // #E64B96 rich magenta
+  vec3 c3 = vec3(1.00000, 0.41961, 0.36078); // #FF6B5C vibrant coral
+  if (t < 0.45) return mix(c0, c1, t / 0.45);
+  if (t < 0.75) return mix(c1, c2, (t - 0.45) / 0.30);
+  return mix(c2, c3, (t - 0.75) / 0.25);
+}
+`;
+
 const VERTEX_SHADER = `#version 300 es
 precision highp float;
 
@@ -136,6 +198,9 @@ out float vIsText;
 out vec2 vCardCssPos;
 out float vSize;
 out float vNdcY;
+out vec3 vTint;
+
+${BRAND_RAMP_GLSL}
 
 void main() {
   /* PROGRESS, NOT ELAPSED TIME. uProgress is 0..1 and comes from how far the
@@ -233,9 +298,50 @@ void main() {
        formation starts. That matters now that the reader is held at the
        scattered state while scrolling in: a still field reads as a broken
        render rather than as particles waiting. This term is independent of
-       the envelope and fades out as the card forms. */
-    curl += vec3(cos(phase * 0.6), sin(phase * 0.8), 0.0)
-      * uSwirl * 0.28 * (1.0 - build);
+       the envelope and fades out as the card forms.
+
+       THIS IS THE HERO SWARM'S MOTION, PORTED, not an approximation of it.
+       Both earlier versions drove each particle from its OWN phase, so however
+       the frequencies were tuned the field could only ever read as a crowd of
+       independent jitterers. The hero swarm does not move that way: its drift
+       is a function of WHERE a particle is, so neighbours move together and the
+       whole field flows as one sheet. That coherence is the difference, not the
+       amplitude - which is why matching amplitudes did not make the two look
+       alike.
+
+       Frequencies, rates and amplitudes are lib/heroParticles' verbatim. They
+       transfer unscaled because the two fields happen to be the same size in
+       world units: the hero's sphere is baseRadius 68, and this canvas solves
+       to a half-extent of about 68 as well (uSourceSpread at SOURCE_FILL 1).
+       If either is ever rescaled, these stop being comparable.
+
+       home is the particle's scatter position measured from the CANVAS centre -
+       startPosition carries the section re-centring above, and feeding that
+       offset into a spatial wave would slide the wave pattern off the field
+       along with it. */
+    vec2 home = startPosition.xy + canvasOffset;
+
+    /* The hero's fluid wave drift: coherent travelling waves across the field. */
+    vec3 heroDrift = vec3(
+      sin(home.y * 0.04 + uTime * 0.7) * 3.5,
+      cos(home.x * 0.04 - uTime * 0.6) * 3.5,
+      sin((home.x + home.y) * 0.025 + uTime * 0.8) * 2.5
+    );
+
+    /* The hero's multi-harmonic ripple and breath. There they modulate a
+       sphere's RADIUS; the equivalent on a flat field is a radial displacement
+       about its centre, so the field breathes in and out as the hero's shell
+       does. aSeed stands in for the hero's per-particle fold/wave phases. */
+    vec3 hdir = normalize(vec3(aStart.xy, aStart.z) + vec3(1e-5));
+    float morph1 = sin(hdir.y * 3.4 + uTime * 0.85 + aSeed.x * 2.2);
+    float morph2 = cos(hdir.z * 3.8 - uTime * 0.75 + aSeed.y * 2.2);
+    float morph3 = sin((hdir.x * 2.6 + hdir.y * 2.2) + uTime * 0.95);
+    float morph4 = cos(length(hdir.xy) * 4.5 - uTime * 0.7);
+    float ripple = (morph1 * 0.35 + morph2 * 0.30 + morph3 * 0.20 + morph4 * 0.15) * 14.0;
+    float breath = sin(uTime * 0.55 + aSeed.x * 3.14159) * 4.5;
+    heroDrift.xy += hdir.xy * (ripple + breath);
+
+    curl += heroDrift * (1.0 - build);
   }
 
   vec3 worldPosition = mix(startPosition, endPosition, build) + curl;
@@ -268,6 +374,15 @@ void main() {
   /* Where this particle is vertically within the canvas, -1..1. The fragment
      stage fades the field out towards the canvas's top and bottom from this. */
   vNdcY = gl_Position.y / clipW;
+
+  /* THE SCATTERED FIELD IS BRAND-COLOURED, THE CARD IS NOT.
+     Mapped from the particle's SCATTER position (aStart), not its live one, so
+     a particle keeps one colour for its whole flight instead of sliding
+     through the ramp as it travels - the hero swarm assigns its colour from
+     the rest position the same way. The diagonal weighting is the hero's, so
+     the two fields ramp along the same axis: blue low and left, coral high and
+     right. Whitening is handled in the fragment stage. */
+  vTint = brandRamp(clamp(0.5 + aStart.y * 0.42 + aStart.x * 0.18, 0.0, 1.0));
 }
 `;
 
@@ -303,8 +418,17 @@ void main() {
  * denser the field already is - the shortfall shrinks from 4 points to 3 as
  * the field thins and the dots stop overlapping each other. Measure rather
  * than assuming the two track.
+ *
+ *   0.036            60%             0.035          4.6%
+ *
+ * THAT LAST ROW DOES NOT CONTINUE THE PATTERN, and the reason is that it was
+ * not measured under the same conditions: it is the first reading taken after
+ * the scattered field was given the brand ramp and the wider drift below. Read
+ * literally, 0.06 -> 0.036 is count -40% against brightness -48% - overshoot,
+ * where every earlier step undershot. Do not draw a trend through it without
+ * re-measuring the rows above it on the current shader.
  */
-const SCATTER_KEEP = 0.06;
+const SCATTER_KEEP = 0.036;
 
 const FRAGMENT_SHADER = `#version 300 es
 precision highp float;
@@ -315,6 +439,7 @@ in float vIsText;
 in vec2 vCardCssPos;
 in float vSize;
 in float vNdcY;
+in vec3 vTint;
 out vec4 fragColor;
 
 uniform float uPixelRatio;
@@ -364,7 +489,17 @@ void main() {
   vec2 unit = point * 2.0;
   float dist = length(unit);
   float aa = clamp(2.0 / max(vSize, 1.0), 0.04, 0.6);
-  float edge = (1.0 - smoothstep(1.0 - aa, 1.0, dist)) * shape;
+  /* HEADING DOTS ARE SMALLER THAN CARD DOTS. The card's size is set by what
+     makes a SURFACE opaque; lettering is not a surface, and at that size the
+     glyphs came out dilated by the dot radius and read as a bolder, blobbier
+     copy of the type they hand over to - see GLYPH_STRIDE in
+     components/OfferingCardParticles for the measurements. Shrinking the drawn
+     disc here rather than gl_PointSize keeps this to one line and one branchless
+     mix; the sprite is a little larger than it needs to be for text particles,
+     which is a few thousand wasted fragments and nothing worth a second
+     uniform. */
+  float radiusScale = mix(1.0, ${TEXT_DOT_SCALE.toFixed(2)}, vIsText);
+  float edge = (1.0 - smoothstep(radiusScale - aa, radiusScale, dist)) * shape;
   /* EVERY PARTICLE IS THE SAME WHITE. DENSITY CARRIES EVERYTHING ELSE.
      Earlier versions dimmed the scattered particles (0.30-0.48 alpha against
      the settled card's 1.0), which is why the loose field looked like it had a
@@ -392,7 +527,7 @@ void main() {
      finished card. At vBuild 1 the probability is 1 and every particle is
      drawn, so the settled card still measures mean 1.0000, 0.00% holes. */
   float edgeFade = 1.0 - smoothstep(0.55, 1.0, abs(vNdcY));
-  float visible = step(vRand, mix(${SCATTER_KEEP.toFixed(2)} * edgeFade, 1.0, vBuild));
+  float visible = step(vRand, mix(${SCATTER_KEEP.toFixed(3)} * edgeFade, 1.0, vBuild));
   if (visible <= 0.0) discard;
 
   /* THE HEADING HANDS OFF TO REAL TEXT. Particles assemble the lettering, then
@@ -405,7 +540,21 @@ void main() {
   float alpha = edge * mix(1.0, textFade, vIsText);
   if (alpha <= 0.0) discard;
 
-  fragColor = vec4(1.0, 1.0, 1.0, alpha);
+  /* BRAND COLOUR WHILE LOOSE, PURE WHITE ONCE LANDED.
+     vTint carries the hero's ramp (see the vertex stage), so the scattered
+     field reads as the same material as the swarm in the hero rather than as a
+     separate monochrome effect. It has to be gone by the time a particle
+     settles: the card is a white surface, and the opacity invariant the count
+     is tuned for - mean alpha 1.0000, 0.00% holes - assumes every particle
+     landing on it contributes the same white. At vBuild 1 this is exactly
+     vec3(1.0), so that is untouched.
+     The band starts above 0 so the loose field holds its colour through the
+     hold before formation, and finishes well before landing so the card is
+     never tinted while it closes up. */
+  float whiten = smoothstep(0.15, 0.75, vBuild);
+  vec3 color = mix(vTint, vec3(1.0), whiten);
+
+  fragColor = vec4(color, alpha);
 }
 `;
 

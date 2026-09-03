@@ -64,11 +64,23 @@ const CONTENT_STAGGER = 0.13;
 const CONTENT_FADE = 0.28;
 
 /**
- * Sampling stride for the heading glyphs, in CSS pixels. Tighter than the
- * 3.6px dots are wide, so the lettering closes into solid strokes rather than
- * reading as a dotted outline of itself.
+ * Sampling stride for the heading glyphs, in CSS pixels.
+ *
+ * ONE SAMPLE PER PIXEL, PAIRED WITH SMALLER DOTS - see TEXT_DOT_SCALE in
+ * lib/particleCardBackground, which carries the measurements for both. The two
+ * cannot be tuned apart: a dot grid needs dots of at least stride*sqrt(2) to
+ * close without holes, so tightening the stride alone changes nothing and
+ * shrinking the dots alone opens the strokes up.
+ *
+ * At stride 2 the eyebrow reached only 0.857 of its own glyph pixels, at 217
+ * mean alpha - patchy and dimmer than the text it hands over to. Stride 1
+ * doubles the sample density in each axis, which is what lets the dots come
+ * down to 0.70 while still measuring full coverage at full brightness.
+ *
+ * Cost is bounded by MAX_GLYPH_POINTS below: one sample per ink pixel is about
+ * 8,500 points for these two headings, well inside that ceiling.
  */
-const GLYPH_STRIDE = 2;
+const GLYPH_STRIDE = 1;
 
 /** Ceiling on heading particles, so a very large viewport cannot run away. */
 const MAX_GLYPH_POINTS = 24000;
@@ -117,6 +129,41 @@ export default function OfferingCardParticles({
     };
 
     /**
+     * Where an element will SIT ONCE IT HAS ARRIVED, not where an entrance
+     * animation currently has it.
+     *
+     * getBoundingClientRect reports the post-transform box, and the headings
+     * are wrapped in <Reveal>, which holds them at translate3d(0, 28px, 0)
+     * until it plays. The two observers do not fire together and cannot be
+     * made to: this effect builds at rootMargin 600px so the buffer is ready
+     * before the section is near, while Reveal plays at rootMargin 80px on the
+     * heading itself - about 650px of scrolling later. So the glyphs were
+     * always rasterised while the heading was still held 28px low, and that
+     * offset was baked into the particle destinations permanently. It showed
+     * as particle lettering sitting below the real text it hands over to.
+     *
+     * Subtracting the live transform gives the settled box whatever state the
+     * animation is in, which is what the destinations have to be measured
+     * against. Translation only - every reveal variant a heading uses is a
+     * pure translate; a scaling ancestor would need the full matrix inverted.
+     */
+    const settledRect = (el: HTMLElement): DOMRect => {
+      const box = el.getBoundingClientRect();
+      let dx = 0;
+      let dy = 0;
+      for (let node: HTMLElement | null = el; node; node = node.parentElement) {
+        const transform = getComputedStyle(node).transform;
+        if (transform && transform !== "none") {
+          const m = new DOMMatrixReadOnly(transform);
+          dx += m.m41;
+          dy += m.m42;
+        }
+        if (node === section) break;
+      }
+      return new DOMRect(box.left - dx, box.top - dy, box.width, box.height);
+    };
+
+    /**
      * Turn the section's heading elements into particle destinations.
      *
      * The text is drawn to an offscreen 2D canvas at the same place and size it
@@ -137,7 +184,7 @@ export default function OfferingCardParticles({
 
       ctx.fillStyle = "#fff";
       for (const el of headings) {
-        const box = el.getBoundingClientRect();
+        const box = settledRect(el);
         if (box.width <= 0) continue;
         const cs = getComputedStyle(el);
         const raw = el.textContent || "";
@@ -194,11 +241,21 @@ export default function OfferingCardParticles({
          (see the handoff note in the fragment shader). Both are white glyphs in
          the same position, so the crossover is invisible - what it buys is that
          the reader ends up with selectable, accessible, properly hinted text
-         rather than a permanent approximation of it. */
-      const handoff = Math.min(
+         rather than a permanent approximation of it.
+
+         THE TWO CURVES HAVE TO BE THE SAME CURVE, and this one was linear while
+         the shader's was a smoothstep. "Exactly as" was the intent and not what
+         the code did: the pair only agreed at the two ends and at the midpoint,
+         and in between their sum ran to 1.09 early and 0.89 late. A crossfade
+         whose halves do not sum to 1 is a brightness ramp, so the heading
+         swelled and then sagged on the way through - visible precisely because
+         both layers are the same white glyphs, which is what was supposed to
+         make it invisible. Same smoothstep here, so the sum is 1 throughout. */
+      const t = Math.min(
         1,
         Math.max(0, (progress - TEXT_HANDOFF_START) / (TEXT_HANDOFF_END - TEXT_HANDOFF_START)),
       );
+      const handoff = t * t * (3 - 2 * t);
       for (const el of headings) el.style.opacity = String(handoff);
     };
 
