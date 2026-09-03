@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import ParticleCardBackground from "@/lib/particleCardBackground";
+import { onScrollFrame } from "@/lib/scrollState";
 
 /**
  * The offerings section's background: particles scattered across the whole
@@ -44,17 +45,33 @@ import ParticleCardBackground from "@/lib/particleCardBackground";
  * the whole convergence happened below the fold.
  *
  * The gap between 1.0 (the card level with the bottom of the screen) and
- * FORM_START is a deliberate HOLD: the reader scrolls the scattered field into
- * view and gets to see it drifting for a few hundred pixels before anything
- * begins to gather. Formation then runs over the shorter window down to
- * FORM_END.
+ * FORM_START is a HOLD: the reader scrolls the scattered field into view and
+ * gets to see it drifting before anything begins to gather. Formation then
+ * runs over the window down to FORM_END - and it is THIS window's width, not
+ * the hold's, that sets how much physical scrolling it takes to watch the
+ * card assemble, since the card moves through the viewport at a fixed rate
+ * per pixel scrolled regardless of where the window sits.
+ *
+ * FORM_START was 0.6 originally (a 0.35 window - fast enough that a normal
+ * scroll gesture could carry a reader past the assembly before they
+ * registered it was happening), then 0.8 (0.55). Raised again to 0.92: the
+ * window is now 0.67, essentially the whole approach, so the reader spends
+ * nearly the entire time the card is on screen watching it gather rather
+ * than scrolling past a mostly-inert hold. The hold is not zeroed - a small
+ * one (0.08) is kept on purpose, so the scattered field still gets a
+ * beat on screen before it starts moving with intent; at FORM_START 1.0 the
+ * two would blur into each other and formation would seem to start the
+ * instant the section appears, before the reader has registered the field
+ * at all. Taken from the hold, not by moving FORM_END, so the card still
+ * finishes forming at the same screen position - only the hold shrinks.
  *
  * FORM_END has to clear the card's resting position, which is about 0.22 on a
  * 900px viewport. Ending at 0.25 means the card is solid just before the
  * section settles, so the reader never arrives at a half-built card, and small
- * scroll jitter around the rest position cannot pull it back apart.
+ * scroll jitter around the rest position cannot pull it back apart. Left
+ * untouched here for exactly that reason - it is a floor, not a dial.
  */
-const FORM_START = 0.6;
+const FORM_START = 0.92;
 const FORM_END = 0.25;
 
 /** Progress window each content block fades in over, as [start, end]. */
@@ -108,7 +125,7 @@ export default function OfferingCardParticles({
 
     let effect: ParticleCardBackground | null = null;
     let sizeObserver: ResizeObserver | null = null;
-    let raf = 0;
+    let unsubscribeScroll: (() => void) | null = null;
     let disposed = false;
     let steps: HTMLElement[] = [];
     let headings: HTMLElement[] = [];
@@ -271,9 +288,9 @@ export default function OfferingCardParticles({
 
     /**
      * How far the card has risen through the viewport, as 0..1. Read from the
-     * live rect every frame rather than from a scroll event, because the page
-     * uses smooth scrolling - the visual position keeps easing after the scroll
-     * events have stopped, and sampling the rect follows that exactly.
+     * live rect rather than from a scroll offset, because the page uses smooth
+     * scrolling - the visual position keeps easing after the scroll events
+     * have stopped, and sampling the rect follows that exactly.
      */
     const readProgress = () => {
       const rect = target.getBoundingClientRect();
@@ -282,27 +299,53 @@ export default function OfferingCardParticles({
       return Math.min(1, Math.max(0, (FORM_START - top) / (FORM_START - FORM_END)));
     };
 
-    const tick = () => {
-      raf = 0;
+    /**
+     * Driven by lib/scrollState's shared per-frame publisher rather than an
+     * independent requestAnimationFrame loop of its own.
+     *
+     * The page's scrolling IS this callback's clock: SmoothScroll drives Lenis
+     * inside its own rAF and calls emitScrollFrame() once the transform for
+     * that frame has been applied, so subscribing here runs this section's
+     * progress read in the same pass instead of racing it in a second,
+     * uncoordinated rAF loop. That matters for more than tidiness - a second
+     * loop meant this component's own WebGL draw (up to ~500,000 particles)
+     * competed with Lenis for the same frame budget, and because Lenis's own
+     * scroll-position update is just as rAF-gated, a frame this component made
+     * late was a frame the SCROLL ITSELF arrived late, which read as stutter.
+     * It also means this only runs while something is actually scrolling -
+     * Lenis emits nothing while at rest - rather than unconditionally at 60fps
+     * for as long as the section is merely near the viewport.
+     */
+    const update = () => {
       if (disposed || !effect) return;
 
       const progress = readProgress();
       effect.setProgress(progress);
       applyContent(progress);
 
-      /* Keep sampling while the section is anywhere near the viewport. Off
-         either end there is nothing to scrub, and the effect's own observer has
-         already stopped it drawing. */
+      /* Stop listening once the section is nowhere near the viewport - the
+         effect's own observer has already stopped it drawing, and there is
+         nothing left to scrub. The approach observer below restarts this the
+         next time the section comes back within range. */
       const rect = section.getBoundingClientRect();
       const viewport = window.innerHeight || 1;
-      if (rect.bottom > -viewport && rect.top < viewport * 2) {
-        raf = requestAnimationFrame(tick);
+      if (!(rect.bottom > -viewport && rect.top < viewport * 2)) {
+        stopTracking();
       }
     };
 
     const startTracking = () => {
-      if (disposed || raf || reducedMotion) return;
-      raf = requestAnimationFrame(tick);
+      if (disposed || unsubscribeScroll || reducedMotion) return;
+      unsubscribeScroll = onScrollFrame(update);
+      /* Registers the section's current position immediately, rather than
+         waiting for the next scroll movement - it may already be in view with
+         nothing left to scroll. */
+      update();
+    };
+
+    const stopTracking = () => {
+      unsubscribeScroll?.();
+      unsubscribeScroll = null;
     };
 
     const build = () => {
@@ -369,7 +412,7 @@ export default function OfferingCardParticles({
       disposed = true;
       approach.disconnect();
       sizeObserver?.disconnect();
-      if (raf) cancelAnimationFrame(raf);
+      stopTracking();
       clearContent();
       effect?.destroy();
       effect = null;

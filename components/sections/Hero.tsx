@@ -91,7 +91,6 @@ export default function Hero({
                 <ParticleText
                   text={site.hero.titleGradient || "connected system."}
                   color="#2D6BFF"
-                  highlightColor="#2D6BFF"
                   particleSize={1.8}
                   gap={3}
                   hoverRadius={65}

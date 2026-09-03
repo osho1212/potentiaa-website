@@ -50,8 +50,38 @@
  */
 
 const PARTICLE_SIZE_CSS = 3.6;
+
+/**
+ * Ceiling on the backing buffer's total device pixels, independent of the
+ * real display.
+ *
+ * The canvas spans the whole section, so its fill/clear/blend cost scales
+ * with the CSS box's pixel area even before DPR - a wide, tall window on a
+ * real monitor asks for several times what a small one does, on otherwise
+ * identical code. PARTICLE COUNT is already bounded this way (MAX_PARTICLES,
+ * below), but the buffer itself was not: it grew with clientWidth/clientHeight
+ * with no independent cap.
+ *
+ * ~1920x1200 at DPR 1 - roughly a sharp, uncompromised render on a common
+ * laptop viewport. Anything past this budget is downscaled uniformly and
+ * left for the GPU to stretch back up: the canvas is styled to its CSS box
+ * (100% / calc(100% + 16vh)), not to its backing resolution, so upscaling it
+ * is a free texture stretch, not a re-render. That is what makes the section
+ * cost roughly the same to draw on a small window and a large one, which a
+ * small window already gets for free simply by being small.
+ */
+const MAX_CANVAS_PIXELS = 1920 * 1200;
+
 const MIN_PARTICLES = 40000;
-const MAX_PARTICLES = 480000;
+/**
+ * Lowered from 480,000. calculateParticleLayout() already grows the drawn dot
+ * size (up to 2.2x) to compensate when a card clamps here, which keeps
+ * coverage the same - so this trades vertex count for a bit more per-dot
+ * fragment area on the largest cards, rather than losing opacity. It matters
+ * because this cap is what a wide, uncapped-width card on a large external
+ * monitor actually hits; anything under it is unaffected.
+ */
+const MAX_PARTICLES = 320000;
 
 /**
  * Particles per CSS pixel OF CARD. This is what makes the settled card opaque,
@@ -667,7 +697,11 @@ export default class ParticleCardBackground {
 
     const gl = canvas.getContext("webgl2", {
       alpha: true,
-      antialias: true,
+      /* The fragment shader already does its own 1-device-pixel manual edge
+         antialiasing (see the "RAZOR-SHARP DOTS" comment below) - browser MSAA
+         on top of that is redundant and multiplies fragment/blend cost for
+         every one of up to ~500,000 points, for no visible difference. */
+      antialias: false,
       depth: false,
       powerPreference: "high-performance",
       premultipliedAlpha: false,
@@ -894,9 +928,23 @@ export default class ParticleCardBackground {
     const gl = this.gl;
     const width = Math.max(1, this.canvas.clientWidth);
     const height = Math.max(1, this.canvas.clientHeight);
-    const pixelRatio = Math.min(2, devicePixelRatio || 1);
-    const displayWidth = Math.round(width * pixelRatio);
-    const displayHeight = Math.round(height * pixelRatio);
+    /* Capped at 1.5, not 2: fragment/blend cost for ~500,000 additively-
+       blended points scales with the buffer's pixel area - i.e. with the
+       SQUARE of this number. Dropping from 2 to 1.5 cuts that cost by ~44% on
+       a real 2x display for a small loss of sharpness in dots that are
+       already sub-4px. This is still a per-CSS-pixel ratio, so it does not by
+       itself stop the buffer growing with a bigger window - see
+       MAX_CANVAS_PIXELS below for that. */
+    const dprCapped = Math.min(1.5, devicePixelRatio || 1);
+    let displayWidth = Math.round(width * dprCapped);
+    let displayHeight = Math.round(height * dprCapped);
+
+    const bufferPixels = displayWidth * displayHeight;
+    if (bufferPixels > MAX_CANVAS_PIXELS) {
+      const downscale = Math.sqrt(MAX_CANVAS_PIXELS / bufferPixels);
+      displayWidth = Math.max(1, Math.round(displayWidth * downscale));
+      displayHeight = Math.max(1, Math.round(displayHeight * downscale));
+    }
 
     if (this.canvas.width !== displayWidth || this.canvas.height !== displayHeight) {
       this.canvas.width = displayWidth;
@@ -905,6 +953,13 @@ export default class ParticleCardBackground {
 
     gl.viewport(0, 0, displayWidth, displayHeight);
     gl.useProgram(this.program);
+    /* The buffer's ACTUAL device pixels per CSS pixel, not the nominal capped
+       DPR above - once MAX_CANVAS_PIXELS has scaled the buffer down further,
+       dot sizing and the outline/AA math (both driven by this uniform, in
+       device pixels) need to track the buffer that is really being drawn
+       into, or dots end up under-sized for the resolution they are actually
+       rasterised at. */
+    const pixelRatio = displayWidth / width;
     gl.uniform1f(this.uniforms.pixelRatio, pixelRatio);
 
     /* Solve the projection from the card's rect. At the card plane clipW is

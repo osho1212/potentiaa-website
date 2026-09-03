@@ -101,11 +101,24 @@ const HeroParticles = forwardRef<HeroParticlesHandle>(function HeroParticles(_pr
     });
     sizeObserver.observe(container);
 
+    /* OBSERVE THE HERO SECTION, NOT THE CONTAINER.
+       This observed `container` - .hero__art-particles - which the stylesheet
+       makes `position: fixed; inset: 0`. A viewport-fixed, full-viewport
+       element always intersects, so `isIntersecting` was never once false and
+       `swarm.stop()` never ran: the whole swarm simulated and rendered every
+       frame, on every section, for the entire session.
+       The section is the right target because the swarm is anchored to it -
+       renderFrame solves uHeroCenter from `.hero`'s live rect - so once the
+       hero is off screen the particles are already being drawn outside the
+       frame. Stopping there costs nothing visible; it only stops paying for
+       a field nobody can see. The ResizeObserver above still watches the
+       container, which is the actual drawing surface. */
+    const heroSection = container.closest<HTMLElement>(".hero") ?? container;
     const intersectionObserver = new IntersectionObserver(
       ([entry]) => (entry.isIntersecting ? swarm.start() : swarm.stop()),
       { rootMargin: "400px" },
     );
-    intersectionObserver.observe(container);
+    intersectionObserver.observe(heroSection);
 
     return () => {
       sizeObserver.disconnect();
