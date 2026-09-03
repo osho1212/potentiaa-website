@@ -163,100 +163,86 @@ export const site = {
   },
 
   /**
-   * Two answers to the same question, behind one switch.
-   *
-   * "What we build" is the capability list; "Who we help" is the same offer read
-   * from the reader's side of the table. They are tabs rather than two sections
-   * because an owner arrives as one or the other - either they know the piece
-   * they are missing, or they know the business they run - and making them
-   * scroll past the half that is not about them is what the switch avoids.
-   *
-   * Both panels carry SIX items on purpose: the grid is 3x2 at desktop and the
-   * two panels have to be the same height, or switching tabs jumps the page.
+   * Offerings: 5 Tailored Capability modules.
    */
   work: {
-    /**
-     * ONE HEADING FOR BOTH PANELS. It used to retitle itself to whichever tab
-     * was selected, which made the tab press look like it had rewritten the
-     * section rather than filtered it - and left the reader with no fixed name
-     * for the thing they were looking at. "Our offerings" is what both lists
-     * are; the tabs say which cut of it is on screen.
-     */
     title: "Our Offerings",
+    eyebrow: "Tailored Capabilities",
     tabs: [
       {
-        id: "build",
-        label: "What We Build",
-        lede: "We don't sell a fixed list of software products. We build the pieces your business actually needs.",
-        items: [
-          {
-            icon: "network" as const,
-            title: "Connected Operations",
-            body: "Connect the different people, processes and records involved in getting work done.",
-          },
-          {
-            icon: "database" as const,
-            title: "Digital Records",
-            body: "Replace paper registers and scattered files with structured records that are easier to update, find and use.",
-          },
-          {
-            icon: "wrench" as const,
-            title: "Internal Tools",
-            body: "Build simple applications for the work that existing software doesn't handle well.",
-          },
-          {
-            icon: "cycle" as const,
-            title: "Workflow Automation",
-            body: "Remove repetitive steps such as copying information, sending routine updates, and chasing the same approval twice.",
-          },
-          {
-            icon: "chart" as const,
-            title: "Management Visibility",
-            body: "Give owners and managers a clear view of what is happening without asking three people for an update.",
-          },
-          {
-            icon: "link" as const,
-            title: "System Integration",
-            body: "Connect the tools you already use so information doesn't have to be moved by hand between them.",
-          },
+        id: "billing",
+        label: "Billing & Collections",
+        eyebrow: "TAILORED CAPABILITY",
+        title: "Billing & Collections",
+        bottleneck: "Invoices created manually in separate tools delay collections and create accounting reconciliation headaches.",
+        capabilities: [
+          "GST-compliant invoicing & multi-tier tax rules",
+          "Automated WhatsApp payment links & follow-up reminders",
+          "Real-time customer ledger & outstanding tracking",
+          "Direct reconciliation with bank feeds and accounting exports",
         ],
+        whoUsesIt: "Billing Executives, Accountants & Owners",
+        howItConnects: "Directly reads inventory dispatch logs; automatically updates owner cashflow.",
       },
       {
-        id: "help",
-        label: "Who We Help",
-        lede: "Businesses that already work, run by people who are tired of holding the whole thing together by hand.",
-        items: [
-          {
-            icon: "pulse" as const,
-            title: "Clinics",
-            body: "Reception, doctors, pharmacy, laboratory, billing and management often operate separately.",
-          },
-          {
-            icon: "package" as const,
-            title: "Distributors & Traders",
-            body: "Orders, inventory, dispatch, payments and accounts depend on information moving between people.",
-          },
-          {
-            icon: "headset" as const,
-            title: "Service Businesses",
-            body: "Customer requests, staff assignments, work completion, billing and follow-ups often happen through a mixture of calls, messages and records.",
-          },
-          {
-            icon: "factory" as const,
-            title: "Manufacturers",
-            body: "Production, inventory, procurement, quality checks and accounts need to stay in sync.",
-          },
-          {
-            icon: "graduation" as const,
-            title: "Educational & Training Organisations",
-            body: "Admissions, student records, attendance, assessments, fees and communication often live in separate systems.",
-          },
-          {
-            icon: "bell" as const,
-            title: "Hospitality & Event Businesses",
-            body: "Bookings, staff, inventory, vendors, payments and execution require constant coordination.",
-          },
+        id: "inventory",
+        label: "Inventory & Stock Movement",
+        eyebrow: "TAILORED CAPABILITY",
+        title: "Inventory & Stock Movement",
+        bottleneck: "Physical stock registers don't match computer numbers, leading to stockouts or dead inventory.",
+        capabilities: [
+          "Multi-location, branch & warehouse stock registers",
+          "Barcode & QR scanning for receiving and dispatches",
+          "Low-stock threshold alerts & automated reorder drafts",
+          "Batch & expiry tracking with audit log of movements",
         ],
+        whoUsesIt: "Store Managers, Dispatch Teams & Purchase Heads",
+        howItConnects: "Locks reserved stock on sales order; triggers purchase workflows on low stock.",
+      },
+      {
+        id: "workflows",
+        label: "Workflows & Approvals",
+        eyebrow: "TAILORED CAPABILITY",
+        title: "Workflows & Approvals",
+        bottleneck: "Critical jobs and approvals get trapped in WhatsApp chats and forgotten email threads.",
+        capabilities: [
+          "Configurable multi-step approval workflows (Discounts, POs, Leaves)",
+          "Field team task assignment with mobile signoffs & photo verification",
+          "Automated role-based escalation when tasks stall",
+          "Real-time customer status notifications via SMS & WhatsApp",
+        ],
+        whoUsesIt: "Floor Supervisors, Field Technicians & Department Heads",
+        howItConnects: "Passes completed field tasks directly into the billing engine.",
+      },
+      {
+        id: "dashboards",
+        label: "Management Dashboards",
+        eyebrow: "TAILORED CAPABILITY",
+        title: "Management Dashboards",
+        bottleneck: "Business owners spend hours asking three managers for reports before knowing where things stand.",
+        capabilities: [
+          "Live business pulse: daily orders, dispatches, margins & pending tasks",
+          "Branch-by-branch comparative performance charts",
+          "Automated end-of-day operational summary reports to mobile",
+          "Role-based permission controls to protect sensitive financial data",
+        ],
+        whoUsesIt: "Founders, Managing Directors & Operational Leaders",
+        howItConnects: "Pulls real-time aggregates from all active operational modules.",
+      },
+      {
+        id: "integrations",
+        label: "Integrations & Migration",
+        eyebrow: "TAILORED CAPABILITY",
+        title: "Integrations & Migration",
+        bottleneck: "Existing spreadsheets and isolated legacy tools trap historical data in silos.",
+        capabilities: [
+          "Clean historical data import from Excel, Google Sheets, or legacy databases",
+          "Connectors for WhatsApp Business API, SMS Gateways, and Payment Links",
+          "Integration with Tally, Zoho Books, or custom internal ERPs",
+          "Automated daily cloud backups and 1-click customer data export",
+        ],
+        whoUsesIt: "IT Leads, Operations Managers & Systems Admins",
+        howItConnects: "Provides the underlying data bridge keeping all tools in sync.",
       },
     ],
   },
