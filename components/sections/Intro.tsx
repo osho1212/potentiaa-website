@@ -1,6 +1,5 @@
 import Reveal from "../Reveal";
 import MagicBento from "../MagicBento";
-import IntroCubes from "../IntroCubes";
 import { site } from "@/lib/site";
 
 export default function Intro() {
