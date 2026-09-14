@@ -328,6 +328,44 @@ export const site = {
     ],
   },
 
+  faq: {
+    eyebrow: "Got Questions?",
+    title: "Frequently Asked Questions",
+    lede: "Everything you need to know about working with Potentiaa.",
+    items: [
+      {
+        question: "What kind of custom software does Potentiaa build?",
+        answer:
+          "We build tailored web applications, operational ERPs, inventory management systems, billing engines, custom CMS platforms, and management dashboards designed around your exact business workflows.",
+      },
+      {
+        question: "How long does it take to build and deploy a custom system?",
+        answer:
+          "Core operational modules (such as billing or stock movement) are typically designed, built, and launched in 2 to 3 weeks. Full custom enterprise suites are rolled out iteratively without disrupting daily business.",
+      },
+      {
+        question: "Will our staff need technical training to use the application?",
+        answer:
+          "Zero technical skills are needed. We design intuitive, clutter-free interfaces—if your team can use WhatsApp, they can effortlessly operate our software. We also provide full hands-on staff onboarding.",
+      },
+      {
+        question: "Can Potentiaa integrate with our existing tools (Tally, WhatsApp, Excel)?",
+        answer:
+          "Yes! We support clean historical data migration from Excel/Google Sheets and seamless integrations with WhatsApp Business API, SMS gateways, payment links, Tally, and Zoho Books.",
+      },
+      {
+        question: "How does ongoing maintenance and technical support work?",
+        answer:
+          "We provide continuous cloud hosting, automated daily backups, security updates, and active technical support to ensure 99.9% uptime and immediate help whenever needed.",
+      },
+      {
+        question: "Can the system scale as our business opens new branches or adds products?",
+        answer:
+          "Absolutely. Our cloud architecture is built to scale smoothly, allowing you to add new branches, warehouses, team members, or product lines without starting over from scratch.",
+      },
+    ],
+  },
+
   cta: {
     title: "Ready to run your business on autopilot?",
     body: "Book a free 15-minute call. Plain words, zero tech jargon.",
@@ -337,6 +375,7 @@ export const site = {
     { label: "What we build", href: "#offerings" },
     { label: "Our Work", href: "#projects" },
     { label: "How we work", href: "#method" },
+    { label: "FAQ", href: "#faq" },
   ],
 
   trustSlots: [

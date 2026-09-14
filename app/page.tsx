@@ -5,6 +5,7 @@ import Intro from "@/components/sections/Intro";
 import Work from "@/components/sections/Work";
 import Method from "@/components/sections/Method";
 import OurWork from "@/components/sections/OurWork";
+import Faq from "@/components/sections/Faq";
 import Testimonials from "@/components/sections/Testimonials";
 import CtaFooter from "@/components/sections/CtaFooter";
 
@@ -17,6 +18,7 @@ export default function HomePage() {
       <Work />
       <Method />
       <OurWork />
+      <Faq />
       <Testimonials />
       <CtaFooter />
     </SiteShell>

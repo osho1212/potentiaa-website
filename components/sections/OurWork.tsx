@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import Reveal from "../Reveal";
 import { CardContainer, CardBody, CardItem } from "@/components/ui/3d-card";
+import WorkCardParticles from "../WorkCardParticles";
 
 export interface ProjectCardData {
   id: string;
@@ -71,73 +72,84 @@ const PROJECTS: ProjectCardData[] = [
 ];
 
 export default function OurWork() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
+
   return (
-    <section className="section our-work-section" id="projects" data-theme-key="work">
+    <section className="section our-work-section" id="projects" data-theme-key="work" ref={sectionRef}>
+      <WorkCardParticles sectionRef={sectionRef} gridRef={gridRef} cardsRef={cardsRef} />
       <div className="container our-work__container">
         {/* Section Header */}
         <div className="our-work__head">
           <Reveal>
-            <p className="eyebrow">Selected Builds</p>
+            <p className="eyebrow" data-form-heading>Selected Builds</p>
           </Reveal>
           <Reveal delay={80}>
-            <h2 className="section-title">Our Work</h2>
+            <h2 className="section-title" data-form-heading>Our Work</h2>
           </Reveal>
         </div>
 
-        {/* 6 Ultra-Transparent Glass 3D Cards with Creative Staggered Placement */}
-        <div className="our-work__cards-grid">
+        {/* 6 Ultra-Transparent Glass 3D Cards with Scroll-Driven Particle Formation */}
+        <div className="our-work__cards-grid" ref={gridRef}>
           {PROJECTS.map((project, idx) => (
-            <div key={project.id} className={`our-work__slot our-work__slot--${idx}`}>
-              <Reveal delay={60 * (idx % 3)}>
-                <CardContainer className="w-full">
-                  <CardBody className="our-work__glass-card group/card">
-                    {/* Popping 3D Parallax Image expanding beyond card on hover */}
+            <div
+              key={project.id}
+              className={`our-work__slot our-work__slot--${idx}`}
+              data-form-step={idx}
+            >
+              <CardContainer className="w-full">
+                <CardBody
+                  className="our-work__glass-card group/card"
+                  ref={(el) => {
+                    cardsRef.current[idx] = el;
+                  }}
+                >
+                  {/* 3D Image Wrapper without hover zoom */}
+                  <CardItem
+                    translateZ={40}
+                    className="our-work__image-wrapper"
+                  >
+                    <div className="our-work__image-box">
+                      <img
+                        src={project.imagePlaceholder}
+                        alt={project.imageAlt}
+                        loading="lazy"
+                        className="our-work__image"
+                      />
+                      <div className="our-work__image-overlay" />
+                    </div>
+                  </CardItem>
+
+                  <div className="our-work__content-box">
+                    {/* Title */}
                     <CardItem
-                      translateZ={90}
-                      scaleHover={1.12}
-                      className="our-work__image-wrapper"
+                      translateZ={45}
+                      className="our-work__card-title"
                     >
-                      <div className="our-work__image-box">
-                        <img
-                          src={project.imagePlaceholder}
-                          alt={project.imageAlt}
-                          loading="lazy"
-                          className="our-work__image"
-                        />
-                        <div className="our-work__image-overlay" />
-                      </div>
+                      {project.title}
                     </CardItem>
 
-                    <div className="our-work__content-box">
-                      {/* Title */}
-                      <CardItem
-                        translateZ={45}
-                        className="our-work__card-title"
-                      >
-                        {project.title}
-                      </CardItem>
+                    {/* Short Feature Description */}
+                    <CardItem
+                      as="p"
+                      translateZ={30}
+                      className="our-work__card-desc"
+                    >
+                      {project.description}
+                    </CardItem>
 
-                      {/* Short Feature Description */}
-                      <CardItem
-                        as="p"
-                        translateZ={30}
-                        className="our-work__card-desc"
-                      >
-                        {project.description}
-                      </CardItem>
-
-                      {/* Feature Tags */}
-                      <CardItem translateZ={40} className="our-work__tags-row">
-                        {project.features.map((feat) => (
-                          <span key={feat} className="our-work__tag-pill">
-                            {feat}
-                          </span>
-                        ))}
-                      </CardItem>
-                    </div>
-                  </CardBody>
-                </CardContainer>
-              </Reveal>
+                    {/* Feature Tags */}
+                    <CardItem translateZ={40} className="our-work__tags-row">
+                      {project.features.map((feat) => (
+                        <span key={feat} className="our-work__tag-pill">
+                          {feat}
+                        </span>
+                      ))}
+                    </CardItem>
+                  </div>
+                </CardBody>
+              </CardContainer>
             </div>
           ))}
         </div>
@@ -145,3 +157,4 @@ export default function OurWork() {
     </section>
   );
 }
+

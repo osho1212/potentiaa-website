@@ -3247,13 +3247,13 @@ button { font: inherit; cursor: pointer; }
 .our-work-section {
   position: relative;
   z-index: var(--z-content);
-  min-height: 100svh;
+  min-height: auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  /* Same header clearance as the other full-viewport sections. */
+  /* Generous vertical clearance */
   padding-top: var(--below-header);
-  padding-bottom: clamp(var(--space-6), 3vh, var(--space-10));
+  padding-bottom: clamp(var(--space-12), 6vh, var(--space-20));
   overflow: visible;
   background: transparent;
 }
@@ -3372,8 +3372,10 @@ button { font: inherit; cursor: pointer; }
 .our-work__image-box {
   position: relative;
   width: 100%;
-  /* Was a flat 195px. Two rows of that alone is 390px of an 803px viewport. */
-  height: clamp(92px, 12.5vh, 200px);
+  aspect-ratio: 16 / 10;
+  height: auto;
+  min-height: 170px;
+  max-height: 260px;
   border-radius: 16px;
   overflow: visible;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -3394,13 +3396,10 @@ button { font: inherit; cursor: pointer; }
   will-change: transform, box-shadow;
 }
 
-/* Hover: Image expands and pops beyond card frame in 3D parallax */
+/* Hover: Keep image steady without scale zoom */
 .group\/card:hover .our-work__image {
-  transform: scale(1.14) translateY(-6px);
-  box-shadow:
-    0 24px 45px rgba(0, 0, 0, 0.95),
-    0 0 35px rgba(38, 93, 255, 0.35);
-  filter: brightness(1.08) contrast(1.05);
+  transform: none;
+  filter: brightness(1.05);
 }
 
 .our-work__image-overlay {
@@ -3424,12 +3423,12 @@ button { font: inherit; cursor: pointer; }
 
 .our-work__card-title {
   font-family: var(--font-display);
-  font-size: clamp(18px, 1.3vw, 21px);
+  font-size: clamp(18px, 1.3vw, 22px);
   font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-tight);
   line-height: var(--lh-tight);
   color: var(--text-on-dark);
-  margin: 0;
+  margin-top: 4px;
 }
 
 .our-work__card-desc {
@@ -4658,7 +4657,9 @@ textarea.input { resize: vertical; min-height: 120px; }
   }
 
   .our-work__image-box {
-    height: clamp(56px, 10vh, 200px);
+    aspect-ratio: 16 / 10;
+    min-height: 150px;
+    height: auto;
   }
 
   .our-work__cards-grid {
@@ -4690,7 +4691,9 @@ textarea.input { resize: vertical; min-height: 120px; }
   }
 
   .our-work__image-box {
-    height: clamp(48px, 8.5vh, 168px);
+    aspect-ratio: 16 / 10;
+    min-height: 130px;
+    height: auto;
   }
 
   .our-work__cards-grid {
@@ -4742,3 +4745,218 @@ textarea.input { resize: vertical; min-height: 120px; }
     margin-bottom: clamp(5px, 1vh, 14px);
   }
 }
+
+/* ===============================================================
+   FAQ Section (Interactive Accordion Glass Cards)
+   =============================================================== */
+.faq-section {
+  position: relative;
+  z-index: var(--z-content);
+  padding-block: clamp(var(--space-20), 10vh, var(--space-28));
+  background: transparent;
+  overflow: visible;
+}
+
+.faq-section::before {
+  content: "";
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -40%);
+  width: min(1000px, 90vw);
+  height: 500px;
+  background: radial-gradient(
+    ellipse 60% 40% at 50% 50%,
+    rgba(59, 130, 246, 0.08) 0%,
+    rgba(99, 102, 241, 0.04) 50%,
+    transparent 80%
+  );
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.faq__container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.faq__head {
+  text-align: center;
+  margin-bottom: clamp(32px, 5vw, 56px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 720px;
+}
+
+.faq__eyebrow {
+  color: var(--blue-400);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+}
+
+.faq__title {
+  color: #ffffff;
+  margin-bottom: var(--space-3);
+}
+
+.faq__lede {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: clamp(15px, 1.4vw, 18px);
+}
+
+.faq__grid {
+  width: 100%;
+  max-width: 1120px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .faq__grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+.faq__accordion-item {
+  width: 100%;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.018);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+  transition:
+    border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.faq__accordion-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(76, 121, 255, 0.45);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.25),
+    0 0 24px rgba(38, 93, 255, 0.18);
+}
+
+.faq__accordion-item--open {
+  background: rgba(255, 255, 255, 0.038);
+  border-color: rgba(76, 121, 255, 0.65);
+  box-shadow:
+    0 22px 50px rgba(0, 0, 0, 0.7),
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.35),
+    0 0 32px rgba(38, 93, 255, 0.28);
+}
+
+.faq__question-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 28px;
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.2s ease;
+}
+
+.faq__question-text {
+  font-family: var(--font-display);
+  font-size: clamp(16px, 1.4vw, 19px);
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+.faq__accordion-item:hover .faq__question-text {
+  color: #93c5fd;
+}
+
+.faq__icon-wrapper {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.faq__accordion-item:hover .faq__icon-wrapper {
+  background: rgba(38, 93, 255, 0.2);
+  border-color: rgba(38, 93, 255, 0.4);
+}
+
+.faq__icon {
+  color: #60a5fa;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s ease;
+}
+
+.faq__icon--rotated {
+  transform: rotate(180deg);
+  color: #ffffff;
+}
+
+.faq__answer-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  opacity: 0;
+}
+
+.faq__answer-wrapper--open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.faq__answer-inner {
+  overflow: hidden;
+  padding: 0 28px 24px 28px;
+}
+
+.faq__answer-text {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.72);
+  margin: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 16px;
+}
+
+@media (max-width: 640px) {
+  .faq__question-btn {
+    padding: 16px 20px;
+  }
+  .faq__answer-inner {
+    padding: 0 20px 18px 20px;
+  }
+  .faq__question-text {
+    font-size: 15px;
+  }
+  .faq__answer-text {
+    font-size: 13.5px;
+  }
+}
+

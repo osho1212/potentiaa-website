@@ -75,15 +75,13 @@ export const CardContainer = ({
   );
 };
 
-export const CardBody = ({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => {
+export const CardBody = React.forwardRef<
+  HTMLDivElement,
+  { children: React.ReactNode; className?: string }
+>(({ children, className }, ref) => {
   return (
     <div
+      ref={ref}
       className={cn(
         "w-full h-full [transform-style:preserve-3d] [&>*]:[transform-style:preserve-3d]",
         className
@@ -92,7 +90,8 @@ export const CardBody = ({
       {children}
     </div>
   );
-};
+});
+CardBody.displayName = "CardBody";
 
 export const CardItem = ({
   as: Tag = "div",
