@@ -319,6 +319,21 @@ export default function CardFormationParticles({
      * scrolling - the visual position keeps easing after the scroll events
      * have stopped, and sampling the rect follows that exactly.
      */
+    /**
+     * Tell the header a card is now a white surface - see components/Header,
+     * which reads data-nav-surface to keep its text readable over it.
+     *
+     * The canvas paints the white, so there is no CSS background for the header
+     * to read, and the card is only white once it has FORMED: scattered, it is
+     * sparse coloured particles over the dark page. Nor is it marked at all if
+     * the effect never built - without WebGL there is no white surface.
+     */
+    const markSurface = (target: HTMLElement, formed: boolean) => {
+      if ((target.dataset.navSurface === "light") === formed) return;
+      if (formed) target.dataset.navSurface = "light";
+      else delete target.dataset.navSurface;
+    };
+
     const readProgress = (target: HTMLElement) => {
       const rect = target.getBoundingClientRect();
       const viewport = window.innerHeight || 1;
@@ -350,7 +365,10 @@ export default function CardFormationParticles({
     const update = () => {
       if (disposed || !effect) return;
 
-      for (let i = 0; i < targets.length; i++) progress[i] = readProgress(targets[i]);
+      for (let i = 0; i < targets.length; i++) {
+        progress[i] = readProgress(targets[i]);
+        markSurface(targets[i], progress[i] >= 0.9);
+      }
       effect.setProgress(progress[0], progress);
       applyContent();
 
@@ -416,6 +434,7 @@ export default function CardFormationParticles({
       if (reducedMotion) {
         /* Formed, immediately, with no scrubbing and no reveal. */
         effect.setProgress(1);
+        for (const target of targets) markSurface(target, true);
       }
 
       /* Every box matters: the offerings card changes height when its tabs are
@@ -448,6 +467,7 @@ export default function CardFormationParticles({
       sizeObserver?.disconnect();
       stopTracking();
       clearContent();
+      for (const target of targets) markSurface(target, false);
       effect?.destroy();
       effect = null;
     };

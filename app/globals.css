@@ -278,7 +278,11 @@ button { font: inherit; cursor: pointer; }
     0 16px 36px rgba(0, 0, 0, 0.5),
     inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.25),
     0 0 24px rgba(38, 93, 255, 0.18);
-  transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    background-color 0.25s ease,
+    color 0.25s ease;
 }
 
 .header__pill:hover {
@@ -287,6 +291,37 @@ button { font: inherit; cursor: pointer; }
     0 20px 45px rgba(0, 0, 0, 0.65),
     inset 0 1px 2px 0 rgba(255, 255, 255, 0.35),
     0 0 36px rgba(38, 93, 255, 0.35);
+}
+
+/* OVER A LIGHT SURFACE. components/Header sets data-surface on each pill from
+   what is actually behind it; the dark glass and light text above are
+   unreadable over white, so the pill turns to frosted white with dark text.
+   The primary button keeps its own blue in both. */
+.header__pill[data-surface="light"] {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #0f172a;
+  box-shadow:
+    0 12px 30px rgba(15, 23, 42, 0.16),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.header__pill[data-surface="light"]:hover {
+  border-color: rgba(37, 99, 235, 0.45);
+  box-shadow:
+    0 16px 36px rgba(15, 23, 42, 0.2),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.header__pill[data-surface="light"] .header__link { color: #334155; }
+
+.header__pill[data-surface="light"] .nav-toggle { color: #0f172a; }
+
+@media (hover: hover) and (pointer: fine) {
+  .header__pill[data-surface="light"] .header__link:hover {
+    color: #0f172a;
+    background: rgba(15, 23, 42, 0.06);
+  }
 }
 
 .header__pill--nav {
