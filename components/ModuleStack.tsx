@@ -132,6 +132,16 @@ const DOCK_SPAN = 0.085;
  */
 const DOCK_FILL = 1.2;
 
+/**
+ * Margin, in px, around an element marked data-module-avoid.
+ *
+ * Its rect is read on the slow 60ms cadence, so while the page scrolls the
+ * element can travel this far between reads. Without the margin the module
+ * could paint over the edge of the element for a frame or two before the next
+ * read sent it behind.
+ */
+const AVOID_PADDING = 48;
+
 type Flight = {
   /** Viewport px. */
   x: number;
@@ -465,6 +475,10 @@ export default function ModuleStack() {
        applied to HeroFlowConstellation's loop. */
     const logoEl = document.querySelector<HTMLElement>(".header__logo");
     const heroEl = document.querySelector<HTMLElement>("section.hero");
+    /* Elements the module must never paint over - see the overlap test in
+       `tick`. Marked in the markup with data-module-avoid. */
+    const avoidEls = Array.from(document.querySelectorAll<HTMLElement>("[data-module-avoid]"));
+    let avoidBoxes: DOMRect[] = [];
 
     const refreshLayout = (now: number) => {
       if (now - rectsAt < 60) return;
@@ -483,6 +497,7 @@ export default function ModuleStack() {
       }
 
       cachedTheme = themeAt(window.innerHeight * 0.5);
+      avoidBoxes = avoidEls.map((el) => el.getBoundingClientRect());
     };
 
     /**
@@ -622,7 +637,38 @@ export default function ModuleStack() {
       const plane =
         theme.from.plane + (theme.to.plane - theme.from.plane) * eased;
 
-      const target = flightAt(p, cubeSize, room, plane);
+      // NEVER OVER AN ELEMENT THE READER HANDLES.
+      //
+      // The section planes above choose front or behind by what is under the
+      // sightline, which is right for copy: a module weaving through text can
+      // be read past. It is wrong for something the reader drags and clicks.
+      // The Our Work carousel had the module sitting on its cards - partly
+      // because on the scroll positions either side of that section the
+      // sightline is in a neighbour that puts the module in front.
+      //
+      // So while the module overlaps any element marked data-module-avoid, it
+      // goes behind the page, whatever the section says. The test uses the
+      // module's FRONT-PLANE size on purpose: sized at its current depth, going
+      // behind shrinks it, which can clear the overlap, which brings it forward
+      // and grows it again - a flicker at the edge of the element. Its x and y
+      // do not depend on depth, so the test is stable either side of the flip.
+      let avoid = false;
+      const current = flight;
+      if (current && avoidBoxes.length > 0 && current.dock < 0.02) {
+        const frontScale =
+          (current.scale / (1 + current.depth * DEPTH_SCALE)) * (1 + DEPTH_SCALE);
+        // The artwork fills about 84% of the sprite - see DOCK_FILL.
+        const half = cubeSize * frontScale * 0.42 + AVOID_PADDING;
+        avoid = avoidBoxes.some(
+          (box) =>
+            current.x + half > box.left &&
+            current.x - half < box.right &&
+            current.y + half > box.top &&
+            current.y - half < box.bottom,
+        );
+      }
+
+      const target = flightAt(p, cubeSize, room, avoid ? -1 : plane);
 
       // MIX THE DOCK IN.
       //

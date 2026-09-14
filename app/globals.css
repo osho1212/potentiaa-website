@@ -49,6 +49,9 @@ html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
 
 html, body { overflow-x: clip; }
+/* Both, because html's overflow-x: clip stops body's overflow reaching the
+   viewport - see lib/useModalDialog. */
+html[data-scroll-locked="true"],
 body[data-scroll-locked="true"] { overflow: hidden; }
 
 h1, h2, h3, h4, h5, h6 {
@@ -3285,177 +3288,11 @@ button { font: inherit; cursor: pointer; }
   max-width: 860px;
 }
 
-.our-work__cards-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  column-gap: clamp(20px, 2.5vw, 36px);
-  row-gap: clamp(16px, 2.8vh, 40px);
-  width: 100%;
-  /* Was 40px of dead tail below the last row. It existed to give the hover
-     pop-out room, which overflow: visible already provides. */
-  padding-bottom: 0;
-}
-
-@media (min-width: 1121px) {
-  /* Same offsets at ~35%. The stagger is a rhythm, not a measurement, and at
-     the old amplitude one offset alone added 72px to the section height. */
-  .our-work__slot--0 { margin-top: 0px; }
-  .our-work__slot--1 { margin-top: 19px; }
-  .our-work__slot--2 { margin-top: -6px; }
-  .our-work__slot--3 { margin-top: 7px; }
-  .our-work__slot--4 { margin-top: 25px; }
-  .our-work__slot--5 { margin-top: 3px; }
-}
-
-@media (max-width: 1120px) and (min-width: 721px) {
-  .our-work__cards-grid {
-    grid-template-columns: repeat(2, 1fr);
-    row-gap: 48px;
-  }
-  .our-work__slot--1,
-  .our-work__slot--3,
-  .our-work__slot--5 {
-    margin-top: 42px;
-  }
-}
-
-@media (max-width: 720px) {
-  .our-work__cards-grid {
-    grid-template-columns: 1fr;
-    row-gap: 32px;
-  }
-}
-
-/* Equisized Ultra-Transparent Glass 3D Cards */
-.our-work__glass-card {
-  width: 100%;
-  height: 100%;
-  min-height: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  border-radius: 24px;
-  padding: clamp(12px, 2.6vh, 26px);
-  background: rgba(255, 255, 255, 0.015);
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow:
-    0 20px 50px rgba(0, 0, 0, 0.65),
-    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.22),
-    0 0 24px rgba(38, 93, 255, 0.12);
-  transition:
-    border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: visible;
-  position: relative;
-}
-
-.group\/card:hover .our-work__glass-card,
-.our-work__glass-card:hover {
-  background: rgba(255, 255, 255, 0.035);
-  border-color: rgba(76, 121, 255, 0.65);
-  box-shadow:
-    0 30px 65px rgba(0, 0, 0, 0.8),
-    inset 0 1px 2px 0 rgba(255, 255, 255, 0.4),
-    0 0 42px rgba(38, 93, 255, 0.35);
-}
-
-.our-work__image-wrapper {
-  width: 100%;
-  position: relative;
-  overflow: visible;
-  z-index: 10;
-}
-
-.our-work__image-box {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  height: auto;
-  min-height: 170px;
-  max-height: 260px;
-  border-radius: 16px;
-  overflow: visible;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: #000000;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7);
-  transition: box-shadow 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.our-work__image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 16px;
-  transition:
-    transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.45s ease,
-    filter 0.45s ease;
-  will-change: transform, box-shadow;
-}
-
-/* Hover: Keep image steady without scale zoom */
-.group\/card:hover .our-work__image {
-  transform: none;
-  filter: brightness(1.05);
-}
-
-.our-work__image-overlay {
-  position: absolute;
-  inset: 0;
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.6) 100%);
-  pointer-events: none;
-  transition: opacity 0.4s ease;
-}
-
-.group\/card:hover .our-work__image-overlay {
-  opacity: 0.3;
-}
-
-.our-work__content-box {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.our-work__card-title {
-  font-family: var(--font-display);
-  font-size: clamp(18px, 1.3vw, 22px);
-  font-weight: var(--fw-bold);
-  letter-spacing: var(--tracking-tight);
-  line-height: var(--lh-tight);
-  color: var(--text-on-dark);
-  margin-top: 4px;
-}
-
-.our-work__card-desc {
-  font-family: var(--font-body);
-  font-size: 13px;
-  line-height: 1.45;
-  color: rgba(255, 255, 255, 0.65);
-  margin: 0;
-}
-
-.our-work__tags-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  width: 100%;
-  margin-top: var(--space-2);
-}
-
-.our-work__tag-pill {
-  font-size: 11px;
-  font-weight: var(--fw-medium);
-  color: #93c5fd;
-  background: rgba(38, 93, 255, 0.12);
-  border: 1px solid rgba(38, 93, 255, 0.28);
-  padding: 3px 9px;
-  border-radius: 6px;
+.our-work__hint {
+  margin-top: var(--space-3);
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--text-on-dark-secondary);
 }
 
 /* ---------------------------------------------------------------
@@ -4656,26 +4493,8 @@ textarea.input { resize: vertical; min-height: 120px; }
     padding-top: calc(var(--space-3) + var(--header-h) + var(--space-3));
   }
 
-  .our-work__image-box {
-    aspect-ratio: 16 / 10;
-    min-height: 150px;
-    height: auto;
-  }
-
-  .our-work__cards-grid {
-    row-gap: clamp(14px, 1.8vh, 40px);
-  }
-
-  .our-work__glass-card {
-    padding: clamp(10px, 1.3vh, 26px);
-  }
-
   .our-work__container {
     gap: clamp(var(--space-3), 2vh, var(--space-10));
-  }
-
-  .our-work__card-desc {
-    font-size: 12.5px;
   }
 
   .intro-section {
@@ -4690,27 +4509,8 @@ textarea.input { resize: vertical; min-height: 120px; }
     padding-top: calc(var(--space-2) + var(--header-h) + var(--space-2));
   }
 
-  .our-work__image-box {
-    aspect-ratio: 16 / 10;
-    min-height: 130px;
-    height: auto;
-  }
-
-  .our-work__cards-grid {
-    row-gap: clamp(10px, 1.4vh, 28px);
-  }
-
-  .our-work__glass-card {
-    padding: clamp(8px, 1.1vh, 18px);
-    gap: var(--space-2);
-  }
-
   .our-work__container {
     gap: clamp(var(--space-2), 1.6vh, var(--space-6));
-  }
-
-  .our-work__card-desc {
-    font-size: 12px;
   }
 
   .offering-showcase {

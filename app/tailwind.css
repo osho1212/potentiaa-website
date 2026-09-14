@@ -1,0 +1,62 @@
+/* Tailwind, scoped to the shadcn components in components/ui.
+
+   The site itself is hand-written CSS (app/globals.css), so this is set up to
+   stay out of its way:
+
+   - NO PREFLIGHT. Tailwind's base reset would restyle every heading, list,
+     image and button on the site. Only the theme and utilities are imported.
+   - ONLY components/ui IS SCANNED. With automatic detection Tailwind would
+     also generate utilities for class names the site already uses for its own
+     rules - `container` and `section` among them - and change those elements.
+   - UTILITIES ARE UNLAYERED, and this file loads after globals.css. Layered
+     utilities lose to every unlayered rule, so a site rule like `p { font-size }`
+     would override a component's `text-[13px]`. Unlayered, a utility's class
+     outranks those element selectors as it normally would.
+
+   Adding a shadcn component: `npx shadcn@latest add <name>`. The CLI may try to
+   add `@import "tailwindcss"` or a base layer here; keep the split imports
+   below instead, or the preflight comes back. */
+
+@layer theme, base;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" source(none);
+@import "tw-animate-css";
+
+@source "../components/ui";
+
+/* The one piece of preflight the components need. Without it a <button> keeps
+   the browser's padding and 2px border, which stretched the carousel's 8px
+   pagination dots into 16x8 pills. Scoped to component roots so site buttons
+   are untouched, and layered so any utility on the element still wins. Add a
+   root here when a new component brings its own buttons. */
+@layer base {
+  :where([aria-roledescription="carousel"]) button {
+    padding: 0;
+    border: 0 solid;
+    background-color: transparent;
+  }
+
+  /* Preflight's block SVGs. Inline, a lucide icon sits on a text baseline and
+     adds line-height below it, which made the round nav buttons 36x42. */
+  :where([aria-roledescription="carousel"]) svg {
+    display: block;
+  }
+}
+
+/* shadcn's semantic tokens, mapped onto the site's dark palette. */
+:root {
+  --background: #02040a;
+  --foreground: var(--text-on-dark, #ffffff);
+  --muted: rgba(255, 255, 255, 0.06);
+  --muted-foreground: var(--text-on-dark-secondary, rgba(255, 255, 255, 0.65));
+  --ring: var(--focus-ring, #3b82f6);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-ring: var(--ring);
+}

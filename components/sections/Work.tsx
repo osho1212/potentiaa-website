@@ -2,7 +2,7 @@
 
 import React, { useEffect, useId, useRef, useState } from "react";
 import Reveal from "../Reveal";
-import OfferingCardParticles from "../OfferingCardParticles";
+import CardFormationParticles from "../CardFormationParticles";
 import { site } from "@/lib/site";
 
 const MOBILE_BREAKPOINT = 768;
@@ -62,7 +62,9 @@ function BentoCard({
 
 export default function Work() {
   const sectionRef = useRef<HTMLElement>(null);
-  const showcaseRef = useRef<HTMLDivElement>(null);
+  /* An array because CardFormationParticles forms any number of cards;
+     offerings has one. */
+  const showcaseRefs = useRef<(HTMLElement | null)[]>([]);
   const [active, setActive] = useState(0);
   const [interactive, setInteractive] = useState(false);
 
@@ -111,7 +113,7 @@ export default function Work() {
     <section className="section work-section" id="offerings" data-theme-key="work" ref={sectionRef}>
       {/* Fills the section, not the card - the particles start scattered
           across the section and the canvas clips them. */}
-      <OfferingCardParticles sectionRef={sectionRef} targetRef={showcaseRef} />
+      <CardFormationParticles sectionRef={sectionRef} targetRefs={showcaseRefs} />
       <div className="container">
         {/* Section Header */}
         <div className="work__head">
@@ -130,7 +132,12 @@ export default function Work() {
         </div>
 
         {/* 3D Glass Showcase Stage */}
-        <div className="offering-showcase" ref={showcaseRef}>
+        <div
+          className="offering-showcase"
+          ref={(el) => {
+            showcaseRefs.current[0] = el;
+          }}
+        >
           {/* 1. Horizontal 3D Pill Tab Navigation */}
           {/* data-form-step orders the reveal top to bottom, driven from the
               same scroll progress as the particles. */}

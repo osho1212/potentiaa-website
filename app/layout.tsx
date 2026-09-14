@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Sora, Manrope } from "next/font/google";
 import "./globals.css";
+/* After globals.css: Tailwind utilities for components/ui. See the file's header. */
+import "./tailwind.css";
 
 /* design.md 4 - Sora for display, Manrope for body. Self-hosted at build time
    by next/font so there is no render-blocking request to Google.

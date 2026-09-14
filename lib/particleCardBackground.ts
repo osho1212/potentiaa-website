@@ -108,8 +108,24 @@ const MAX_PARTICLES = 320000;
  */
 const PARTICLES_PER_CARD_PIXEL = 0.322;
 
-/** Corner radius in CSS pixels; matches the card's own border-radius. */
+/** Default corner radius in CSS pixels; matches the offerings card's border-radius. */
 const CARD_CORNER_CSS = 28;
+
+/**
+ * How many cards one field can form. Sized to the uniform arrays in the
+ * shaders, which GLSL needs as a constant.
+ *
+ * ONE FIELD, MANY CARDS. Our Work forms six cards exactly the way offerings
+ * forms one, and it does so through this same engine rather than a copy of it:
+ * a copy drifted within a commit (a different swirl, blend mode and projection)
+ * and stopped looking like the effect it was copied from. Everything that makes
+ * the field read as one sheet - the scatter, its re-centring, the hero drift,
+ * the perspective - is solved from the FRAME, the bounding box of every card.
+ * Only a particle's destination, its corner and its build progress come from
+ * the card it belongs to. With one card the frame IS the card and every
+ * per-card term reduces to what the single-card version computed.
+ */
+export const MAX_CARDS = 6;
 
 /**
  * Drawn radius of a HEADING particle, as a fraction of a card particle's.
@@ -118,7 +134,7 @@ const CARD_CORNER_CSS = 28;
  * to respect instead: a dot sits centred on an ink pixel and spills its radius
  * past that outline, so at the card's 3.6px the particle heading came out
  * fatter than the type it hands over to. Read together with GLYPH_STRIDE in
- * components/OfferingCardParticles - stride and dot size only work as a pair,
+ * components/CardFormationParticles - stride and dot size only work as a pair,
  * because a grid needs dots of at least stride*sqrt(2) to close without holes.
  *
  * Measured against the real glyphs, on the drawing buffer, with the heading
@@ -177,7 +193,7 @@ const COMPLETION_TIME = MAX_DELAY + SETTLE_TIME;
  * scroll the section in. COMPLETION_TIME survives only as the unit the
  * per-particle delay ramp is expressed in.
  */
-const STRIDE_BYTES = 9 * 4;
+const STRIDE_BYTES = 10 * 4;
 
 /**
  * THE BRAND RAMP, THE SAME ONE THE HERO SWARM USES.
@@ -209,6 +225,7 @@ in vec3 aEnd;
 in vec3 aStart;
 in vec2 aSeed;
 in float aDelay;
+in float aCard;
 
 uniform float uTime;
 uniform float uProgress;
@@ -216,11 +233,16 @@ uniform float uRadius;
 uniform float uSwirl;
 uniform float uPixelRatio;
 uniform float uParticleSize;
+/* uCardScale and uCardCenter describe the FRAME - the box around every card.
+   With a single card the two are the same box. */
 uniform vec2 uCardScale;
 uniform vec2 uCardCenter;
-uniform vec2 uCorner;
-uniform vec2 uCardHalfPx;
 uniform vec2 uSourceSpread;
+/* Per card: centre and half-extents normalised to the frame, as xy and zw. */
+uniform vec4 uCardRect[${MAX_CARDS}];
+uniform vec2 uCorner[${MAX_CARDS}];
+uniform vec2 uCardHalfPx[${MAX_CARDS}];
+uniform float uCardProgress[${MAX_CARDS}];
 
 out float vBuild;
 out float vRand;
@@ -229,6 +251,7 @@ out vec2 vCardCssPos;
 out float vSize;
 out float vNdcY;
 out vec3 vTint;
+flat out int vCard;
 
 ${BRAND_RAMP_GLSL}
 
@@ -244,7 +267,17 @@ void main() {
      page is still. Folding the two together would freeze the field solid
      whenever the user stopped scrolling, which reads as broken rather than
      paused. */
-  float rawBuild = clamp(uProgress * ${COMPLETION_TIME.toFixed(2)} - aDelay, 0.0, 1.0);
+  /* Which card this particle belongs to. Heading particles carry 0 and never
+     read the per-card destination terms below. */
+  int card = clamp(int(aCard + 0.5), 0, ${MAX_CARDS - 1});
+  vCard = card;
+  float isText = step(0.5, aEnd.z);
+
+  /* Each card builds on its OWN progress, so a card lower on the page forms as
+     it rises instead of on the first card's clock. The heading follows
+     uProgress, which the wrapper sets from the first card. */
+  float progress = isText > 0.5 ? uProgress : uCardProgress[card];
+  float rawBuild = clamp(progress * ${COMPLETION_TIME.toFixed(2)} - aDelay, 0.0, 1.0);
   float build = rawBuild * rawBuild * (3.0 - 2.0 * rawBuild);
   float envelope = 4.0 * build * (1.0 - build);
   float phase = aSeed.x * 2.3 + uTime * (1.1 + 0.5 * aSeed.y);
@@ -255,16 +288,17 @@ void main() {
      the corner circular when the card is not square.
 
      aEnd.z flags a HEADING particle - one whose destination is a glyph in the
-     section's title rather than a cell of the card. Those sit above the card,
-     outside |aEnd.xy| <= 1 entirely, so the corner shaping must not touch them
-     (it would bend the lettering) and neither must the card's outline clip in
-     the fragment stage (it would delete them). */
-  float isText = step(0.5, aEnd.z);
+     section's title rather than a cell of the card. Those are stored in FRAME
+     space and sit above the cards, outside |aEnd.xy| <= 1 entirely, so the
+     corner shaping must not touch them (it would bend the lettering) and
+     neither must the card's outline clip in the fragment stage (it would
+     delete them). */
+  vec2 corner = uCorner[card];
   float ax = abs(aEnd.x);
   float limit = 1.0;
-  if (isText < 0.5 && ax > 1.0 - uCorner.x) {
-    float t = (ax - (1.0 - uCorner.x)) / max(uCorner.x, 0.0001);
-    limit = (1.0 - uCorner.y) + uCorner.y * sqrt(max(0.0, 1.0 - t * t));
+  if (isText < 0.5 && ax > 1.0 - corner.x) {
+    float t = (ax - (1.0 - corner.x)) / max(corner.x, 0.0001);
+    limit = (1.0 - corner.y) + corner.y * sqrt(max(0.0, 1.0 - t * t));
   }
 
   /* aEnd.z is NOT a position.
@@ -280,9 +314,15 @@ void main() {
      proportional to distance from centre. Flat, the surface closes completely.
      The fly-in keeps its volume anyway, because the sources are a sphere.
      So the slot is free, and carries the source distance factor instead. */
+  /* Card space -> frame space. rect is (0, 0, 1, 1) for a lone card, which
+     leaves this exactly the single-card expression. Heading particles are
+     already in frame space. */
+  vec4 rect = uCardRect[card];
+  vec2 local = vec2(aEnd.x, aEnd.y * limit);
+  vec2 framePos = isText > 0.5 ? aEnd.xy : rect.xy + local * rect.zw;
   vec3 endPosition = vec3(
-    aEnd.x * ${CARD_HALF_WIDTH.toFixed(1)},
-    aEnd.y * limit * ${CARD_HALF_HEIGHT.toFixed(1)},
+    framePos.x * ${CARD_HALF_WIDTH.toFixed(1)},
+    framePos.y * ${CARD_HALF_HEIGHT.toFixed(1)},
     0.0
   );
 
@@ -398,8 +438,7 @@ void main() {
   vRand = aSeed.y;
   /* Where this particle SETTLES, in CSS pixels from the card centre. The
      fragment stage tests against the card's outline from here. */
-  vCardCssPos = vec2(endPosition.x / ${CARD_HALF_WIDTH.toFixed(1)},
-                     endPosition.y / ${CARD_HALF_HEIGHT.toFixed(1)}) * uCardHalfPx;
+  vCardCssPos = local * uCardHalfPx[card];
   vSize = gl_PointSize;
   /* Where this particle is vertically within the canvas, -1..1. The fragment
      stage fades the field out towards the canvas's top and bottom from this. */
@@ -470,11 +509,12 @@ in vec2 vCardCssPos;
 in float vSize;
 in float vNdcY;
 in vec3 vTint;
+flat in int vCard;
 out vec4 fragColor;
 
 uniform float uPixelRatio;
-uniform vec2 uCardHalfPx;
-uniform float uCornerPx;
+uniform vec2 uCardHalfPx[${MAX_CARDS}];
+uniform float uCornerPx[${MAX_CARDS}];
 uniform float uProgress;
 
 void main() {
@@ -496,8 +536,10 @@ void main() {
   if (vBuild > 0.85 && vIsText < 0.5) {
     vec2 offsetCss = point * vSize / uPixelRatio;
     vec2 p = vCardCssPos + offsetCss;
-    vec2 q = abs(p) - (uCardHalfPx - uCornerPx);
-    float sd = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - uCornerPx;
+    vec2 halfPx = uCardHalfPx[vCard];
+    float cornerPx = uCornerPx[vCard];
+    vec2 q = abs(p) - (halfPx - cornerPx);
+    float sd = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - cornerPx;
     shape = mix(1.0, 1.0 - smoothstep(-0.5, 0.5, sd), smoothstep(0.85, 1.0, vBuild));
   }
   if (shape <= 0.0) discard;
@@ -523,7 +565,7 @@ void main() {
      makes a SURFACE opaque; lettering is not a surface, and at that size the
      glyphs came out dilated by the dot radius and read as a bolder, blobbier
      copy of the type they hand over to - see GLYPH_STRIDE in
-     components/OfferingCardParticles for the measurements. Shrinking the drawn
+     components/CardFormationParticles for the measurements. Shrinking the drawn
      disc here rather than gl_PointSize keeps this to one line and one branchless
      mix; the sprite is a little larger than it needs to be for text particles,
      which is a few thousand wasted fragments and nothing worth a second
@@ -600,6 +642,8 @@ export interface ParticleCardBackgroundOptions {
   /** Scales the source cloud within the canvas. 1.0 fills it as far as SOURCE_FILL allows. */
   sourceRadius?: number;
   swirl?: number;
+  /** The cards' border-radius in CSS pixels. Defaults to the offerings card's 28. */
+  cornerRadius?: number;
 }
 
 function hash01(value: number): number {
@@ -655,23 +699,30 @@ export default class ParticleCardBackground {
 
   private readonly sourceRadius: number;
   private readonly swirl: number;
+  private readonly cornerRadius: number;
 
   private vao: WebGLVertexArrayObject | null = null;
   private buffer: WebGLBuffer | null = null;
   private particleCount = 0;
-  private builtForArea = 0;
-  private builtForAspect = 0;
+  /** Area and aspect of each card the buffer was last built for. */
+  private builtCards: { area: number; aspect: number }[] = [];
 
   private frameId = 0;
   private running = false;
   private visible = true;
   private destroyed = false;
 
-  /** Scroll-driven formation progress, 0 (scattered) to 1 (formed). */
+  /** Scroll-driven formation progress of the heading, 0 (scattered) to 1 (formed). */
   private progress = 0;
+  /** The same, per card. */
+  private readonly cardProgress = new Float32Array(MAX_CARDS);
+  /** Uploaded in place of cardProgress under reduced motion. */
+  private readonly formed = new Float32Array(MAX_CARDS).fill(1);
   private readonly clock = performance.now();
 
-  private rect: CardRect = { centerX: 0, centerY: 0, halfWidth: 0, halfHeight: 0 };
+  private rects: CardRect[] = [];
+  /** The box around every card - what the projection and the scatter are solved from. */
+  private frame: CardRect = { centerX: 0, centerY: 0, halfWidth: 0, halfHeight: 0 };
   /** Glyph destinations for the section heading, as x,y pairs in canvas CSS px. */
   private textPoints: Float32Array | null = null;
   /** Set when the glyph set changes, since that alters the buffer's length. */
@@ -694,6 +745,9 @@ export default class ParticleCardBackground {
       ? Math.max(0.1, options.sourceRadius as number)
       : 1;
     this.swirl = Number.isFinite(options.swirl) ? Math.max(0, options.swirl as number) : 10;
+    this.cornerRadius = Number.isFinite(options.cornerRadius)
+      ? Math.max(0, options.cornerRadius as number)
+      : CARD_CORNER_CSS;
 
     const gl = canvas.getContext("webgl2", {
       alpha: true,
@@ -720,6 +774,9 @@ export default class ParticleCardBackground {
       particleSize: gl.getUniformLocation(this.program, "uParticleSize"),
       cardScale: gl.getUniformLocation(this.program, "uCardScale"),
       cardCenter: gl.getUniformLocation(this.program, "uCardCenter"),
+      /* Array uniforms: the location of element 0 uploads the whole array. */
+      cardRect: gl.getUniformLocation(this.program, "uCardRect"),
+      cardProgress: gl.getUniformLocation(this.program, "uCardProgress"),
       corner: gl.getUniformLocation(this.program, "uCorner"),
       cardHalfPx: gl.getUniformLocation(this.program, "uCardHalfPx"),
       cornerPx: gl.getUniformLocation(this.program, "uCornerPx"),
@@ -747,27 +804,80 @@ export default class ParticleCardBackground {
   }
 
   /**
-   * The card's rect within the canvas, in CSS pixels. Everything downstream -
-   * the projection, the particle count, the corner radii - is solved from
-   * this, so it must be called at least once before anything renders.
+   * The cards' rects within the canvas, in CSS pixels, at most MAX_CARDS.
+   * Everything downstream - the projection, the particle count, the corner
+   * radii - is solved from these, so this must be called at least once before
+   * anything renders.
    */
-  setCardRect(rect: CardRect) {
+  setCardRects(rects: CardRect[]) {
     if (this.destroyed) return;
-    if (rect.halfWidth <= 0 || rect.halfHeight <= 0) return;
+    const next = rects.slice(0, MAX_CARDS);
+    if (next.length === 0 || next.some((rect) => rect.halfWidth <= 0 || rect.halfHeight <= 0)) {
+      return;
+    }
 
-    this.rect = rect;
+    this.rects = next;
+    if (next.length === 1) {
+      /* A lone card is its own frame, taken as-is rather than rebuilt from its
+         edges, so the single-card uniforms stay exactly what they were. */
+      this.frame = next[0];
+    } else {
+      let left = Infinity;
+      let top = Infinity;
+      let right = -Infinity;
+      let bottom = -Infinity;
+      for (const rect of next) {
+        left = Math.min(left, rect.centerX - rect.halfWidth);
+        top = Math.min(top, rect.centerY - rect.halfHeight);
+        right = Math.max(right, rect.centerX + rect.halfWidth);
+        bottom = Math.max(bottom, rect.centerY + rect.halfHeight);
+      }
+      this.frame = {
+        centerX: (left + right) / 2,
+        centerY: (top + bottom) / 2,
+        halfWidth: (right - left) / 2,
+        halfHeight: (bottom - top) / 2,
+      };
+    }
     this.resize();
   }
 
+  /** A single card's rect. See setCardRects. */
+  setCardRect(rect: CardRect) {
+    this.setCardRects([rect]);
+  }
+
   private calculateParticleLayout() {
-    const cardWidth = this.rect.halfWidth * 2;
-    const cardHeight = this.rect.halfHeight * 2;
-    const area = cardWidth * cardHeight;
-    const aspect = cardWidth / cardHeight;
-    const ideal = Math.round(area * PARTICLES_PER_CARD_PIXEL);
+    const cards = this.rects.map((rect) => {
+      const cardWidth = rect.halfWidth * 2;
+      const cardHeight = rect.halfHeight * 2;
+      const area = cardWidth * cardHeight;
+      return {
+        area,
+        aspect: cardWidth / cardHeight,
+        ideal: Math.round(area * PARTICLES_PER_CARD_PIXEL),
+        columns: 0,
+        rows: 0,
+        count: 0,
+      };
+    });
+    const ideal = cards.reduce((sum, card) => sum + card.ideal, 0);
     const target = Math.min(MAX_PARTICLES, Math.max(MIN_PARTICLES, ideal));
-    const columns = Math.ceil(Math.sqrt(target * aspect));
-    const rows = Math.ceil(target / columns);
+
+    /* THE BOUNDS APPLY TO THE WHOLE FIELD, NOT PER CARD. Each card takes its
+       share of the clamped total, so every card lands at the same density and
+       one dot size (below) compensates for all of them. Clamping each card on
+       its own would give six small cards six minimum counts and a different
+       dot size apiece. With one card its share is the whole target. */
+    const share = ideal > 0 ? target / ideal : 0;
+    let count = 0;
+    for (const card of cards) {
+      const cardTarget = Math.max(1, Math.round(card.ideal * share));
+      card.columns = Math.ceil(Math.sqrt(cardTarget * card.aspect));
+      card.rows = Math.ceil(cardTarget / card.columns);
+      card.count = card.columns * card.rows;
+      count += card.count;
+    }
 
     /* SIZE COMPENSATES WHEN THE COUNT CLAMPS. Coverage goes as count x size
        squared, so a card too big for MAX_PARTICLES would otherwise thin out -
@@ -780,16 +890,27 @@ export default class ParticleCardBackground {
     const scale = Math.sqrt(ideal / target);
     const size = PARTICLE_SIZE_CSS * Math.min(2.2, Math.max(0.6, scale));
 
-    return { area, aspect, columns, rows, count: columns * rows, size };
+    return { cards, count, size };
   }
 
   private buildParticleBuffer(layout: ReturnType<typeof ParticleCardBackground.prototype.calculateParticleLayout>) {
     const gl = this.gl;
     const textCount = this.textPoints ? this.textPoints.length >> 1 : 0;
-    const data = new Float32Array((layout.count + textCount) * 9);
+    const data = new Float32Array((layout.count + textCount) * 10);
     const tau = Math.PI * 2;
 
+    /* The cards' particles are laid end to end. Hashes stay keyed on the GLOBAL
+       index, so a single card's buffer is exactly what it was; the grid and the
+       delay ramp use the index WITHIN the card. */
+    let card = 0;
+    let cardStart = 0;
     for (let index = 0; index < layout.count; index += 1) {
+      while (index - cardStart >= layout.cards[card].count) {
+        cardStart += layout.cards[card].count;
+        card += 1;
+      }
+      const cardLayout = layout.cards[card];
+      const local = index - cardStart;
       const h1 = hash01(index + 0x12d4a7);
       const h2 = hash01(index + 0x9e3779);
       const h3 = hash01(index + 0x51ed27);
@@ -799,18 +920,18 @@ export default class ParticleCardBackground {
          the field would contract as one piece instead of gathering. */
       const h5 = hash01(index + 0x2f1b3d);
       const h6 = hash01(index + 0xc2b2ae);
-      const column = index % layout.columns;
-      const row = Math.floor(index / layout.columns);
+      const column = local % cardLayout.columns;
+      const row = Math.floor(local / cardLayout.columns);
 
       /* Stratified: one particle per grid cell, jittered by a fraction of a
          cell. Even coverage without the clumping a uniform random scatter
          would give, which at this density would show as blotches. */
-      const cardX = ((column + 0.5) / layout.columns) * 2 - 1
-        + (h3 - 0.5) * 0.65 / layout.columns;
-      const cardY = ((row + 0.5) / layout.rows) * 2 - 1
-        + (h4 - 0.5) * 0.65 / layout.rows;
+      const cardX = ((column + 0.5) / cardLayout.columns) * 2 - 1
+        + (h3 - 0.5) * 0.65 / cardLayout.columns;
+      const cardY = ((row + 0.5) / cardLayout.rows) * 2 - 1
+        + (h4 - 0.5) * 0.65 / cardLayout.rows;
 
-      const offset = index * 9;
+      const offset = index * 10;
 
       /* Normalised card space; the shader scales it and applies the corner. */
       data[offset] = cardX;
@@ -848,7 +969,8 @@ export default class ParticleCardBackground {
          card during a build read the top band at 0.66 while the bottom was
          already at 1.0 - the card filling upward. This is the direction that
          the staggered content reveal in globals.css follows. */
-      data[offset + 8] = 3.4 * (1 - index / layout.count) + 1.2 * h4;
+      data[offset + 8] = 3.4 * (1 - local / cardLayout.count) + 1.2 * h4;
+      data[offset + 9] = card;
     }
 
     /* THE HEADING, APPENDED TO THE SAME FIELD.
@@ -863,11 +985,13 @@ export default class ParticleCardBackground {
        special handling downstream beyond the aEnd.z flag. Values outside
        -1..1 are expected and correct: the heading sits above the card. */
     if (this.textPoints && textCount > 0) {
-      const halfW = Math.max(1, this.rect.halfWidth);
-      const halfH = Math.max(1, this.rect.halfHeight);
+      /* Normalised against the FRAME, which the shader projects headings
+         through; for a single card that is the card. */
+      const halfW = Math.max(1, this.frame.halfWidth);
+      const halfH = Math.max(1, this.frame.halfHeight);
       for (let t = 0; t < textCount; t += 1) {
         const index = layout.count + t;
-        const offset = index * 9;
+        const offset = index * 10;
         const px = this.textPoints[t * 2];
         const py = this.textPoints[t * 2 + 1];
 
@@ -877,8 +1001,8 @@ export default class ParticleCardBackground {
         const g4 = hash01(index + 0x1de3b7);
 
         /* CSS y grows downward, normalised y grows upward. */
-        data[offset] = (px - this.rect.centerX) / halfW;
-        data[offset + 1] = -(py - this.rect.centerY) / halfH;
+        data[offset] = (px - this.frame.centerX) / halfW;
+        data[offset + 1] = -(py - this.frame.centerY) / halfH;
         data[offset + 2] = 1; // isText
         data[offset + 3] = g1 * 2 - 1;
         data[offset + 4] = g2 * 2 - 1;
@@ -889,6 +1013,7 @@ export default class ParticleCardBackground {
            the top-to-bottom sweep should reach it first. The jitter keeps the
            letters from snapping into place all on one frame. */
         data[offset + 8] = 0.55 * g4;
+        data[offset + 9] = 0;
       }
     }
 
@@ -905,13 +1030,13 @@ export default class ParticleCardBackground {
     this.bindAttribute("aStart", 3, 3 * 4);
     this.bindAttribute("aSeed", 2, 6 * 4);
     this.bindAttribute("aDelay", 1, 8 * 4);
+    this.bindAttribute("aCard", 1, 9 * 4);
 
     gl.bindVertexArray(null);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
     this.particleCount = layout.count + textCount;
-    this.builtForArea = layout.area;
-    this.builtForAspect = layout.aspect;
+    this.builtCards = layout.cards.map(({ area, aspect }) => ({ area, aspect }));
   }
 
   private bindAttribute(name: string, size: number, offsetBytes: number) {
@@ -923,7 +1048,7 @@ export default class ParticleCardBackground {
   }
 
   private resize() {
-    if (this.destroyed) return;
+    if (this.destroyed || this.rects.length === 0) return;
 
     const gl = this.gl;
     const width = Math.max(1, this.canvas.clientWidth);
@@ -962,31 +1087,45 @@ export default class ParticleCardBackground {
     const pixelRatio = displayWidth / width;
     gl.uniform1f(this.uniforms.pixelRatio, pixelRatio);
 
-    /* Solve the projection from the card's rect. At the card plane clipW is
+    /* Solve the projection from the frame's rect. At the card plane clipW is
        CAMERA_DISTANCE, so a world half-extent maps to
        halfExtentNdc = worldHalf * scale / CAMERA_DISTANCE. */
-    const halfWidthNdc = this.rect.halfWidth / (width / 2);
-    const halfHeightNdc = this.rect.halfHeight / (height / 2);
+    const frame = this.frame;
+    const halfWidthNdc = frame.halfWidth / (width / 2);
+    const halfHeightNdc = frame.halfHeight / (height / 2);
     this.uCardScaleX = (halfWidthNdc * CAMERA_DISTANCE) / CARD_HALF_WIDTH;
     this.uCardScaleY = (halfHeightNdc * CAMERA_DISTANCE) / CARD_HALF_HEIGHT;
     gl.uniform2f(this.uniforms.cardScale, this.uCardScaleX, this.uCardScaleY);
     /* CSS y grows downward, NDC y grows upward. */
     gl.uniform2f(
       this.uniforms.cardCenter,
-      (this.rect.centerX - width / 2) / (width / 2),
-      -(this.rect.centerY - height / 2) / (height / 2),
+      (frame.centerX - width / 2) / (width / 2),
+      -(frame.centerY - height / 2) / (height / 2),
     );
-    gl.uniform2f(
-      this.uniforms.corner,
-      Math.min(1, CARD_CORNER_CSS / this.rect.halfWidth),
-      Math.min(1, CARD_CORNER_CSS / this.rect.halfHeight),
-    );
-    /* The fragment stage tests the card outline in CSS pixels. */
-    gl.uniform2f(this.uniforms.cardHalfPx, this.rect.halfWidth, this.rect.halfHeight);
-    gl.uniform1f(
-      this.uniforms.cornerPx,
-      Math.min(CARD_CORNER_CSS, this.rect.halfWidth, this.rect.halfHeight),
-    );
+
+    /* Per card. Slots past the last card are left at zero; no particle reads
+       them. */
+    const cardRect = new Float32Array(MAX_CARDS * 4);
+    const corner = new Float32Array(MAX_CARDS * 2);
+    const cardHalfPx = new Float32Array(MAX_CARDS * 2);
+    const cornerPx = new Float32Array(MAX_CARDS);
+    this.rects.forEach((rect, i) => {
+      /* The card's centre offset and half-extents, normalised to the frame. */
+      cardRect[i * 4] = (rect.centerX - frame.centerX) / frame.halfWidth;
+      cardRect[i * 4 + 1] = -(rect.centerY - frame.centerY) / frame.halfHeight;
+      cardRect[i * 4 + 2] = rect.halfWidth / frame.halfWidth;
+      cardRect[i * 4 + 3] = rect.halfHeight / frame.halfHeight;
+      corner[i * 2] = Math.min(1, this.cornerRadius / rect.halfWidth);
+      corner[i * 2 + 1] = Math.min(1, this.cornerRadius / rect.halfHeight);
+      /* The fragment stage tests the card outline in CSS pixels. */
+      cardHalfPx[i * 2] = rect.halfWidth;
+      cardHalfPx[i * 2 + 1] = rect.halfHeight;
+      cornerPx[i] = Math.min(this.cornerRadius, rect.halfWidth, rect.halfHeight);
+    });
+    gl.uniform4fv(this.uniforms.cardRect, cardRect);
+    gl.uniform2fv(this.uniforms.corner, corner);
+    gl.uniform2fv(this.uniforms.cardHalfPx, cardHalfPx);
+    gl.uniform1fv(this.uniforms.cornerPx, cornerPx);
 
     /* Fit the source cloud to the canvas. Solve for the world extent whose
        projection lands at SOURCE_FILL of each half-axis, so particles enter
@@ -999,8 +1138,6 @@ export default class ParticleCardBackground {
 
     const layout = this.calculateParticleLayout();
     gl.uniform1f(this.uniforms.particleSize, layout.size);
-    const areaRatio = this.builtForArea > 0 ? layout.area / this.builtForArea : 1;
-    const aspectRatio = this.builtForAspect > 0 ? layout.aspect / this.builtForAspect : 1;
     /* Rebuilding is an 8MB allocation and a several-hundred-thousand-iteration
        loop, so it happens only when the grid would actually be wrong - not on
        every resize tick, and not when switching offering tabs, which moves the
@@ -1008,10 +1145,12 @@ export default class ParticleCardBackground {
     const needsRebuild =
       !this.vao ||
       this.textDirty ||
-      areaRatio > 1.35 ||
-      areaRatio < 0.65 ||
-      aspectRatio > 1.18 ||
-      aspectRatio < 0.85;
+      layout.cards.length !== this.builtCards.length ||
+      layout.cards.some((card, i) => {
+        const areaRatio = card.area / this.builtCards[i].area;
+        const aspectRatio = card.aspect / this.builtCards[i].aspect;
+        return areaRatio > 1.35 || areaRatio < 0.65 || aspectRatio > 1.18 || aspectRatio < 0.85;
+      });
 
     if (needsRebuild) {
       this.buildParticleBuffer(layout);
@@ -1027,7 +1166,7 @@ export default class ParticleCardBackground {
   /**
    * Destinations for the heading particles, as x,y pairs in canvas CSS pixels.
    * The wrapper rasterises the section's own heading elements and samples them
-   * - see OfferingCardParticles - because turning DOM text into pixels needs
+   * - see CardFormationParticles - because turning DOM text into pixels needs
    * computed styles and loaded fonts, which are its business, not this one's.
    *
    * Rebuilds the buffer, so it is called on font load and on resize, not per
@@ -1045,15 +1184,32 @@ export default class ParticleCardBackground {
   }
 
   /**
-   * Set how far the card has formed: 0 fully scattered, 1 solid. Driven by
-   * scroll position from the wrapper.
+   * Set how far the field has formed: 0 fully scattered, 1 solid. Driven by
+   * scroll position from the wrapper. `value` is the heading's progress, and
+   * every card's as well unless `cards` gives each card its own.
    */
-  setProgress(value: number) {
+  setProgress(value: number, cards?: ArrayLike<number>) {
     if (this.destroyed) return;
+    let changed = false;
+
     const next = Math.min(1, Math.max(0, value));
-    if (next === this.progress) return;
-    this.progress = next;
-    this.wake();
+    if (next !== this.progress) {
+      this.progress = next;
+      changed = true;
+    }
+
+    for (let i = 0; i < MAX_CARDS; i += 1) {
+      /* Slots without a card count as formed, so they never keep the loop
+         running. fround so the comparison is against what the array stores. */
+      const raw = cards ? (i < cards.length ? cards[i] : 1) : value;
+      const clamped = Math.fround(Math.min(1, Math.max(0, raw)));
+      if (clamped !== this.cardProgress[i]) {
+        this.cardProgress[i] = clamped;
+        changed = true;
+      }
+    }
+
+    if (changed) this.wake();
   }
 
   /**
@@ -1112,7 +1268,11 @@ export default class ParticleCardBackground {
        its own now, so stopping at progress 0 would freeze it on screen; only
        the finished card is genuinely static, and that is the state it spends
        nearly all of its life in. */
-    if (this.progress >= 1) {
+    let formed = this.progress >= 1;
+    for (let i = 0; formed && i < this.rects.length; i += 1) {
+      formed = this.cardProgress[i] >= 1;
+    }
+    if (formed) {
       this.running = false;
       return;
     }
@@ -1129,6 +1289,7 @@ export default class ParticleCardBackground {
     gl.bindVertexArray(this.vao);
     gl.uniform1f(this.uniforms.time, time);
     gl.uniform1f(this.uniforms.progress, this.reducedMotion ? 1 : this.progress);
+    gl.uniform1fv(this.uniforms.cardProgress, this.reducedMotion ? this.formed : this.cardProgress);
     gl.uniform1f(this.uniforms.radius, this.sourceRadius);
     gl.uniform1f(this.uniforms.swirl, this.swirl);
     gl.drawArrays(gl.POINTS, 0, this.particleCount);

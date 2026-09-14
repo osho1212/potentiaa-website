@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import poses from "@/public/assets/mascot/poses.json";
 import { useContact } from "./ContactContext";
 import { site } from "@/lib/site";
+import { useModalDialog } from "@/lib/useModalDialog";
 
 /**
  * Contact dialog, opened from the header and the hero.
@@ -22,59 +23,7 @@ export default function ContactModal() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const opener = document.activeElement as HTMLElement | null;
-
-    const FOCUSABLE =
-      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        close();
-        return;
-      }
-
-      if (event.key !== "Tab") return;
-
-      const panel = panelRef.current;
-      if (!panel) return;
-      const focusable = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-
-      if (event.shiftKey && (active === first || !panel.contains(active))) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-    document.body.dataset.scrollLocked = "true";
-
-    const lenis = (window as unknown as { __lenisInstance?: { stop(): void; start(): void } })
-      .__lenisInstance;
-    lenis?.stop();
-
-    const firstField =
-      panelRef.current?.querySelector<HTMLElement>("input, textarea") ??
-      panelRef.current?.querySelector<HTMLElement>("button");
-    firstField?.focus();
-
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      delete document.body.dataset.scrollLocked;
-      lenis?.start();
-      opener?.focus?.();
-    };
-  }, [isOpen, close]);
+  useModalDialog(isOpen, close, panelRef, "input, textarea");
 
   if (!isOpen) return null;
 

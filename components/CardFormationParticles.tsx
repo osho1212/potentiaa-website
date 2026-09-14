@@ -1,25 +1,31 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import ParticleCardBackground from "@/lib/particleCardBackground";
+import ParticleCardBackground, { CardRect, MAX_CARDS } from "@/lib/particleCardBackground";
 import { onScrollFrame } from "@/lib/scrollState";
 
 /**
- * The offerings section's background: particles scattered across the whole
- * section that converge into the card - and into the section's heading - as
- * the reader scrolls it into view.
+ * A section's particle background: particles scattered across the whole
+ * section that converge into its cards - and into the section's heading - as
+ * the reader scrolls it into view. Offerings forms one card with it, Our Work
+ * forms six; both go through this component so the two cannot drift apart.
  *
- * SCROLL DRIVES THE FORMATION, not a timer. Progress is read from where the
+ * SCROLL DRIVES THE FORMATION, not a timer. Progress is read from where each
  * card sits in the viewport every frame, so the field assembles under the
  * reader's own scrolling and runs backwards if they scroll back up. That also
  * means there is no duration to tune - it takes exactly as long as they take.
  *
- * The canvas fills the section rather than the card, for two reasons: the
+ * EACH CARD HAS ITS OWN PROGRESS. A grid of cards is taller than the viewport,
+ * so a single progress value finished the lower row while it was still below
+ * the fold - the reader only ever saw it already formed. Measured per card,
+ * every card gets the same interaction the offerings card does as it rises.
+ *
+ * The canvas fills the section rather than the cards, for two reasons: the
  * particles start scattered across the whole section and need the room, and a
  * canvas clips its own drawing, so sizing it to the section is what keeps the
  * scatter from spilling into the sections above and below. The effect is told
- * where the CARD is within that canvas - see setCardRect in
- * lib/particleCardBackground - so the field converges onto the element it is
+ * where the CARDS are within that canvas - see setCardRects in
+ * lib/particleCardBackground - so the field converges onto the elements it is
  * standing in for, at any viewport size and through offering tab changes.
  *
  * CONSTRUCTION IS DEFERRED until the section is near the viewport. Building the
@@ -27,7 +33,7 @@ import { onScrollFrame } from "@/lib/scrollState";
  * business running during initial page load for a section three screens down.
  *
  * The content reveal and the heading handoff are driven from the same progress
- * value, so the copy arrives behind the formation front rather than on an
+ * values, so the copy arrives behind the formation front rather than on an
  * independent clock. Everything is fully visible by DEFAULT and is only ever
  * dimmed once this effect is running, so a WebGL failure, a blocked script or
  * reduced motion leaves the section completely readable - the reveal is
@@ -35,14 +41,14 @@ import { onScrollFrame } from "@/lib/scrollState";
  */
 
 /**
- * The scroll window the formation is mapped onto. Both numbers are where the
+ * The scroll window the formation is mapped onto. Both numbers are where a
  * CARD'S TOP EDGE sits, as a fraction of viewport height.
  *
  * Measuring against the section does not work, and it is worth recording why:
- * the card is vertically centred in a full-viewport section, so the section's
- * top edge crosses the viewport long before the card does. Mapping progress to
- * the section put the card at 0.91 formed by the time it had even appeared -
- * the whole convergence happened below the fold.
+ * the offerings card is vertically centred in a full-viewport section, so the
+ * section's top edge crosses the viewport long before the card does. Mapping
+ * progress to the section put the card at 0.91 formed by the time it had even
+ * appeared - the whole convergence happened below the fold.
  *
  * The gap between 1.0 (the card level with the bottom of the screen) and
  * FORM_START is a HOLD: the reader scrolls the scattered field into view and
@@ -62,14 +68,13 @@ import { onScrollFrame } from "@/lib/scrollState";
  * beat on screen before it starts moving with intent; at FORM_START 1.0 the
  * two would blur into each other and formation would seem to start the
  * instant the section appears, before the reader has registered the field
- * at all. Taken from the hold, not by moving FORM_END, so the card still
- * finishes forming at the same screen position - only the hold shrinks.
+ * at all.
  *
- * FORM_END has to clear the card's resting position, which is about 0.22 on a
- * 900px viewport. Ending at 0.25 means the card is solid just before the
- * section settles, so the reader never arrives at a half-built card, and small
- * scroll jitter around the rest position cannot pull it back apart. Left
- * untouched here for exactly that reason - it is a floor, not a dial.
+ * FORM_END has to clear the offerings card's resting position, which is about
+ * 0.22 on a 900px viewport. Ending at 0.25 means the card is solid just before
+ * the section settles, so the reader never arrives at a half-built card, and
+ * small scroll jitter around the rest position cannot pull it back apart. It
+ * is a floor, not a dial.
  */
 const FORM_START = 0.92;
 const FORM_END = 0.25;
@@ -95,7 +100,7 @@ const CONTENT_FADE = 0.28;
  * down to 0.70 while still measuring full coverage at full brightness.
  *
  * Cost is bounded by MAX_GLYPH_POINTS below: one sample per ink pixel is about
- * 8,500 points for these two headings, well inside that ceiling.
+ * 8,500 points for the offerings headings, well inside that ceiling.
  */
 const GLYPH_STRIDE = 1;
 
@@ -106,20 +111,29 @@ const MAX_GLYPH_POINTS = 24000;
 const TEXT_HANDOFF_START = 0.78;
 const TEXT_HANDOFF_END = 0.97;
 
-export default function OfferingCardParticles({
+export default function CardFormationParticles({
   sectionRef,
-  targetRef,
+  targetRefs,
+  cornerRadius,
 }: {
   sectionRef: React.RefObject<HTMLElement | null>;
-  targetRef: React.RefObject<HTMLElement | null>;
+  /**
+   * The elements the particles form, in order. The first one also leads the
+   * heading: its progress drives the heading particles and their handoff.
+   */
+  targetRefs: React.RefObject<(HTMLElement | null)[]>;
+  /** The cards' border-radius in CSS pixels. */
+  cornerRadius?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const section = sectionRef.current;
-    const target = targetRef.current;
-    if (!canvas || !section || !target) return;
+    const targets = (targetRefs.current || [])
+      .filter((el): el is HTMLElement => !!el)
+      .slice(0, MAX_CARDS);
+    if (!canvas || !section || targets.length === 0) return;
 
     const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -127,23 +141,11 @@ export default function OfferingCardParticles({
     let sizeObserver: ResizeObserver | null = null;
     let unsubscribeScroll: (() => void) | null = null;
     let disposed = false;
-    let steps: HTMLElement[] = [];
+    /** Each target's own reveal steps, in DOM order. */
+    let steps: HTMLElement[][] = [];
     let headings: HTMLElement[] = [];
-
-    /** The card's rect expressed against the canvas's own box. */
-    const pushRect = () => {
-      if (!effect) return;
-      const canvasBox = canvas.getBoundingClientRect();
-      const cardBox = target.getBoundingClientRect();
-      if (canvasBox.width <= 0 || cardBox.width <= 0) return;
-
-      effect.setCardRect({
-        centerX: cardBox.left - canvasBox.left + cardBox.width / 2,
-        centerY: cardBox.top - canvasBox.top + cardBox.height / 2,
-        halfWidth: cardBox.width / 2,
-        halfHeight: cardBox.height / 2,
-      });
-    };
+    /* Reused every scroll frame rather than allocated per frame. */
+    const progress = new Float32Array(targets.length);
 
     /**
      * Where an element will SIT ONCE IT HAS ARRIVED, not where an entrance
@@ -178,6 +180,26 @@ export default function OfferingCardParticles({
         if (node === section) break;
       }
       return new DOMRect(box.left - dx, box.top - dy, box.width, box.height);
+    };
+
+    /** The cards' rects expressed against the canvas's own box. */
+    const pushRects = () => {
+      if (!effect) return;
+      const canvasBox = canvas.getBoundingClientRect();
+      if (canvasBox.width <= 0) return;
+
+      const rects: CardRect[] = [];
+      for (const target of targets) {
+        const box = settledRect(target);
+        if (box.width <= 0) return;
+        rects.push({
+          centerX: box.left - canvasBox.left + box.width / 2,
+          centerY: box.top - canvasBox.top + box.height / 2,
+          halfWidth: box.width / 2,
+          halfHeight: box.height / 2,
+        });
+      }
+      effect.setCardRects(rects);
     };
 
     /**
@@ -243,15 +265,18 @@ export default function OfferingCardParticles({
       effect.setTextTargets(sampleHeadings());
     };
 
-    const applyContent = (progress: number) => {
-      for (let i = 0; i < steps.length; i++) {
-        const start = CONTENT_START + i * CONTENT_STAGGER;
-        const t = Math.min(1, Math.max(0, (progress - start) / CONTENT_FADE));
-        /* Cubic ease-out, so a block arrives softly rather than tracking the
-           scroll linearly and feeling mechanical. */
-        const eased = 1 - Math.pow(1 - t, 3);
-        steps[i].style.opacity = String(eased);
-        steps[i].style.transform = "translateY(" + (1 - eased) * 12 + "px)";
+    const applyContent = () => {
+      for (let card = 0; card < steps.length; card++) {
+        const cardSteps = steps[card];
+        for (let i = 0; i < cardSteps.length; i++) {
+          const start = CONTENT_START + i * CONTENT_STAGGER;
+          const t = Math.min(1, Math.max(0, (progress[card] - start) / CONTENT_FADE));
+          /* Cubic ease-out, so a block arrives softly rather than tracking the
+             scroll linearly and feeling mechanical. */
+          const eased = 1 - Math.pow(1 - t, 3);
+          cardSteps[i].style.opacity = String(eased);
+          cardSteps[i].style.transform = "translateY(" + (1 - eased) * 12 + "px)";
+        }
       }
 
       /* The real heading fades in exactly as the particle lettering fades out
@@ -270,16 +295,18 @@ export default function OfferingCardParticles({
          make it invisible. Same smoothstep here, so the sum is 1 throughout. */
       const t = Math.min(
         1,
-        Math.max(0, (progress - TEXT_HANDOFF_START) / (TEXT_HANDOFF_END - TEXT_HANDOFF_START)),
+        Math.max(0, (progress[0] - TEXT_HANDOFF_START) / (TEXT_HANDOFF_END - TEXT_HANDOFF_START)),
       );
       const handoff = t * t * (3 - 2 * t);
       for (const el of headings) el.style.opacity = String(handoff);
     };
 
     const clearContent = () => {
-      for (const el of steps) {
-        el.style.opacity = "";
-        el.style.transform = "";
+      for (const cardSteps of steps) {
+        for (const el of cardSteps) {
+          el.style.opacity = "";
+          el.style.transform = "";
+        }
       }
       /* Back to the stylesheet's value, so the heading is visible again if the
          effect is ever torn down. */
@@ -287,12 +314,12 @@ export default function OfferingCardParticles({
     };
 
     /**
-     * How far the card has risen through the viewport, as 0..1. Read from the
+     * How far a card has risen through the viewport, as 0..1. Read from the
      * live rect rather than from a scroll offset, because the page uses smooth
      * scrolling - the visual position keeps easing after the scroll events
      * have stopped, and sampling the rect follows that exactly.
      */
-    const readProgress = () => {
+    const readProgress = (target: HTMLElement) => {
       const rect = target.getBoundingClientRect();
       const viewport = window.innerHeight || 1;
       const top = rect.top / viewport;
@@ -315,13 +342,17 @@ export default function OfferingCardParticles({
      * It also means this only runs while something is actually scrolling -
      * Lenis emits nothing while at rest - rather than unconditionally at 60fps
      * for as long as the section is merely near the viewport.
+     *
+     * Rects are NOT re-measured here. Cards do not move within the canvas as
+     * the page scrolls - both scroll together - so the ResizeObserver below is
+     * the only thing that needs to push them.
      */
     const update = () => {
       if (disposed || !effect) return;
 
-      const progress = readProgress();
-      effect.setProgress(progress);
-      applyContent(progress);
+      for (let i = 0; i < targets.length; i++) progress[i] = readProgress(targets[i]);
+      effect.setProgress(progress[0], progress);
+      applyContent();
 
       /* Stop listening once the section is nowhere near the viewport - the
          effect's own observer has already stopped it drawing, and there is
@@ -354,20 +385,22 @@ export default function OfferingCardParticles({
       if (disposed || effect) return false;
 
       try {
-        effect = new ParticleCardBackground(canvas);
+        effect = new ParticleCardBackground(canvas, { cornerRadius });
       } catch {
-        /* No WebGL2. The card keeps its own styling, has no background field,
-           and - because nothing ever touches the content's opacity - the whole
-           section stays readable. */
+        /* No WebGL2. The cards keep their own styling, have no background
+           field, and - because nothing ever touches the content's opacity - the
+           whole section stays readable. */
         return false;
       }
 
-      steps = Array.from(target.querySelectorAll<HTMLElement>("[data-form-step]")).slice(
-        0,
-        CONTENT_STEPS,
+      steps = targets.map((target) =>
+        Array.from(target.querySelectorAll<HTMLElement>("[data-form-step]")).slice(
+          0,
+          CONTENT_STEPS,
+        ),
       );
       headings = Array.from(section.querySelectorAll<HTMLElement>("[data-form-heading]"));
-      pushRect();
+      pushRects();
       pushHeadings();
 
       /* AND AGAIN ONCE THE FONTS LAND. Rasterising the heading against a
@@ -385,15 +418,16 @@ export default function OfferingCardParticles({
         effect.setProgress(1);
       }
 
-      /* Both boxes matter: the card changes height when offering tabs are
-         switched, and the section changes with the viewport. */
+      /* Every box matters: the offerings card changes height when its tabs are
+         switched, a work card when its image loads, and the section changes
+         with the viewport. */
       sizeObserver = new ResizeObserver(() => {
-        pushRect();
+        pushRects();
         /* The heading's size and position are viewport-dependent, so its glyph
-           samples are stale the moment the card's box changes. */
+           samples are stale the moment a card's box changes. */
         pushHeadings();
       });
-      sizeObserver.observe(target);
+      for (const target of targets) sizeObserver.observe(target);
       sizeObserver.observe(canvas);
       return true;
     };
@@ -417,7 +451,7 @@ export default function OfferingCardParticles({
       effect?.destroy();
       effect = null;
     };
-  }, [sectionRef, targetRef]);
+  }, [sectionRef, targetRefs, cornerRadius]);
 
   return <canvas ref={canvasRef} className="offering-particles" aria-hidden="true" />;
 }
