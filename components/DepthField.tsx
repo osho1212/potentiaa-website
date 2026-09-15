@@ -90,14 +90,40 @@ export default function DepthField() {
     let prevAccent = "";
     let prevP = -1;
 
+    /**
+     * `themeAt` walks every `[data-theme-key]` section and reads its
+     * `getBoundingClientRect()` - a forced layout, same cost as the one
+     * ModuleStack pays for the identical call. This ran on essentially every
+     * scroll frame (the `prevP` gate above only excludes true rest: any real
+     * scroll motion moves `p` by far more than 0.00005), for a value - which
+     * section is under the sightline - that does not need per-frame
+     * precision to read as a smooth colour blend. Throttled to the same 60ms
+     * ModuleStack's own layout reads use.
+     */
+    let themeReadAt = -Infinity;
+    let cachedAccent = "";
+
+    /* Read on resize rather than on every scrolling frame. `innerHeight` is a
+       viewport metric, so touching it can flush pending layout - and it only
+       changes when the viewport does. */
+    let viewport = window.innerHeight;
+    const onResize = () => {
+      viewport = window.innerHeight;
+    };
+    window.addEventListener("resize", onResize, { passive: true });
+
     const tick = () => {
       const p = reduced ? 0 : scrollState.progress;
       if (Math.abs(p - prevP) > 0.00005) {
         prevP = p;
-        const viewport = window.innerHeight;
 
-        const theme = themeAt(viewport * 0.5);
-        const accent = mixRgb(theme.from.accent, theme.to.accent, theme.t);
+        const now = performance.now();
+        if (now - themeReadAt >= 60) {
+          themeReadAt = now;
+          const theme = themeAt(viewport * 0.5);
+          cachedAccent = mixRgb(theme.from.accent, theme.to.accent, theme.t);
+        }
+        const accent = cachedAccent;
 
         if (accent !== prevAccent) {
           prevAccent = accent;
@@ -127,7 +153,10 @@ export default function DepthField() {
     };
 
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      cancelAnimationFrame(raf);
+    };
   }, []);
 
   return (

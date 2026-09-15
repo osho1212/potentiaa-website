@@ -1,0 +1,833 @@
+/* Project case study (Our Work) - styles for components/ProjectModal.tsx.
+
+   A LIGHT PANEL ON THE DARK PAGE, READ LIKE A CASE STUDY. One scroller holds
+   everything. The screenshot slideshow opens it as a full hero; scrolling
+   slides the hero up until only its bar - title and chapters - is left pinned,
+   which hands the height over to the story, where each beat brings its own
+   image and caption. */
+
+.case {
+  --case-ink: #0f172a;
+  --case-body: #334155;
+  --case-muted: #64748b;
+  --case-line: #e2e8f0;
+  --case-soft: #f8fafc;
+  --case-accent: #2563eb;
+  --case-warm: #ea580c;
+  --case-gutter: clamp(20px, 5vw, 64px);
+  /* The hero's image area. The sticky offset below is derived from it. */
+  --case-media-h: clamp(280px, 52vh, 560px);
+  --case-bar-h: 60px;
+
+  position: relative;
+  width: min(100%, 1240px);
+  height: min(94vh, 1000px);
+  border-radius: var(--radius-xl);
+  background: #ffffff;
+  color: var(--case-ink);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  animation: case-in 320ms var(--ease-out) both;
+}
+
+@keyframes case-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Outside the scroller, so it never scrolls away. Centred on the bar's height
+   once the hero has collapsed to it. */
+.case__close {
+  position: absolute;
+  top: calc((var(--case-bar-h) - 40px) / 2);
+  right: 12px;
+  z-index: 4;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--case-ink);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
+  transition: transform var(--duration-base) var(--ease-standard);
+}
+
+.case__close svg { display: block; }
+
+@media (hover: hover) and (pointer: fine) {
+  .case__close:hover { transform: scale(1.06); }
+}
+
+.case__scroll {
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+  /* Reaching either end of the story must not hand the scroll on to the page. */
+  overscroll-behavior: contain;
+  counter-reset: case-figure;
+}
+
+/* ---------------------------------------------------------------
+   Hero
+   --------------------------------------------------------------- */
+
+/* STICKY WITH A NEGATIVE TOP. The hero is its media plus its bar, and sticking
+   at minus the media's height means it scrolls away normally until the media
+   has gone, then the bar holds. No scroll listener, and nothing resizes while
+   the reader scrolls, so the story below never jumps. */
+.case__hero {
+  position: sticky;
+  top: calc(-1 * var(--case-media-h));
+  z-index: 3;
+}
+
+.case__media {
+  position: relative;
+  height: var(--case-media-h);
+  background: #0b1020;
+  overflow: hidden;
+}
+
+/* Stacked and crossfaded; the incoming image settles from a slight zoom over
+   the whole time it is on screen, so the hero is never quite still. */
+.case__shot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.06);
+  transition:
+    opacity 800ms var(--ease-standard),
+    transform 5200ms linear;
+}
+
+.case__shot[data-active="true"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Legibility for the caption at the top and the title and controls at the
+   bottom, laid over the image. */
+.case__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(2, 6, 23, 0.42) 0%,
+    rgba(2, 6, 23, 0) 24%,
+    rgba(2, 6, 23, 0) 42%,
+    rgba(2, 6, 23, 0.84) 100%
+  );
+  pointer-events: none;
+}
+
+/* Time left on the current image. Re-keyed per image and removed while the
+   slideshow is paused, so it restarts in step with the timer it stands for. */
+.case__progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  height: 3px;
+  transform-origin: left center;
+  background: linear-gradient(90deg, #2d6bff, #e64b96);
+  animation: case-progress var(--shot-duration, 4500ms) linear forwards;
+}
+
+@keyframes case-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.case__shot-caption {
+  position: absolute;
+  top: var(--space-5);
+  left: var(--case-gutter);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: calc(100% - 2 * var(--case-gutter) - 48px);
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  line-height: 1.3;
+  color: #ffffff;
+}
+
+.case__shot-count {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.18);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.case__headline {
+  position: absolute;
+  left: var(--case-gutter);
+  right: 300px;
+  bottom: var(--space-6);
+  z-index: 2;
+}
+
+.case__eyebrow {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #bfdbfe;
+}
+
+.case__title {
+  margin: 0;
+  font-size: clamp(30px, 4.4vw, 54px);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  color: #ffffff;
+}
+
+.case__hero-controls {
+  position: absolute;
+  right: var(--case-gutter);
+  bottom: var(--space-6);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.case__hero-button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-full);
+  background: rgba(2, 6, 23, 0.4);
+  color: #ffffff;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background-color var(--duration-base) var(--ease-standard);
+}
+
+.case__hero-button svg { display: block; }
+
+@media (hover: hover) and (pointer: fine) {
+  .case__hero-button:hover { background: rgba(2, 6, 23, 0.72); }
+}
+
+.case__dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 var(--space-1);
+}
+
+.case__dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.45);
+  transition:
+    width var(--duration-base) var(--ease-standard),
+    background-color var(--duration-base) var(--ease-standard);
+}
+
+.case__dot[aria-current="true"] {
+  width: 22px;
+  background: #ffffff;
+}
+
+/* The part of the hero that stays: the title again (the big one has scrolled
+   away with the image) and the chapters. Right padding keeps it clear of the
+   close button. */
+.case__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  height: var(--case-bar-h);
+  padding: 0 64px 0 var(--case-gutter);
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid var(--case-line);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.case__bar-title {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+  color: var(--case-ink);
+}
+
+.case__chapters {
+  flex: 1;
+  min-width: 0;
+}
+
+.case__chapters ol {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.case__chapters button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 5px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  background: none;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  color: var(--case-muted);
+  transition:
+    color var(--duration-base) var(--ease-standard),
+    background-color var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard);
+}
+
+.case__chapter-num {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--case-line);
+  border-radius: var(--radius-full);
+  background: var(--case-soft);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color var(--duration-base) var(--ease-standard),
+    color var(--duration-base) var(--ease-standard);
+}
+
+.case__chapters button[data-active="true"] {
+  border-color: var(--case-line);
+  background: var(--case-soft);
+  color: var(--case-ink);
+}
+
+.case__chapters button[data-active="true"] .case__chapter-num {
+  border-color: var(--case-accent);
+  background: var(--case-accent);
+  color: #ffffff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .case__chapters button:hover { color: var(--case-ink); }
+}
+
+/* ---------------------------------------------------------------
+   Story
+   --------------------------------------------------------------- */
+
+.case__content {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 var(--case-gutter) var(--space-12);
+}
+
+.case__intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: clamp(24px, 5vw, 72px);
+  align-items: start;
+  padding-top: clamp(40px, 6vh, 64px);
+}
+
+.case__tagline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(24px, 2.8vw, 34px);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  color: var(--case-ink);
+}
+
+.case__facts {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding-left: var(--space-6);
+  border-left: 2px solid var(--case-line);
+}
+
+.case__facts dt {
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--case-muted);
+}
+
+.case__facts dd {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  line-height: 1.5;
+  color: var(--case-ink);
+}
+
+.case__chapter {
+  padding-top: clamp(56px, 9vh, 104px);
+}
+
+.case__chapter-head {
+  max-width: 760px;
+  margin-bottom: var(--space-8);
+}
+
+.case__kicker {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--case-muted);
+}
+
+.case__kicker b {
+  font-weight: inherit;
+  color: var(--case-accent);
+}
+
+.case__chapter-title {
+  margin: 0;
+  font-size: clamp(26px, 3.2vw, 38px);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--case-ink);
+}
+
+/* An image and the part of the story it illustrates, side by side, swapping
+   sides down the page so the eye zig-zags through the case study. */
+.case__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 72px);
+  align-items: center;
+}
+
+.case__row + .case__row {
+  margin-top: clamp(48px, 8vh, 88px);
+}
+
+.case__row--flip > .case__figure { order: 2; }
+
+.case__figure { margin: 0; }
+
+.case__figure-frame {
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-lg);
+  background: var(--case-soft);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.14);
+  overflow: hidden;
+}
+
+.case__figure-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1100ms var(--ease-out);
+}
+
+/* The brand illustrations are cut-outs: shown whole, on a soft wash rather
+   than cropped edge to edge like a photo. */
+.case__figure[data-kind="illustration"] .case__figure-frame {
+  background: linear-gradient(160deg, #eef2ff 0%, #fdf2f8 100%);
+  box-shadow: none;
+}
+
+.case__figure[data-kind="illustration"] img {
+  object-fit: contain;
+  padding: 5%;
+}
+
+.case__figure[data-wide] .case__figure-frame { aspect-ratio: 21 / 9; }
+
+/* Numbered like figures in a report, across the whole case study. */
+.case__figure figcaption {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--case-muted);
+}
+
+.case__figure figcaption::before {
+  counter-increment: case-figure;
+  content: "Fig. " counter(case-figure, decimal-leading-zero);
+  flex: none;
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--case-accent);
+}
+
+/* REVEAL. Only hidden once the observer is attached (data-reveal-ready), so a
+   story whose script has not run is simply visible. The image inside settles
+   from a slight zoom as its row arrives. */
+[data-reveal] {
+  transition:
+    opacity 700ms var(--ease-out),
+    transform 700ms var(--ease-out);
+}
+
+.case__scroll[data-reveal-ready] [data-reveal]:not([data-seen]) {
+  opacity: 0;
+  transform: translateY(28px);
+}
+
+.case__scroll[data-reveal-ready] [data-reveal]:not([data-seen]) .case__figure-frame img {
+  transform: scale(1.08);
+}
+
+/* Chapter one opens like a story, with a drop cap. */
+.case__lede {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--case-body);
+}
+
+.case__lede::first-letter {
+  float: left;
+  margin: 6px 10px 0 0;
+  font-family: var(--font-display);
+  font-size: 3.2em;
+  font-weight: var(--fw-bold);
+  line-height: 0.9;
+  color: var(--case-accent);
+}
+
+.case__frictions {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.case__frictions li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: #fff7ed;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: #7c2d12;
+}
+
+.case__frictions li::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--case-warm);
+}
+
+/* Chapter two: the method as a timeline. Marker centres sit on the rail at
+   12px: the rail is 2px wide at left 11px, the markers 14px wide at -27px
+   from a 32px indent. */
+.case__timeline {
+  position: relative;
+  display: grid;
+  gap: var(--space-6);
+  margin: 0;
+  padding: 0 0 0 32px;
+  list-style: none;
+}
+
+.case__timeline::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(var(--case-accent), #e64b96);
+}
+
+.case__timeline li { position: relative; }
+
+.case__timeline li::before {
+  content: "";
+  position: absolute;
+  left: -27px;
+  top: 4px;
+  width: 14px;
+  height: 14px;
+  border: 3px solid var(--case-accent);
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.case__stage {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: var(--fw-semibold);
+  color: var(--case-ink);
+}
+
+.case__timeline p {
+  margin: 4px 0 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--case-body);
+}
+
+/* Chapter three: a row per module, led by an outlined numeral. */
+.case__module-num {
+  display: block;
+  margin-bottom: var(--space-4);
+  font-family: var(--font-display);
+  font-size: clamp(40px, 4.4vw, 60px);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--case-accent);
+}
+
+.case__module-title {
+  margin: 0 0 var(--space-3);
+  font-size: clamp(20px, 2.2vw, 28px);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  color: var(--case-ink);
+}
+
+.case__module-detail {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--case-body);
+}
+
+/* Chapter four: the result, then the day to day before and after. */
+.case__shift {
+  display: grid;
+  gap: var(--space-3);
+  margin: clamp(32px, 5vh, 56px) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.case__shift li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: var(--space-3);
+}
+
+.case__before,
+.case__after {
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+}
+
+.case__before {
+  border: 1px dashed #cbd5e1;
+  background: var(--case-soft);
+}
+
+.case__after {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+}
+
+.case__before p,
+.case__after p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.case__before p {
+  color: var(--case-muted);
+  text-decoration: line-through;
+  text-decoration-color: rgba(100, 116, 139, 0.45);
+}
+
+.case__after p {
+  font-weight: var(--fw-medium);
+  color: var(--case-ink);
+}
+
+.case__shift-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--case-muted);
+}
+
+.case__after .case__shift-label { color: var(--case-accent); }
+
+.case__shift-arrow {
+  align-self: center;
+  display: block;
+  color: var(--case-accent);
+}
+
+/* The close: the same dark as the page, so the story ends on the way back out. */
+.case__outro {
+  margin-top: clamp(56px, 9vh, 104px);
+  padding: clamp(28px, 4vw, 48px);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #0f172a, #1e3a8a);
+  color: #ffffff;
+}
+
+.case__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--space-5);
+}
+
+.case__tag {
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  color: #bfdbfe;
+}
+
+.case__outro-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: var(--fw-bold);
+  color: #ffffff;
+}
+
+.case__outro-text {
+  max-width: 56ch;
+  margin: var(--space-2) 0 var(--space-5);
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.case__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.case__cta svg { display: block; }
+
+/* ---------------------------------------------------------------
+   Small screens
+   --------------------------------------------------------------- */
+
+@media (max-width: 767px) {
+  .modal:has(.case) { padding: var(--space-3); }
+
+  .case {
+    --case-media-h: clamp(240px, 44vh, 340px);
+    --case-bar-h: 52px;
+    height: calc(100dvh - 2 * var(--space-3));
+    border-radius: var(--radius-lg);
+  }
+
+  .case__close { right: 6px; }
+
+  .case__shot-caption {
+    top: var(--space-4);
+    left: var(--space-4);
+    max-width: calc(100% - 80px);
+  }
+
+  .case__headline {
+    left: var(--space-4);
+    right: var(--space-4);
+    bottom: 64px;
+  }
+
+  .case__hero-controls {
+    left: var(--space-4);
+    right: var(--space-4);
+    bottom: var(--space-4);
+    justify-content: space-between;
+  }
+
+  .case__bar { padding: 0 56px 0 var(--space-3); }
+  .case__bar-title { display: none; }
+  .case__chapters ol { justify-content: flex-start; }
+
+  .case__intro { grid-template-columns: 1fr; }
+
+  .case__facts {
+    padding: var(--space-4) 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--case-line);
+  }
+
+  /* One column, image first, whichever side it sat on above. */
+  .case__row { grid-template-columns: 1fr; }
+  .case__row--flip > .case__figure { order: 0; }
+
+  .case__figure[data-wide] .case__figure-frame { aspect-ratio: 4 / 3; }
+
+  .case__shift li { grid-template-columns: 1fr; }
+
+  .case__shift-arrow {
+    justify-self: center;
+    transform: rotate(90deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case { animation: none; }
+  .case__shot { transition: none; transform: none; }
+  .case__progress { display: none; }
+
+  [data-reveal],
+  .case__figure-frame img { transition: none; }
+
+  .case__scroll[data-reveal-ready] [data-reveal]:not([data-seen]) { opacity: 1; transform: none; }
+  .case__scroll[data-reveal-ready] [data-reveal]:not([data-seen]) .case__figure-frame img { transform: none; }
+}

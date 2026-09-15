@@ -83,27 +83,35 @@ export default function SmoothScroll() {
      * its speed through the middle, where the eye actually reads it.
      *
      * Measured on one wheel notch (deltaY 100), three runs, original -> first
-     * pass -> current:
+     * pass -> second pass:
      *     travel per notch   115px  ->  75px  ->  60px
      *     time to settle     495ms  ->  890ms ->  890ms (unaffected: duration and easing set this, not distance)
      *     travel in first 50ms  40%  ->  14%  ->  14%  (same reason)
+     *
+     * Slowed again: duration 1.2 -> 1.4 (still under the ~1.5s line above
+     * which glide reads as lag rather than weight) and wheelMultiplier
+     * 0.6 -> 0.48, which by the same linear relationship the second pass
+     * measured (0.6 -> 60px) puts a notch at ~48px. Together that is a
+     * slower, longer glide per unit of input - intentionally, so the page
+     * reads as heavier rather than snappier.
      *
      * Touch is damped far less on purpose. `syncTouch` means the content tracks
      * the finger, and a finger that the page refuses to keep up with does not
      * read as premium, it reads as broken.
      */
     const lenis = new Lenis({
-      duration: 1.2,
+      duration: 1.4,
       easing: (t: number) => 1 - Math.pow(1 - t, 4),
       smoothWheel: true,
-      wheelMultiplier: 0.6,
+      wheelMultiplier: 0.48,
       touchMultiplier: 1.2,
       syncTouch: true,
     });
 
     // Lenis knows its own limit and keeps it current; measureSpan is the
-    // fallback for the frames before it has resolved one.
-    let span = lenis.limit || measureSpan();
+    // fallback for the frames before it has resolved one. Not seeded here -
+    // onScroll() below assigns it before anything reads it.
+    let span: number;
 
     const onScroll = () => {
       const current = lenis.scroll;
@@ -135,9 +143,15 @@ export default function SmoothScroll() {
      * to be refreshed off the new number or every progress-driven layer stays
      * on the old scale until the reader next moves.
      */
+    /* `disposed` because document.fonts.ready is a promise nothing can
+       cancel. Under Strict Mode's develop-time double mount the first
+       effect's cleanup runs before the fonts resolve, so this fired against a
+       Lenis that had already been destroyed. onScroll() below reassigns
+       `span` on its own, so the assignment that used to sit here was dead. */
+    let disposed = false;
     const remeasure = () => {
+      if (disposed) return;
       lenis.resize();
-      span = lenis.limit || measureSpan();
       onScroll();
     };
 
@@ -172,11 +186,24 @@ export default function SmoothScroll() {
     }
 
     return () => {
+      disposed = true;
       document.removeEventListener("click", onAnchorClick);
       window.removeEventListener("resize", remeasure);
       observer.disconnect();
       cancelAnimationFrame(raf);
       lenis.destroy();
+
+      /* Cleared with the instance it points at. ContactModal reads this
+         global to stop the scroll engine while the dialog is open, and a
+         stale handle here means it would be driving a destroyed Lenis. */
+      const w = window as unknown as {
+        __lenisInstance?: Lenis;
+        __lenis?: Lenis;
+        __scrollState?: unknown;
+      };
+      if (w.__lenisInstance === lenis) delete w.__lenisInstance;
+      if (w.__lenis === lenis) delete w.__lenis;
+      delete w.__scrollState;
     };
   }, []);
 

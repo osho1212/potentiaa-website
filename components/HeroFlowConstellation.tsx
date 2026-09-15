@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { site } from "@/lib/site";
 import GlassSurface from "./GlassSurface";
-import { sampleGradientCss } from "@/lib/heroParticles";
 import { constellationState } from "@/lib/constellationState";
 
 // Faster, smoother, and more chaotic multi-harmonic orbital configurations
@@ -146,10 +144,22 @@ export default function HeroFlowConstellation() {
     const ctx = streamCanvas.getContext("2d");
     if (!ctx) return;
 
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) return;
+
     let rafId = 0;
+    let running = false;
     const started = performance.now();
     let lastTime = started;
     const count = NODES.length;
+
+    /* Looked up once per mount, not per frame. document.querySelector every
+       tick was three DOM queries this component never needed - these
+       elements don't get replaced while it's alive. */
+    const heroEl = document.querySelector<HTMLElement>(".hero");
+    const flowEl = document.querySelector<HTMLElement>(".flow-section");
+    const trackEl = document.querySelector<HTMLElement>(".flow-pipeline__berths");
+    const heroCopyEl = heroEl?.querySelector<HTMLElement>(".hero__copy") ?? null;
 
     // 1. Initialize 1,200 particle motes for the luminous pipeline stream
     const STREAM_COUNT = 1200;
@@ -170,10 +180,6 @@ export default function HeroFlowConstellation() {
       const dt = Math.min(0.1, (now - lastTime) / 1000);
       lastTime = now;
       const elapsed = (now - started) / 1000;
-
-      const heroEl = document.querySelector<HTMLElement>(".hero");
-      const flowEl = document.querySelector<HTMLElement>(".flow-section");
-      const trackEl = document.querySelector<HTMLElement>(".flow-pipeline__berths");
 
       const winW = window.innerWidth;
       const winH = window.innerHeight;
@@ -198,9 +204,9 @@ export default function HeroFlowConstellation() {
       const heroCenterY = (heroRect?.top || 0) + boxH * 0.5;
 
       // Transition progress t: 0 in Hero -> 1 when Flow section aligns
+      const flowRect = flowEl?.getBoundingClientRect();
       let t = 0;
-      if (flowEl) {
-        const flowRect = flowEl.getBoundingClientRect();
+      if (flowRect) {
         const startY = winH * 0.85;
         const endY = winH * 0.2;
         t = Math.max(0, Math.min(1, (startY - flowRect.top) / (startY - endY)));
@@ -209,6 +215,13 @@ export default function HeroFlowConstellation() {
       // Track stations positions in FlowSection
       const trackRect = trackEl?.getBoundingClientRect();
       const isMobile = winW < 768;
+
+      /* Measured once per frame, not once per node (5x): the copy block's
+         box doesn't depend on which node is being placed. */
+      const copyBox = heroCopyEl?.getBoundingClientRect();
+      const deadZoneHalfW = copyBox ? copyBox.width * 0.24 : 0;
+      const deadZoneHalfH = copyBox ? copyBox.height * 0.28 : 0;
+      const copyCenterY = copyBox ? copyBox.top + copyBox.height * 0.5 : 0;
 
       const nodeScreenCoords: Array<{ x: number; y: number }> = [];
 
@@ -230,13 +243,7 @@ export default function HeroFlowConstellation() {
         let orbitY = heroCenterY + (cfg.cy - 0.5) * boxH + cfg.ry * boxH * harmonicY;
 
         // Smooth continuous text margin deflection
-        const heroCopy = heroEl?.querySelector<HTMLElement>(".hero__copy");
-        if (heroCopy) {
-          const copyBox = heroCopy.getBoundingClientRect();
-          const deadZoneHalfW = copyBox.width * 0.24;
-          const deadZoneHalfH = copyBox.height * 0.28;
-          const copyCenterY = copyBox.top + copyBox.height * 0.5;
-
+        if (copyBox) {
           const dy = orbitY - copyCenterY;
           if (Math.abs(dy) < deadZoneHalfH) {
             const pushFactor = Math.cos((dy / deadZoneHalfH) * (Math.PI * 0.5));
@@ -267,7 +274,10 @@ export default function HeroFlowConstellation() {
           }
         } else {
           seatX = (-0.5 + (i + 0.5) / count) * Math.min(winW * 0.85, 1100);
-          seatY = (flowEl?.getBoundingClientRect().top || winH * 1.5) + 320;
+          /* Reuses the rect already read once above rather than taking a
+             fresh one per node - this branch is cold (the berths element
+             exists in practice), but it is a forced layout inside a loop. */
+          seatY = (flowRect?.top || winH * 1.5) + 320;
         }
 
         // Staggered easing from orbit to seat
@@ -436,8 +446,81 @@ export default function HeroFlowConstellation() {
       ctx.restore();
     };
 
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
+    /* HIDDEN UNTIL A FRAME HAS ACTUALLY POSITIONED THE NODES.
+       Their CSS resting state is top:0 / left:50% with no transform, so all
+       five sit stacked at the top centre of the viewport until the first
+       tick writes a transform. That is only invisible if a tick is
+       guaranteed to run, and it is not: on a deep link to a section far down
+       the page, neither observed target ever intersects and the loop never
+       starts. Showing the container from the first positioned frame instead
+       makes that impossible, and it doubles as the guarantee that a stopped
+       loop can never leave anything on screen. */
+    container.style.visibility = "hidden";
+
+    const start = () => {
+      if (running) return;
+      running = true;
+      /* Synchronous, so the transforms are correct BEFORE the container is
+         revealed - scheduling it would show one frame of wherever the nodes
+         were left when the loop last stopped. tick() arms the next frame
+         itself, so this must not also call requestAnimationFrame. */
+      tick();
+      container.style.visibility = "";
+    };
+
+    const stop = () => {
+      if (!running) return;
+      running = false;
+      cancelAnimationFrame(rafId);
+      rafId = 0;
+
+      /* LEAVE NOTHING BEHIND. The container is position:fixed, so whatever
+         the last frame drew stays welded to the viewport for every section
+         below - and the last frame is the fully docked, fully lit one. The
+         canvas is only ever cleared inside tick, and .constellation-node is
+         pointer-events:auto inside a pointer-events:none parent, so frozen
+         nodes stay live hover targets too. Hiding covers all of it. */
+      container.style.visibility = "hidden";
+      ctx.clearRect(0, 0, streamCanvas.width, streamCanvas.height);
+
+      /* The hero swarm draws filaments to these coordinates and gates them on
+         `active` (see lib/heroParticles). Left at 1 they are stale positions
+         the nodes no longer occupy, which is exactly what this flag is for. */
+      for (let i = 0; i < count; i++) {
+        if (constellationState.nodes[i]) constellationState.nodes[i].active = 0;
+      }
+    };
+
+    /* Runs while EITHER endpoint of the orbit-to-dock journey is near the
+       viewport: the nodes fly from the hero and land in the flow section, so
+       both have to be gone before there is nothing left to animate.
+       .hero-constellation itself is position:fixed and always intersects, so
+       it cannot be the observed target - heroEl and flowEl move with scroll.
+
+       The membership has to be tracked per target rather than folded out of
+       `entries`. A callback only carries the targets whose state CHANGED, so
+       an `entries.some(...)` reads as "nothing is near" the moment the hero
+       alone leaves - while the flow section is still on screen, mid-dock -
+       and freezes the whole thing in place. That was the pinned-nodes bug. */
+    const near = new Set<Element>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) near.add(entry.target);
+          else near.delete(entry.target);
+        }
+        if (near.size > 0) start();
+        else stop();
+      },
+      { rootMargin: "400px 0px" },
+    );
+    if (heroEl) observer.observe(heroEl);
+    if (flowEl) observer.observe(flowEl);
+
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(rafId);
+    };
   }, [mounted]);
 
   if (!mounted) return null;

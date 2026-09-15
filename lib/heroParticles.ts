@@ -89,47 +89,21 @@ function buildGradientLut(): Float32Array {
 }
 
 const SUPERSAMPLE = 1.0;
-const MAX_PIXEL_RATIO = 1.5;
-const SPRITE_SIZE = 32;
 
-/** High-contrast Gaussian particle sprite with smooth antialiased skirt */
-function buildParticleSprite(): THREE.DataTexture {
-  const data = new Uint8Array(SPRITE_SIZE * SPRITE_SIZE * 4);
-  const half = (SPRITE_SIZE - 1) * 0.5;
+/* Was 1.5. A dot 3-8 device pixels across is exactly the case where a capped
+   ratio shows: the cap resamples the whole field, and the edge the fragment
+   shader works to keep one pixel wide gets smeared across the difference.
+   Rendering at the panel's true density is most of what "sharp" means here.
+   The fill-rate cost that cap was buying back is repaid by PARTICLE_SIZE
+   below, which is roughly a third smaller than it was. */
+const MAX_PIXEL_RATIO = 2.0;
 
-  for (let y = 0; y < SPRITE_SIZE; y++) {
-    for (let x = 0; x < SPRITE_SIZE; x++) {
-      const dx = (x - half) / half;
-      const dy = (y - half) / half;
-      const r = Math.sqrt(dx * dx + dy * dy);
-
-      let alpha = 0;
-      if (r < 1) {
-        const core = Math.max(0, 1 - r);
-        alpha = Math.pow(core, 1.25); // richer, more radiant luminous particle halo
-      }
-
-      const idx = (y * SPRITE_SIZE + x) * 4;
-      data[idx] = 255;
-      data[idx + 1] = 255;
-      data[idx + 2] = 255;
-      data[idx + 3] = Math.round(alpha * 255);
-    }
-  }
-
-  const texture = new THREE.DataTexture(
-    data,
-    SPRITE_SIZE,
-    SPRITE_SIZE,
-    THREE.RGBAFormat,
-    THREE.UnsignedByteType,
-  );
-  texture.generateMipmaps = true;
-  texture.minFilter = THREE.LinearMipmapLinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.needsUpdate = true;
-  return texture;
-}
+/* The hero swarm's ellipse, as a fraction of the visible frame at z = 0:
+   ~71% of the width and ~84% of the height, centred. Resolved to world units
+   in resize(), since the world size of the frame depends on the camera
+   distance the aspect ratio picks. */
+const FIELD_WIDTH_FRACTION = 0.71;
+const FIELD_HEIGHT_FRACTION = 0.84;
 
 const PARTICLE_VERTEX_SHADER = /* glsl */ `
   precision highp float;
@@ -153,11 +127,13 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
   uniform vec3 uRepel;
   uniform vec3 uGlow;
   uniform vec2 uHeroCenter;
+  uniform vec2 uField;
   uniform vec3 uNodes[5];
   uniform float uTime;
 
   varying vec3 vColor;
   varying vec3 vGrain;
+  varying float vAA;
 
   const float LUMA = 1.56;
 
@@ -190,9 +166,14 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
     float currentRadius = baseRadius + ripple + breath;
     vec3 spherePos = aDirection * currentRadius;
 
-    // Horizontal and vertical scaling to fill screen generously
-    spherePos.x *= 1.35;
-    spherePos.y *= 1.05;
+    /* Scaled to fill the CONTAINMENT ELLIPSE, not the screen. At the old
+       1.35/1.05 the shell's rim sat at ~1.3x the ellipse, so containment had
+       nothing to arrange - it was crushing the entire field onto the boundary
+       and drawing the ellipse as a rim, the opposite of the intent. These land
+       the rim at e ~= 1.0, leaving the remap to handle only the ripple's
+       overshoot. */
+    spherePos.x *= 1.05;
+    spherePos.y *= 0.82;
 
     // Fluid continuous wave drifting
     float waveX = sin(spherePos.y * 0.04 + uTime * 0.7) * 3.5;
@@ -290,6 +271,43 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
 
     vec3 pos = vec3(x + jX, y + jY, z + jZ);
 
+    /* ELLIPTICAL CONTAINMENT.
+       The swarm is generated on a sphere scaled to overflow the viewport, so
+       left alone it fills the whole frame and reads as background wash. This
+       gathers it into an ellipse around the hero copy instead.
+
+       It is a soft remap, not a clamp. A clamp would pile every outlying
+       particle onto the boundary and draw the ellipse as a bright rim - the
+       exact "definite shape" to avoid. Instead each particle gets its OWN
+       allowed radius, and beyond it the excess is compressed rather than
+       removed, so the crowd thins outward instead of stopping.
+
+       The escape gate is deliberately narrow. pow(seed, 5.0) was tried first
+       and let ~15% of the swarm out past 1.4x - at 7600 particles that is a
+       thousand strays, which is not a hint of leakage, it is the old
+       full-frame field with a dip in the middle. smoothstep(0.94, 1.0) admits
+       about 6%, and ramps them rather than switching, so the ones that do get
+       out are spread across the range instead of massing at one radius.
+
+       RESIDUAL is what the rest keep beyond their allowed radius. It is not
+       zero on purpose: at zero every held particle lands on exactly e = 1 and
+       the boundary becomes a drawn line. A third of the overshoot keeps the
+       falloff continuous, and the ripple in the radius above means particles
+       drift across it rather than sitting on it. */
+    float escSeed = fract(sin(dot(aDirection.zx, vec2(41.317, 289.71))) * 21739.13);
+    float escape = smoothstep(0.94, 1.0, escSeed);
+    float allowed = 1.0 + escape * 0.55;
+    const float RESIDUAL = 0.33;
+
+    vec2 rel = pos.xy - uHeroCenter;
+    vec2 norm = rel / uField;
+    float e = length(norm);
+    float contained = e;
+    if (e > allowed) {
+      contained = allowed + (e - allowed) * RESIDUAL;
+      pos.xy = uHeroCenter + norm * (contained / max(e, 0.0001)) * uField;
+    }
+
     // 5. Energy firing pulses across synaptic nodes
     float s = aFire.x * firePhaseCos + aFire.y * firePhaseSin;
     float spike = 0.0;
@@ -324,39 +342,75 @@ const PARTICLE_VERTEX_SHADER = /* glsl */ `
     float centerDist = length(toCenter);
     float centralClearance = smoothstep(0.20, 0.95, centerDist);
 
-    float edgeAlpha = smoothstep(125.0, 85.0, length(pos.xy));
-    vGrain = vec3(cos(grainAngle), sin(grainAngle), seed2 * edgeAlpha * (0.08 + 0.92 * centralClearance));
+    /* The old fade was smoothstep(125, 85, length(pos.xy)) - a CIRCLE, on a
+       field that is now an ellipse, which would have cut the sides before the
+       top. It fades on the same normalised ellipse the containment uses, so
+       the strays that escape dim as they travel and the boundary stays a
+       gradient rather than a line. */
+    float edgeAlpha = 1.0 - smoothstep(0.90, 1.42, contained);
+    vGrain = vec3(cos(grainAngle), sin(grainAngle), seed2 * (0.08 + 0.92 * centralClearance));
 
     // Pure chromatic emission: NO white washout, 100% vibrant #2D6BFF and #FF6B5C
     float interactGlow = clamp(attractStrength * 1.8 + glowBoost * 1.6 + filamentGlow * 1.0, 0.0, 1.0);
     float temper = 0.35 + 0.65 * seed2 * seed2;
     float level = clamp((0.60 + wave * 0.22 + spike * 0.60 * temper + filamentGlow * 0.60 + interactGlow * 1.0) * depth * LUMA, 0.28, 1.16);
 
-    vColor = aBaseColor * level;
+    /* Fades to nothing, not to a floor. An earlier 0.15 floor meant the
+       escapees stayed faintly lit however far out they drifted, which put a
+       dim haze back over the whole frame and undid the containment. */
+    vColor = aBaseColor * level * edgeAlpha;
 
     vec4 mv = modelViewMatrix * vec4(pos, 1.0);
     gl_PointSize = uSize * (uScale / -mv.z);
+    /* One screen pixel, expressed in the fragment shader's 0..1 disc space -
+       see the fragment shader's note on why the edge is measured this way. */
+    vAA = 1.0 / max(gl_PointSize, 1.0);
     gl_Position = projectionMatrix * mv;
   }
 `;
 
+/**
+ * RAZOR-SHARP DOTS, NOT SPRITES.
+ *
+ * This used to sample a 32px Gaussian sprite whose alpha fell off as
+ * pow(1 - r, 1.25) - a luminous skirt that, at the 3-8 device pixels a point
+ * actually covers, is mostly skirt. A dot that small has no room to render a
+ * gradient: the falloff just spends every pixel it has going translucent, and
+ * the result reads as a soft blob rather than a point of light.
+ *
+ * So the sprite is gone, texture fetch and all, and the disc is computed
+ * analytically instead: opaque to the rim, then one pixel of antialiasing and
+ * nothing. `vAA` carries 1/gl_PointSize from the vertex stage, which is the
+ * width of one screen pixel in the 0..1 coordinate this shader works in - so
+ * the smoothstep band is exactly one pixel wide no matter how near or far the
+ * point is, and no matter the device pixel ratio. That is what keeps the edge
+ * crisp instead of scaling the blur along with the dot.
+ *
+ * fwidth() would give the same number, but it needs derivatives, and passing
+ * the size down costs one varying and works everywhere.
+ */
 const PARTICLE_FRAGMENT_SHADER = /* glsl */ `
   precision highp float;
-  uniform sampler2D uSprite;
   varying vec3 vColor;
   varying vec3 vGrain;
+  varying float vAA;
 
   void main() {
     vec2 pc = (gl_PointCoord - vec2(0.5)) * 2.0;
     vec2 g = vec2(dot(pc, vGrain.xy), pc.y * vGrain.x - pc.x * vGrain.y);
-    float ecc = 0.12 * (vGrain.z - 0.5);
+    float ecc = 0.08 * (vGrain.z - 0.5);
     g *= vec2(1.0 - ecc, 1.0 + ecc);
 
-    if (dot(g, g) > 1.0) discard;
+    float d = length(g);
+    /* One pixel of edge, clamped: below ~2px wide the band would eat the whole
+       dot and everything would go translucent again. */
+    float aa = clamp(vAA * 2.0, 0.02, 0.55);
+    float shape = 1.0 - smoothstep(1.0 - aa, 1.0, d);
+    if (shape < 0.01) discard;
 
-    float shape = texture2D(uSprite, g * 0.5 + 0.5).a;
-    float a = shape * (0.70 + 0.10 * vGrain.z);
-    if (a < 0.003) discard;
+    /* Near-opaque. The old 0.70 was compensating for the sprite's bright core;
+       a flat disc needs no such correction and washes out if given one. */
+    float a = shape * (0.94 + 0.06 * vGrain.z);
 
     gl_FragColor = vec4(vColor, a);
   }
@@ -370,7 +424,6 @@ export class ParticlesSwarm {
   private readonly points: THREE.Points;
   private readonly geometry: THREE.BufferGeometry;
   private readonly material: THREE.ShaderMaterial;
-  private readonly sprite: THREE.DataTexture;
   private readonly clock = new THREE.Clock();
 
   private readonly ux: Float32Array;
@@ -567,11 +620,8 @@ export class ParticlesSwarm {
     this.geometry.setAttribute("aBaseColor", new THREE.BufferAttribute(baseColorArray, 3));
     this.geometry.setAttribute("aTract", new THREE.BufferAttribute(tractArray, 1));
 
-    this.sprite = buildParticleSprite();
-
     this.material = new THREE.ShaderMaterial({
       uniforms: {
-        uSprite: { value: this.sprite },
         uFold: { value: new THREE.Vector2(1, 0) },
         uFire: { value: new THREE.Vector2(1, 0) },
         uWave: { value: new THREE.Vector2(1, 0) },
@@ -583,6 +633,7 @@ export class ParticlesSwarm {
         uRepel: { value: new THREE.Vector3(0, 0, 0) },
         uGlow: { value: new THREE.Vector3(0, 0, 0) },
         uHeroCenter: { value: new THREE.Vector2(0, 0) },
+        uField: { value: new THREE.Vector2(70, 52) },
         uNodes: {
           value: [
             new THREE.Vector3(0, 0, 0),
@@ -628,6 +679,18 @@ export class ParticlesSwarm {
     const targetZ = aspect < 1.0 ? 118 * Math.min(1.35, 0.85 / Math.max(0.4, aspect)) : 108;
     this.camera.position.set(0, 0, targetZ);
     this.camera.updateProjectionMatrix();
+
+    /* The containment ellipse is authored as a fraction of what the viewer
+       sees, so it has to be re-solved whenever the framing changes - the
+       camera pulls back on portrait aspects, and a fixed world radius would
+       shrink against the frame exactly when the field should still fill it.
+       halfHeight is the same half-frustum height unproject() uses. */
+    const halfHeight = Math.tan((this.camera.fov * Math.PI) / 360) * targetZ;
+    const halfWidth = halfHeight * aspect;
+    this.material.uniforms.uField.value.set(
+      halfWidth * FIELD_WIDTH_FRACTION,
+      halfHeight * FIELD_HEIGHT_FRACTION,
+    );
     if (!this.running) this.renderFrame(this.clock.getElapsedTime());
   }
 
@@ -658,7 +721,6 @@ export class ParticlesSwarm {
     this.scene.remove(this.points);
     this.geometry.dispose();
     this.material.dispose();
-    this.sprite.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }

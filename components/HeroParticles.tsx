@@ -79,9 +79,19 @@ const HeroParticles = forwardRef<HeroParticlesHandle>(function HeroParticles(_pr
        which is pure vertex ALU and costs nothing.
        Points land near 3-8 device pixels, still clear of the one-pixel floor
        where dots start dropping out and twinkling. */
+    /* SIZE, AFTER THE SPRITE CAME OUT. The 1.45/1.35 above were tuned against
+       a Gaussian sprite, where most of a dot's radius was skirt and the size
+       had to cover for it. The disc that replaced it (see the fragment shader
+       in lib/heroParticles) is opaque to its rim, so the same visual weight
+       arrives at a smaller radius - and the field now sits inside an ellipse
+       rather than spanning the frame, which concentrates it further.
+       The floor the measurements found still applies: below ~0.6 the
+       per-point cost dominates and dots start dropping out and twinkling.
+       0.9 keeps a comfortable margin above it while reading as a point rather
+       than a blob, and the fill it gives back pays for MAX_PIXEL_RATIO 2.0. */
     const swarm = new ParticlesSwarm(container, {
       count: narrow ? 5200 : 7600,
-      particleSize: narrow ? 1.45 : 1.35,
+      particleSize: narrow ? 0.62 : 0.58,
     });
     swarmRef.current = swarm;
 
@@ -91,11 +101,24 @@ const HeroParticles = forwardRef<HeroParticlesHandle>(function HeroParticles(_pr
     });
     sizeObserver.observe(container);
 
+    /* OBSERVE THE HERO SECTION, NOT THE CONTAINER.
+       This observed `container` - .hero__art-particles - which the stylesheet
+       makes `position: fixed; inset: 0`. A viewport-fixed, full-viewport
+       element always intersects, so `isIntersecting` was never once false and
+       `swarm.stop()` never ran: the whole swarm simulated and rendered every
+       frame, on every section, for the entire session.
+       The section is the right target because the swarm is anchored to it -
+       renderFrame solves uHeroCenter from `.hero`'s live rect - so once the
+       hero is off screen the particles are already being drawn outside the
+       frame. Stopping there costs nothing visible; it only stops paying for
+       a field nobody can see. The ResizeObserver above still watches the
+       container, which is the actual drawing surface. */
+    const heroSection = container.closest<HTMLElement>(".hero") ?? container;
     const intersectionObserver = new IntersectionObserver(
       ([entry]) => (entry.isIntersecting ? swarm.start() : swarm.stop()),
       { rootMargin: "400px" },
     );
-    intersectionObserver.observe(container);
+    intersectionObserver.observe(heroSection);
 
     return () => {
       sizeObserver.disconnect();

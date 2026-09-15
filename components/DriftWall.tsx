@@ -215,6 +215,8 @@ export default function DriftWall<T>({
   );
 
   useEffect(() => {
+    const container = containerRef.current;
+
     const animate = (ts: number) => {
       if (lastTsRef.current === null) lastTsRef.current = ts;
       // Clamped, so a tab returning from the background does not resume with
@@ -255,8 +257,29 @@ export default function DriftWall<T>({
       rafRef.current = requestAnimationFrame(animate);
     };
 
-    rafRef.current = requestAnimationFrame(animate);
+    /* Nothing previously stopped this while the wall was off-screen - a wall
+       of testimonials near the bottom of the page, drifting and repainting
+       every column every frame, for the entire time anyone was on the page
+       above it. Every other continuously-running rAF loop in this codebase
+       (HeroEnergy, HeroLabels, HeroParticles) pauses itself the same way. */
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (!rafRef.current) {
+            lastTsRef.current = null; // avoid a large dt jump on resume
+            rafRef.current = requestAnimationFrame(animate);
+          }
+        } else if (rafRef.current) {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = 0;
+        }
+      },
+      { rootMargin: "200px 0px" },
+    );
+    if (container) observer.observe(container);
+
     return () => {
+      observer.disconnect();
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = 0;
       lastTsRef.current = null;

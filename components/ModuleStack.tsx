@@ -132,6 +132,16 @@ const DOCK_SPAN = 0.085;
  */
 const DOCK_FILL = 1.2;
 
+/**
+ * Margin, in px, around an element marked data-module-avoid.
+ *
+ * Its rect is read on the slow 60ms cadence, so while the page scrolls the
+ * element can travel this far between reads. Without the margin the module
+ * could paint over the edge of the element for a frame or two before the next
+ * read sent it behind.
+ */
+const AVOID_PADDING = 48;
+
 type Flight = {
   /** Viewport px. */
   x: number;
@@ -377,6 +387,25 @@ export default function ModuleStack() {
     let landedWritten: boolean | null = null;
 
     /**
+     * Last value written for each style this component owns.
+     *
+     * `--hero-dock` below was already written on change only, on the grounds
+     * that a custom property on the root restyles the whole document. The
+     * rest were not, and they are on the same loop: this runs every frame for
+     * the life of the page (the bob is a time-driven idle, so it cannot be
+     * gated on scroll movement the way DepthField is), and for long stretches
+     * - parked in the navbar, or faded out entirely - it was re-assigning
+     * byte-identical strings sixty times a second, each one a CSSOM parse.
+     * Comparing first is strictly cheaper than the write it avoids.
+     */
+    let transformWritten = "";
+    let zIndexWritten = "";
+    let opacityWritten = "";
+    let visibilityWritten = "";
+    let shadowOpacityWritten = "";
+    let shadowTransformWritten = "";
+
+    /**
      * When the slow-cadence layout read last ran.
      *
      * It used to also collect the rect of every word on screen, for a clearance
@@ -426,6 +455,31 @@ export default function ModuleStack() {
      */
     let cubeSize = container.offsetWidth;
 
+    /**
+     * Which section is under the sightline, and how far blended - the same
+     * slow-cadence read as the rect sweep above, folded in rather than left to
+     * run on its own. It used to be called fresh every frame directly in
+     * `tick` (a `document.querySelectorAll` over every `[data-theme-key]`
+     * section plus a `getBoundingClientRect` on each, in `themeAt`): the exact
+     * shape of forced-layout cost this function's own history (see `rectsAt`
+     * above) already paid down once elsewhere in this file, just not here.
+     * 60ms is the same cadence `logoBox`/`heroSpan` already trust for a
+     * continuously-blending value - ~16 updates a second is far more than a
+     * colour/depth crossfade needs to read as smooth.
+     */
+    let cachedTheme = themeAt(window.innerHeight * 0.5);
+
+    /* Resolved once. Neither element is ever replaced while this component is
+       alive, so re-querying them on the slow cadence below was ~33 DOM
+       lookups a second answering the same question - the same hoist already
+       applied to HeroFlowConstellation's loop. */
+    const logoEl = document.querySelector<HTMLElement>(".header__logo");
+    const heroEl = document.querySelector<HTMLElement>("section.hero");
+    /* Elements the module must never paint over - see the overlap test in
+       `tick`. Marked in the markup with data-module-avoid. */
+    const avoidEls = Array.from(document.querySelectorAll<HTMLElement>("[data-module-avoid]"));
+    let avoidBoxes: DOMRect[] = [];
+
     const refreshLayout = (now: number) => {
       if (now - rectsAt < 60) return;
       rectsAt = now;
@@ -434,16 +488,16 @@ export default function ModuleStack() {
       // rather than a forced reflow. Resize is the only thing that moves it.
       cubeSize = container.offsetWidth || cubeSize;
 
-      logoBox =
-        document.querySelector<HTMLElement>(".header__logo")?.getBoundingClientRect() ??
-        null;
+      logoBox = logoEl?.getBoundingClientRect() ?? null;
 
-      const heroHeight = document.querySelector<HTMLElement>("section.hero")?.offsetHeight;
+      const heroHeight = heroEl?.offsetHeight;
       const span = scrollState.span;
       if (heroHeight && span > 0) {
         heroSpan = Math.min(heroHeight / span, 0.4);
       }
 
+      cachedTheme = themeAt(window.innerHeight * 0.5);
+      avoidBoxes = avoidEls.map((el) => el.getBoundingClientRect());
     };
 
     /**
@@ -455,15 +509,11 @@ export default function ModuleStack() {
      * depth clamp, which is the one number that must not drift.
      */
     const apply = (flight: Flight, bob: number) => {
-      container.style.transform = `translate3d(${flight.x.toFixed(1)}px, ${(flight.y + bob).toFixed(1)}px, 0) translate(-50%, -50%) scale(${flight.scale.toFixed(4)}) rotate(${flight.rotate.toFixed(2)}deg)`;
-
-      const size = cubeSize * flight.scale;
-      const box = new DOMRect(
-        flight.x - size / 2,
-        flight.y + bob - size / 2,
-        size,
-        size,
-      );
+      const transform = `translate3d(${flight.x.toFixed(1)}px, ${(flight.y + bob).toFixed(1)}px, 0) translate(-50%, -50%) scale(${flight.scale.toFixed(4)}) rotate(${flight.rotate.toFixed(2)}deg)`;
+      if (transform !== transformWritten) {
+        transformWritten = transform;
+        container.style.transform = transform;
+      }
 
       // FRONT OR BEHIND. The point of the depth axis: the module changes which
       // side of the content it renders on, so the text is genuinely BETWEEN the
@@ -476,11 +526,15 @@ export default function ModuleStack() {
       // helix ever uses. It takes that layer for the whole departure and the
       // whole return, not just at rest: sliding under the pill halfway out of
       // the navbar is exactly the moment the illusion would break.
-      container.style.zIndex = flight.dock > 0.02
+      const zIndex = flight.dock > 0.02
         ? "var(--z-docked)"
         : inFront
           ? "var(--z-stack)"
           : "var(--z-behind)";
+      if (zIndex !== zIndexWritten) {
+        zIndexWritten = zIndex;
+        container.style.zIndex = zIndex;
+      }
 
       // Solid in front, full stop.
       //
@@ -493,7 +547,11 @@ export default function ModuleStack() {
       //
       // So the only thing still modulating opacity is DISTANCE, which is the
       // one thing it should be: near is solid, far is hazy.
-      container.style.opacity = String(flight.opacity);
+      const opacity = String(flight.opacity);
+      if (opacity !== opacityWritten) {
+        opacityWritten = opacity;
+        container.style.opacity = opacity;
+      }
 
       // Only the far plane is hazed. A forward pass stays in focus even when it
       // is translucent - blurring it as well would read as a smudge on the
@@ -501,13 +559,25 @@ export default function ModuleStack() {
       // Dynamic directional shadow cast onto the page & text when floating in front
       if (shadow) {
         const shadowIntensity = inFront ? Math.max(0, Math.min(1, flight.depth)) : 0;
-        shadow.style.opacity = String((shadowIntensity * 0.475).toFixed(3));
+        const shadowOpacity = (shadowIntensity * 0.475).toFixed(3);
+        if (shadowOpacity !== shadowOpacityWritten) {
+          shadowOpacityWritten = shadowOpacity;
+          shadow.style.opacity = shadowOpacity;
+        }
         const shadowOffX = (flight.x - window.innerWidth / 2) * 0.05;
         const shadowOffY = 32 + shadowIntensity * 28;
-        shadow.style.transform = `translate3d(${shadowOffX.toFixed(1)}px, ${shadowOffY.toFixed(1)}px, 0) scale(${Math.max(0.65, 1.05 - shadowIntensity * 0.15).toFixed(3)})`;
+        const shadowTransform = `translate3d(${shadowOffX.toFixed(1)}px, ${shadowOffY.toFixed(1)}px, 0) scale(${Math.max(0.65, 1.05 - shadowIntensity * 0.15).toFixed(3)})`;
+        if (shadowTransform !== shadowTransformWritten) {
+          shadowTransformWritten = shadowTransform;
+          shadow.style.transform = shadowTransform;
+        }
       }
 
-      container.style.visibility = flight.opacity < 0.02 ? "hidden" : "visible";
+      const visibility = flight.opacity < 0.02 ? "hidden" : "visible";
+      if (visibility !== visibilityWritten) {
+        visibilityWritten = visibility;
+        container.style.visibility = visibility;
+      }
 
       // Hand the dock to CSS so the flat SVG mark in the header can fade
       // against it. Written only when it actually moves - it is a custom
@@ -544,7 +614,7 @@ export default function ModuleStack() {
       // from the page rather than from a table of scroll offsets, because the
       // sections are not equal heights, so progress alone does not say which
       // one is under the sightline.
-      const theme = themeAt(window.innerHeight * 0.5);
+      const theme = cachedTheme;
       const room = theme.from.room + (theme.to.room - theme.from.room) * theme.t;
 
       // HOLD, then cross. Not a linear blend across the section.
@@ -567,7 +637,38 @@ export default function ModuleStack() {
       const plane =
         theme.from.plane + (theme.to.plane - theme.from.plane) * eased;
 
-      const target = flightAt(p, cubeSize, room, plane);
+      // NEVER OVER AN ELEMENT THE READER HANDLES.
+      //
+      // The section planes above choose front or behind by what is under the
+      // sightline, which is right for copy: a module weaving through text can
+      // be read past. It is wrong for something the reader drags and clicks.
+      // The Our Work carousel had the module sitting on its cards - partly
+      // because on the scroll positions either side of that section the
+      // sightline is in a neighbour that puts the module in front.
+      //
+      // So while the module overlaps any element marked data-module-avoid, it
+      // goes behind the page, whatever the section says. The test uses the
+      // module's FRONT-PLANE size on purpose: sized at its current depth, going
+      // behind shrinks it, which can clear the overlap, which brings it forward
+      // and grows it again - a flicker at the edge of the element. Its x and y
+      // do not depend on depth, so the test is stable either side of the flip.
+      let avoid = false;
+      const current = flight;
+      if (current && avoidBoxes.length > 0 && current.dock < 0.02) {
+        const frontScale =
+          (current.scale / (1 + current.depth * DEPTH_SCALE)) * (1 + DEPTH_SCALE);
+        // The artwork fills about 84% of the sprite - see DOCK_FILL.
+        const half = cubeSize * frontScale * 0.42 + AVOID_PADDING;
+        avoid = avoidBoxes.some(
+          (box) =>
+            current.x + half > box.left &&
+            current.x - half < box.right &&
+            current.y + half > box.top &&
+            current.y - half < box.bottom,
+        );
+      }
+
+      const target = flightAt(p, cubeSize, room, avoid ? -1 : plane);
 
       // MIX THE DOCK IN.
       //

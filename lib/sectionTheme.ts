@@ -64,7 +64,11 @@ export const SECTION_THEMES: SectionTheme[] = [
   { key: "intro", accent: [38, 93, 255], room: 0.86, plane: -1 },
   { key: "work", accent: [126, 155, 255], room: 0.78, plane: 1 },
   { key: "method", accent: [255, 106, 91], room: 0.82, plane: -1 },
-  { key: "process", accent: [242, 91, 78], room: 0.9, plane: 1 },
+  /* Our Work. BEHIND, where the alternation would put it in front: the section
+     is a 3D carousel whose cards span the full width, so a forward pass has no
+     margin to use and the module sat on top of the cards. This slot was
+     `process`, which no section carries any more. */
+  { key: "projects", accent: [242, 91, 78], room: 0.9, plane: -1 },
   /* The way home. process is coral-600 and cta is midnight-500, so this takes
      midnight-600 - one step short of the landing colour, which makes the last
      stretch an approach rather than a jump straight back to the start. room is

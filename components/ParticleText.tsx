@@ -19,7 +19,6 @@ export interface ParticleTextProps {
   text: string;
   className?: string;
   color?: string;
-  highlightColor?: string;
   particleSize?: number;
   gap?: number;
   hoverRadius?: number;
@@ -35,7 +34,6 @@ export default function ParticleText({
   text,
   className = "",
   color = "#ffffff",
-  highlightColor = "#ffffff",
   particleSize = 1.6,
   gap = 2.5,
   hoverRadius = 85,
@@ -76,7 +74,18 @@ export default function ParticleText({
       const textWidth = Math.ceil(metrics.width);
       const textHeight = Math.ceil(fontSize * 1.25);
 
-      setTextDimensions({ width: textWidth, height: textHeight });
+      /* Only when the numbers actually changed. This always handed React a
+         fresh object, so an identical measurement still changed the state
+         identity, which changes the render effect's dependency and tears the
+         whole particle system down and rebuilds it: a new offscreen canvas,
+         a fillText, a full-surface getImageData, and particle regeneration.
+         The ResizeObserver that calls this watches an element this effect
+         itself sizes, so that fired more than once per resize. */
+      setTextDimensions((prev) =>
+        prev.width === textWidth && prev.height === textHeight
+          ? prev
+          : { width: textWidth, height: textHeight },
+      );
     };
 
     measure();
@@ -161,6 +170,7 @@ export default function ParticleText({
 
     // 3. Animation loop with generous unclipped boundary
     let rafId = 0;
+    let running = false;
     const tick = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.save();
@@ -173,6 +183,16 @@ export default function ParticleText({
 
       const particles = particlesRef.current;
       const len = particles.length;
+
+      /* Hoisted out of the loop below. Every particle is built with the same
+         `color` prop and alpha 1.0 and neither is ever mutated, so setting
+         them per particle was re-assigning identical canvas state - and a
+         fillStyle write costs a CSS colour parse - thousands of times a
+         frame. Same pixels, set once. */
+      if (len > 0) {
+        ctx.fillStyle = particles[0].color;
+        ctx.globalAlpha = particles[0].alpha;
+      }
 
       for (let i = 0; i < len; i++) {
         const p = particles[i];
@@ -202,23 +222,49 @@ export default function ParticleText({
         p.y += p.vy;
 
         // Render particle
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.alpha;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
       }
 
       ctx.restore();
-      rafId = requestAnimationFrame(tick);
+      rafId = running ? requestAnimationFrame(tick) : 0;
     };
 
+    // First frame is synchronous and unconditional, so the headline is never
+    // blank while waiting on the observer's first callback.
     tick();
 
+    /* Nothing previously paused this once the reader scrolled past the hero -
+       the spring-physics update for every particle in this text ran forever,
+       for the rest of the session. HeroEnergy/HeroLabels/HeroParticles all
+       pause the same way; this canvas is the only rendering of the headline
+       (the plain-text sibling is screen-reader-only, clipped to 1px), so
+       unlike those it also needs the unconditional first tick() above rather
+       than waiting on the observer to draw anything at all. */
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (!running) {
+            running = true;
+            rafId = requestAnimationFrame(tick);
+          }
+        } else {
+          running = false;
+          if (rafId) cancelAnimationFrame(rafId);
+          rafId = 0;
+        }
+      },
+      { rootMargin: "400px 0px" },
+    );
+    observer.observe(container);
+
     return () => {
+      observer.disconnect();
+      running = false;
       cancelAnimationFrame(rafId);
     };
-  }, [textDimensions, text, color, highlightColor, particleSize, gap, hoverRadius, hoverStrength, returnSpeed, friction]);
+  }, [textDimensions, text, color, particleSize, gap, hoverRadius, hoverStrength, returnSpeed, friction]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLSpanElement>) => {
     const canvas = canvasRef.current;
