@@ -469,18 +469,96 @@ export class ParticlesSwarm {
   private glowX = 0;
   private glowY = 0;
 
+  private baseCamZ = 100;
+  private targetTiltX = 0;
+  private targetTiltY = 0;
+  private currentTiltX = 0;
+  private currentTiltY = 0;
+  private hasGyroscope = false;
+  private cleanUpOrientation: (() => void) | null = null;
+
   private readonly onPointerMove = (event: PointerEvent) => {
-    if (event.pointerType !== "mouse") return;
     this.pointerClientX = event.clientX;
     this.pointerClientY = event.clientY;
     this.pointerSeen = true;
     this.lastPointerMove = performance.now();
   };
 
+  private readonly onPointerDown = (event: PointerEvent) => {
+    this.pointerClientX = event.clientX;
+    this.pointerClientY = event.clientY;
+    this.pointerSeen = true;
+    this.lastPointerMove = performance.now();
+  };
+
+  private readonly onPointerUp = (event: PointerEvent) => {
+    if (event.pointerType === "touch") {
+      this.pointerSeen = false;
+    }
+  };
+
+  private readonly onDeviceOrientation = (event: DeviceOrientationEvent) => {
+    if (event.gamma === null || event.beta === null) return;
+    this.hasGyroscope = true;
+
+    // gamma: left-to-right tilt in degrees [-90, 90]
+    // Normalized to [-1, 1] clamped at +/- 45 deg for responsive natural hand motion
+    const gamma = Math.max(-45, Math.min(45, event.gamma));
+    this.targetTiltX = gamma / 45;
+
+    // beta: front-to-back tilt in degrees [-180, 180]
+    // Natural browsing angle for a phone is held tilted back ~45-55 deg
+    const naturalPitch = 50;
+    const beta = Math.max(naturalPitch - 40, Math.min(naturalPitch + 40, event.beta));
+    this.targetTiltY = (beta - naturalPitch) / 40;
+  };
+
+  private initOrientation() {
+    if (typeof window === "undefined") return;
+
+    const attach = () => {
+      window.addEventListener("deviceorientation", this.onDeviceOrientation, { passive: true });
+    };
+
+    const DeviceOrientation = (
+      window as unknown as {
+        DeviceOrientationEvent?: {
+          requestPermission?: () => Promise<"granted" | "denied">;
+        };
+      }
+    ).DeviceOrientationEvent;
+
+    if (DeviceOrientation && typeof DeviceOrientation.requestPermission === "function") {
+      // iOS 13+: requires user gesture to grant orientation permission
+      const requestIOS = () => {
+        DeviceOrientation.requestPermission?.()
+          .then((res) => {
+            if (res === "granted") {
+              attach();
+            }
+          })
+          .catch(() => {});
+      };
+      window.addEventListener("pointerdown", requestIOS, { passive: true, once: true });
+      window.addEventListener("touchstart", requestIOS, { passive: true, once: true });
+      this.cleanUpOrientation = () => {
+        window.removeEventListener("pointerdown", requestIOS);
+        window.removeEventListener("touchstart", requestIOS);
+        window.removeEventListener("deviceorientation", this.onDeviceOrientation);
+      };
+    } else if (typeof window.DeviceOrientationEvent !== "undefined") {
+      // Android and standard mobile browsers attach immediately
+      attach();
+      this.cleanUpOrientation = () => {
+        window.removeEventListener("deviceorientation", this.onDeviceOrientation);
+      };
+    }
+  }
+
   constructor(container: HTMLElement, opts: ParticlesSwarmOptions) {
     const count = (this.count = opts.count);
     this.container = container;
-    this.pointerEnabled = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    this.pointerEnabled = true;
 
     this.scene = new THREE.Scene();
 
@@ -503,9 +581,12 @@ export class ParticlesSwarm {
     container.appendChild(this.renderer.domElement);
     this.renderer.domElement.addEventListener("webglcontextlost", (e) => e.preventDefault());
 
-    if (this.pointerEnabled) {
-      window.addEventListener("pointermove", this.onPointerMove, { passive: true });
-    }
+    window.addEventListener("pointermove", this.onPointerMove, { passive: true });
+    window.addEventListener("pointerdown", this.onPointerDown, { passive: true });
+    window.addEventListener("pointerup", this.onPointerUp, { passive: true });
+    window.addEventListener("pointercancel", this.onPointerUp, { passive: true });
+
+    this.initOrientation();
 
     this.ux = new Float32Array(count);
     this.uy = new Float32Array(count);
@@ -677,6 +758,7 @@ export class ParticlesSwarm {
     this.camera.aspect = aspect;
     // Calibrated camera framing allowing the expanded particle sphere to cover full screen
     const targetZ = aspect < 1.0 ? 118 * Math.min(1.35, 0.85 / Math.max(0.4, aspect)) : 108;
+    this.baseCamZ = targetZ;
     this.camera.position.set(0, 0, targetZ);
     this.camera.updateProjectionMatrix();
 
@@ -715,9 +797,11 @@ export class ParticlesSwarm {
   dispose() {
     this.stop();
     this.disposed = true;
-    if (this.pointerEnabled) {
-      window.removeEventListener("pointermove", this.onPointerMove);
-    }
+    window.removeEventListener("pointermove", this.onPointerMove);
+    window.removeEventListener("pointerdown", this.onPointerDown);
+    window.removeEventListener("pointerup", this.onPointerUp);
+    window.removeEventListener("pointercancel", this.onPointerUp);
+    this.cleanUpOrientation?.();
     this.scene.remove(this.points);
     this.geometry.dispose();
     this.material.dispose();
@@ -782,6 +866,38 @@ export class ParticlesSwarm {
 
   private renderFrame(time: number) {
     this.updateInfluences();
+
+    // Smooth tilt interpolation
+    const tiltLerp = 0.08;
+    this.currentTiltX += (this.targetTiltX - this.currentTiltX) * tiltLerp;
+    this.currentTiltY += (this.targetTiltY - this.currentTiltY) * tiltLerp;
+
+    // Export live tilt to shared constellation state for CSS 3D sync
+    constellationState.tiltX = this.currentTiltX;
+    constellationState.tiltY = this.currentTiltY;
+
+    // 3D Spatial orientation reaction:
+    // Yaw (Y) reacts to tiltX (left/right roll of phone), pitch (X) reacts to tiltY (forward/back tilt)
+    // and subtle roll (Z)
+    this.points.rotation.y = this.currentTiltX * 0.45;
+    this.points.rotation.x = -this.currentTiltY * 0.40;
+    this.points.rotation.z = ROTATION_Z + this.currentTiltX * 0.16;
+
+    // Camera vantage parallax shift:
+    this.camera.position.x = this.currentTiltX * 14;
+    this.camera.position.y = -this.currentTiltY * 14;
+    this.camera.position.z = this.baseCamZ;
+    this.camera.lookAt(0, 0, 0);
+
+    // Gyroscopic drift pulling particle energy/filaments if user is not actively touching screen:
+    if (this.hasGyroscope && !this.pointerSeen) {
+      const halfHeight = Math.tan((this.camera.fov * Math.PI) / 360) * this.baseCamZ;
+      const halfWidth = halfHeight * this.camera.aspect;
+      this.repelX = this.currentTiltX * halfWidth * 0.45;
+      this.repelY = -this.currentTiltY * halfHeight * 0.45;
+      const tiltMag = Math.sqrt(this.currentTiltX * this.currentTiltX + this.currentTiltY * this.currentTiltY);
+      this.influence += (Math.min(0.85, tiltMag * 1.2) - this.influence) * REPEL_EASE;
+    }
 
     const u = this.material.uniforms;
     u.uTime.value = time;

@@ -280,17 +280,20 @@ export default function HeroFlowConstellation() {
         // Staggered easing from orbit to seat
         const k = ease((t - i * 0.06) / 0.64);
 
-        const x = orbitX * (1 - k) + seatX * k;
-        const y = orbitY * (1 - k) + seatY * k;
+        const tiltBankX = (constellationState.tiltX || 0) * 18 * (1 - k);
+        const tiltBankY = -(constellationState.tiltY || 0) * 18 * (1 - k);
+
+        const x = (orbitX + tiltBankX) * (1 - k) + seatX * k;
+        const y = (orbitY + tiltBankY) * (1 - k) + seatY * k;
 
         // Spatial trajectory - clean alignment with zero parallax in docked section
         const orbitZ = Math.sin(t1 * 2.0) * 36 + Math.cos(t2) * 16;
         const z = orbitZ * (1 - k);
 
         // 3D banking - zero tilt/yaw/pitch in docked section
-        const pitch = (Math.sin(t1 + i * 1.2) * 20 + Math.cos(t2) * 8) * (1 - k);
-        const yaw = (Math.cos(t2 + i * 1.6) * 22 + Math.sin(t3) * 10) * (1 - k);
-        const roll = (Math.sin(t3 * 0.8 + i) * 16 + Math.cos(t1) * 8) * (1 - k);
+        const pitch = (Math.sin(t1 + i * 1.2) * 20 + Math.cos(t2) * 8 - (constellationState.tiltY || 0) * 15) * (1 - k);
+        const yaw = (Math.cos(t2 + i * 1.6) * 22 + Math.sin(t3) * 10 + (constellationState.tiltX || 0) * 16) * (1 - k);
+        const roll = (Math.sin(t3 * 0.8 + i) * 16 + Math.cos(t1) * 8 + (constellationState.tiltX || 0) * 10) * (1 - k);
         const scale = 1.0 + Math.sin(t1) * 0.08 * (1 - k);
 
         el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) rotateX(${pitch.toFixed(1)}deg) rotateY(${yaw.toFixed(1)}deg) rotateZ(${roll.toFixed(1)}deg) scale(${scale.toFixed(3)})`;
