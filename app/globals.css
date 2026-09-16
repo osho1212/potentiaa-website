@@ -3000,10 +3000,10 @@ button { font: inherit; cursor: pointer; }
 }
 
 .method__title {
-  font-family: var(--font-display);
-  font-size: clamp(var(--fs-2xl), 4vw, var(--fs-3xl));
-  font-weight: var(--fw-bold);
-  letter-spacing: var(--tracking-tight);
+  font-family: var(--font-display, sans-serif);
+  font-size: clamp(32px, 4.5vw, 52px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
   line-height: var(--lh-tight);
   color: var(--text-on-dark);
   margin-bottom: var(--space-4);
@@ -4595,7 +4595,7 @@ textarea.input,
   color: #ffffff;
 }
 
-/* 3D High-Contrast Floating Showcase Container */
+/* 3D High-Contrast White Showcase Container */
 .offering-showcase {
   position: relative;
   z-index: 1;
@@ -4605,9 +4605,9 @@ textarea.input,
   justify-content: center;
   background: transparent;
   border-radius: 28px;
-  padding: clamp(10px, 2.5vh, 24px) 0;
+  padding: clamp(18px, 3.4vh, 44px);
   perspective: 1200px;
-  color: #FFFFFF;
+  color: #0F172A;
 }
 
 /* ---------------------------------------------------------------
@@ -4691,21 +4691,21 @@ textarea.input,
   flex-direction: column;
   padding: clamp(18px, 4vw, 28px);
   background: #FFFFFF;
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  border: 1px solid #E2E8F0;
   border-radius: 22px;
   box-shadow:
-    0 16px 40px -10px rgba(0, 0, 0, 0.65),
-    0 4px 16px rgba(0, 0, 0, 0.3);
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 10px 28px -18px rgba(15, 23, 42, 0.22);
   transition: border-color 250ms ease, box-shadow 250ms ease;
   will-change: transform;
   container-type: inline-size;
 }
 
 .offer-card[data-active] {
-  border-color: rgba(99, 102, 241, 0.45);
+  border-color: rgba(37, 99, 235, 0.22);
   box-shadow:
-    0 24px 54px -12px rgba(0, 0, 0, 0.75),
-    0 0 32px rgba(99, 102, 241, 0.3);
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 22px 44px -24px rgba(37, 99, 235, 0.4);
 }
 
 /* While a card is open, the rest keep the collapsed row height instead of
@@ -5013,18 +5013,16 @@ textarea.input,
   place-items: center;
   width: 40px;
   height: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid #E2E8F0;
   border-radius: 999px;
-  background: rgba(14, 16, 27, 0.75);
-  color: #FFFFFF;
-  backdrop-filter: blur(12px);
+  background: #FFFFFF;
+  color: #0F172A;
   cursor: pointer;
   transition:
     transform 160ms ease-out,
     border-color 200ms ease,
     background-color 200ms ease,
-    color 200ms ease,
-    box-shadow 200ms ease;
+    color 200ms ease;
 }
 
 .offer-arrow svg {
@@ -5037,7 +5035,7 @@ textarea.input,
   height: 36px;
   border-color: transparent;
   background: transparent;
-  color: rgba(255, 255, 255, 0.6);
+  color: #64748B;
 }
 
 .offer-pause svg {
@@ -5052,22 +5050,20 @@ textarea.input,
 
 @media (hover: hover) and (pointer: fine) {
   .offer-arrow:hover {
-    border-color: rgba(99, 102, 241, 0.45);
-    background: rgba(20, 24, 40, 0.9);
-    box-shadow: 0 0 16px rgba(99, 102, 241, 0.3);
-    color: #FFFFFF;
+    border-color: #CBD5E1;
+    background: #F8FAFC;
   }
 
   .offer-pause:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #FFFFFF;
+    background: #F1F5F9;
+    color: #0F172A;
   }
 }
 
 .offer-arrow:focus-visible,
 .offer-pause:focus-visible,
 .offer-dot:focus-visible {
-  outline: 2px solid #6366F1;
+  outline: 2px solid #2563EB;
   outline-offset: 2px;
 }
 
@@ -5095,7 +5091,7 @@ textarea.input,
   height: 8px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.25);
+  background: #CBD5E1;
   transition:
     width 300ms cubic-bezier(0.23, 1, 0.32, 1),
     background-color 200ms ease;
@@ -5103,14 +5099,14 @@ textarea.input,
 
 .offer-dot[aria-current="true"] .offer-dot__track {
   width: 32px;
-  background: rgba(99, 102, 241, 0.4);
+  background: #BFDBFE;
 }
 
 /* The autoplay clock: linear, because it is a measure of time. */
 .offer-dot__fill {
   position: absolute;
   inset: 0;
-  background: #6366F1;
+  background: #2563EB;
   transform-origin: left center;
   transform: scaleX(0);
   animation: offer-progress linear forwards;
