@@ -14,8 +14,12 @@ export const site = {
   tagline: "Unlock. Transform. Grow.",
 
   contact: {
-    email: "hello@potentiaa.com",
-    whatsapp: "+91 82678 39736",
+    email: "contact@potentiaa.com",
+    whatsapp: "+91 8267839736",
+    whatsappDisplay: "+91 82678 39736",
+    phone: "+91 8267839736",
+    phoneDisplay: "+91 82678 39736",
+    instagram: "https://www.instagram.com/potentiaa.global",
   },
 
   hero: {
