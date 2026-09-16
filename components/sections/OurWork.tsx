@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
+import { MousePointerClick, Pointer } from "lucide-react";
 import Reveal from "../Reveal";
 import ProjectModal from "../ProjectModal";
 import { CoverflowCarousel, type CoverflowSlide } from "@/components/ui/coverflow-carousel";
@@ -37,18 +38,38 @@ export default function OurWork() {
         <Reveal delay={140}>
           {/* data-module-avoid: the floating module goes behind the page while it
               overlaps this - see components/ModuleStack. */}
-          <div data-module-avoid>
+          <div className="our-work__carousel" data-module-avoid>
             <CoverflowCarousel
               slides={SLIDES}
               label="Our work. Select the centre project to open its case study."
-              cardWidth="clamp(180px, 24vw, 300px)"
+              /* Sized in globals.css (.our-work__carousel), where it can
+                 follow the viewport. */
+              cardWidth="var(--our-work-card)"
               showCaption
               showPagination
               showNavigation
               onSlideClick={setOpenIndex}
+              /* Both wordings render; CSS shows the one for the input the
+                 reader has (see .only-touch in globals.css), so nothing flips
+                 after hydration. */
+              selectedLabel={
+                <>
+                  <span className="only-pointer">
+                    <MousePointerClick size={14} aria-hidden="true" />
+                    Click to View
+                  </span>
+                  <span className="only-touch">
+                    <Pointer size={14} aria-hidden="true" />
+                    Tap to View
+                  </span>
+                </>
+              }
             />
           </div>
-          <p className="our-work__hint">Click a project to see what we built.</p>
+          <p className="our-work__hint">
+            <span className="only-pointer">Click</span>
+            <span className="only-touch">Tap</span> a project to see what we built.
+          </p>
         </Reveal>
       </div>
 

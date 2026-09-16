@@ -153,7 +153,7 @@ export default function MobileNav() {
             tilt={8}
             blur={1.8}
             fade={0.3}
-            smoothing={220}
+            smoothing={380}
             inset={24}
             onSelect={handleSelect}
           />

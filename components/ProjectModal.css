@@ -472,6 +472,24 @@
 
 .case__figure[data-wide] .case__figure-frame { aspect-ratio: 21 / 9; }
 
+/* Screenshots are interfaces: shown whole, at their own shape, never cropped
+   to the frame the way a photo is. The hairline keeps a white app screen from
+   dissolving into the white page around it. */
+.case__figure[data-kind="screenshot"] .case__figure-frame,
+.case__figure[data-kind="screenshot"][data-wide] .case__figure-frame {
+  aspect-ratio: auto;
+  background: #0b1020;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.1),
+    0 20px 45px rgba(15, 23, 42, 0.14);
+}
+
+.case__figure[data-kind="screenshot"] img {
+  display: block;
+  height: auto;
+  object-fit: contain;
+}
+
 /* Numbered like figures in a report, across the whole case study. */
 .case__figure figcaption {
   display: flex;

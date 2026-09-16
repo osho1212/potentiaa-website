@@ -41,7 +41,7 @@ import {
  *
  * 4. A TILE IS NOT A CONTROL. The original makes every tile without an href a
  *    focusable div with role="button" - announced as a button, does nothing on
- *    click, and puts one tab stop on screen per copy. Hovering lifts a tile;
+ *    click, and puts one tab stop on screen per copy. Hovering raises a tile;
  *    that is a hover affordance, not a control. So a tile is a plain div, and
  *    it enters the tab order only if the content the caller puts inside it has
  *    something focusable of its own.
@@ -88,8 +88,13 @@ export type DriftWallProps<T> = {
   /** Pointer-follow tilt strength; 0 disables it. */
   parallax?: number;
   pauseOnHover?: boolean;
-  /** How far a hovered tile lifts toward the viewer, px. */
-  lift?: number;
+  /**
+   * How much a held tile grows, as a scale factor. It grows IN PLACE - it used
+   * to be lifted toward the viewer, and perspective pushed tiles away from the
+   * centre as it magnified them, so the outer columns grew straight past the
+   * screen edge. Kept small because the side margin is all the room it has.
+   */
+  holdScale?: number;
   /** Strength of the edge dissolve, 0..1. */
   fade?: number;
   /** Resting opacity of unhovered tiles, 0..1. */
@@ -127,7 +132,7 @@ export default function DriftWall<T>({
   variance = 0.45,
   parallax = 0.6,
   pauseOnHover = false,
-  lift = 64,
+  holdScale = 1.04,
   fade = 0.6,
   dim = 0.55,
   planeScale = 1.18,
@@ -298,7 +303,7 @@ export default function DriftWall<T>({
 
   /**
    * TOUCH. A phone has no hover, so without this the whole active state - the
-   * lift, the colour turn, the rim - is desktop-only and a tile on mobile is
+   * raise, the colour turn, the rim - is desktop-only and a tile on mobile is
    * just a dim rectangle that never resolves.
    *
    * Press and hold activates, exactly like pointing at it. Deliberately NOT a
@@ -341,7 +346,7 @@ export default function DriftWall<T>({
         "--dw-gap": `${gap}px`,
         "--dw-radius": `${radius}px`,
         "--dw-perspective": `${perspective}px`,
-        "--dw-lift": `${lift}px`,
+        "--dw-hold-scale": holdScale,
         "--dw-dim": dim,
         /* --dw-edge-BASE, not --dw-edge. An inline custom property outranks a
            class rule, so writing --dw-edge here would make .is-holding unable
@@ -352,7 +357,7 @@ export default function DriftWall<T>({
         "--dw-edge-base": `${Math.max(0, Math.min(30, fade * 22)).toFixed(1)}%`,
         ...style,
       }) as CSSProperties,
-    [tileWidth, tileHeight, gap, radius, perspective, lift, dim, fade, style],
+    [tileWidth, tileHeight, gap, radius, perspective, holdScale, dim, fade, style],
   );
 
   return (

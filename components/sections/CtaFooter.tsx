@@ -9,7 +9,7 @@ export default function CtaFooter() {
 
   return (
     <>
-      {/* Single-line ShinyText strip directly above footer */}
+      {/* ShinyText strip directly above footer - one line where it fits, two balanced lines where it doesn't */}
       <section className="cta-strip" id="contact" data-theme-key="cta">
         <div className="container cta-strip__inner">
           <Reveal>

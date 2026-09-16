@@ -158,7 +158,13 @@ export default function HeroFlowConstellation() {
        elements don't get replaced while it's alive. */
     const heroEl = document.querySelector<HTMLElement>(".hero");
     const flowEl = document.querySelector<HTMLElement>(".flow-section");
-    const trackEl = document.querySelector<HTMLElement>(".flow-pipeline__berths");
+    /* Each node docks on its own berth slot. The berths are laid out by CSS
+       (5, 3 or 2 columns, sized to fit a node and its label), so reading the
+       slots means the seats follow that layout at every width instead of
+       re-deriving a grid here that can disagree with it. */
+    const slotEls = Array.from(
+      document.querySelectorAll<HTMLElement>(".flow-pipeline__berth-slot"),
+    );
     const heroCopyEl = heroEl?.querySelector<HTMLElement>(".hero__copy") ?? null;
 
     // 1. Initialize 1,200 particle motes for the luminous pipeline stream
@@ -212,8 +218,8 @@ export default function HeroFlowConstellation() {
         t = Math.max(0, Math.min(1, (startY - flowRect.top) / (startY - endY)));
       }
 
-      // Track stations positions in FlowSection
-      const trackRect = trackEl?.getBoundingClientRect();
+      // Station seats in FlowSection, all read before any node is written
+      const slotRects = slotEls.map((slot) => slot.getBoundingClientRect());
       const isMobile = winW < 768;
 
       /* Measured once per frame, not once per node (5x): the copy block's
@@ -259,19 +265,10 @@ export default function HeroFlowConstellation() {
         let seatX = 0;
         let seatY = 0;
 
-        if (trackRect) {
-          if (isMobile) {
-            const col = i % 2;
-            const row = Math.floor(i / 2);
-            const cellW = trackRect.width / 2;
-            const cellH = trackRect.height / 3;
-            seatX = trackRect.left + (col + 0.5) * cellW - winW * 0.5;
-            seatY = trackRect.top + (row + 0.5) * cellH;
-          } else {
-            const cellW = trackRect.width / count;
-            seatX = trackRect.left + (i + 0.5) * cellW - winW * 0.5;
-            seatY = trackRect.top + trackRect.height * 0.35;
-          }
+        const slotRect = slotRects[i];
+        if (slotRect) {
+          seatX = slotRect.left + slotRect.width * 0.5 - winW * 0.5;
+          seatY = slotRect.top + slotRect.height * 0.5;
         } else {
           seatX = (-0.5 + (i + 0.5) / count) * Math.min(winW * 0.85, 1100);
           /* Reuses the rect already read once above rather than taking a

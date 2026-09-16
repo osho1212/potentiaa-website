@@ -45,6 +45,12 @@ export interface CoverflowCarouselProps {
    * A click on any other card brings that card to the centre instead.
    */
   onSlideClick?: (index: number) => void;
+  /**
+   * A pill on the centred card - e.g. an icon and "Click to View" - so it reads
+   * as something to open rather than a picture. Only shown with onSlideClick.
+   * Its children are laid out in a row with a small gap.
+   */
+  selectedLabel?: React.ReactNode;
 }
 
 export function CoverflowCarousel({
@@ -64,6 +70,7 @@ export function CoverflowCarousel({
   className,
   cardClassName,
   onSlideClick,
+  selectedLabel,
 }: CoverflowCarouselProps) {
   const count = slides.length;
 
@@ -271,8 +278,6 @@ export function CoverflowCarousel({
     [],
   );
 
-  const active = slides[selected];
-
   return (
     <div
       className={cn("w-full", className)}
@@ -302,7 +307,8 @@ export function CoverflowCarousel({
             }
           }}
           // Vertical padding keeps the drop shadows clear of the overflow clip.
-          className="cursor-grab overflow-hidden py-10 outline-none ring-ring focus-visible:ring-2 active:cursor-grabbing"
+          // A variable so a caller can trim it where the room is tight.
+          className="cursor-grab overflow-hidden py-[var(--cf-pad-y,2.5rem)] outline-none ring-ring focus-visible:ring-2 active:cursor-grabbing"
           style={{
             perspective: `calc(var(--cf-card) * ${perspective})`,
             // Horizontal drag is ours; the page keeps vertical scrolling.
@@ -340,6 +346,18 @@ export function CoverflowCarousel({
                   draggable={false}
                   className="h-full w-full select-none object-cover"
                 />
+                {selectedLabel && onSlideClick && index === selected && (
+                  // Mounts as a card arrives in the centre, so it fades in
+                  // there. pointer-events-none: the tap belongs to the card.
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center duration-300 animate-in fade-in"
+                  >
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-black/65 px-3 py-1.5 text-[12px] font-semibold leading-none text-white shadow-lg ring-1 ring-white/25 backdrop-blur-md">
+                      {selectedLabel}
+                    </span>
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -367,34 +385,10 @@ export function CoverflowCarousel({
         )}
       </div>
 
-      {showCaption && active?.title && (
-        <div
-          key={selected}
-          className="mt-2 flex flex-col items-center px-6 duration-300 animate-in fade-in"
-        >
-          <p className="text-[15px] font-semibold tracking-tight text-foreground">
-            {active.title}
-          </p>
-          {active.subtitle && (
-            <p className="mt-1 text-[13px] text-muted-foreground">
-              {active.subtitle}
-            </p>
-          )}
-          {active.meta && active.meta.length > 0 && (
-            <dl className="mt-10 w-full max-w-[230px] text-[12px]">
-              {active.meta.map((row) => (
-                <div key={row.label} className="flex justify-between py-[5px]">
-                  <dt className="text-muted-foreground">{row.label}</dt>
-                  <dd className="font-medium text-foreground">{row.value}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-        </div>
-      )}
-
+      {/* The dots sit straight under the cards they count, above the caption.
+          Both gaps are variables so a page can tune them per viewport. */}
       {showPagination && (
-        <div className="mt-6 flex items-center justify-center gap-2">
+        <div className="mt-[var(--cf-dots-gap,0px)] flex items-center justify-center gap-2">
           {slides.map((_, index) => (
             <button
               key={index}
@@ -408,6 +402,50 @@ export function CoverflowCarousel({
               )}
             />
           ))}
+        </div>
+      )}
+
+      {showCaption && (
+        // EVERY caption is laid out, stacked in one grid cell, and only the
+        // selected one is visible. The cell is therefore as tall as the
+        // longest caption at the current width, so everything below stays put
+        // when a two-line description gives way to a three-line one.
+        <div className="mt-[var(--cf-caption-gap,1rem)] grid">
+          {slides.map((slide, index) =>
+            slide.title ? (
+              <div
+                key={index}
+                aria-hidden={index !== selected}
+                className={cn(
+                  "col-start-1 row-start-1 flex flex-col items-center px-6 text-center",
+                  index === selected ? "visible duration-300 animate-in fade-in" : "invisible",
+                )}
+              >
+                {/* Caption sizes are variables so the page can size them to
+                    the viewport; the fallbacks are the component's own. */}
+                <p className="text-[length:var(--cf-caption-title,15px)] font-semibold tracking-tight text-foreground">
+                  {slide.title}
+                </p>
+                {slide.subtitle && (
+                  // Balanced as well as centred, so a two-line description
+                  // splits into even lines rather than a full line over a stub.
+                  <p className="mt-1 text-balance text-[length:var(--cf-caption-text,13px)] text-muted-foreground">
+                    {slide.subtitle}
+                  </p>
+                )}
+                {slide.meta && slide.meta.length > 0 && (
+                  <dl className="mt-10 w-full max-w-[230px] text-[12px]">
+                    {slide.meta.map((row) => (
+                      <div key={row.label} className="flex justify-between py-[5px]">
+                        <dt className="text-muted-foreground">{row.label}</dt>
+                        <dd className="font-medium text-foreground">{row.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </div>
+            ) : null,
+          )}
         </div>
       )}
     </div>

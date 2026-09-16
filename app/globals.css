@@ -732,6 +732,8 @@ button { font: inherit; cursor: pointer; }
   max-width: var(--container-max);
   margin-inline: auto;
   z-index: 2;
+  /* The title sizes itself against this width (cqi), padding already excluded. */
+  container-type: inline-size;
 }
 
 @media (min-width: 1280px) {
@@ -783,11 +785,23 @@ button { font: inherit; cursor: pointer; }
   text-align: center;
   font-family: var(--font-display);
   font-size: min(clamp(2.1rem, 1.3rem + 4vw, 4.2rem), 9svh);
+  /* Capped so the widest line, "one connected system." (~12.2em), can never
+     wrap; the fluid size stays under it everywhere except right at 640px. */
+  font-size: min(clamp(2.1rem, 1.3rem + 4vw, 4.2rem), 9svh, 100cqi / 12.8);
   font-weight: var(--fw-bold, 700);
   line-height: 1.1;
   letter-spacing: -0.025em;
   color: var(--text-on-dark);
   overflow: visible;
+}
+
+/* Phones: three fixed lines, "Run your business" / "from one" / "connected system."
+   Sized so the widest of them (~9.8em) fits any width, 280px folds included. */
+@media (max-width: 639px) {
+  .hero__title {
+    font-size: min(clamp(2.1rem, 1.3rem + 4vw, 4.2rem), 9svh, (100vw - 2 * clamp(1rem, 4vw, 1.5rem)) / 10.4);
+    font-size: min(clamp(2.1rem, 1.3rem + 4vw, 4.2rem), 9svh, 100cqi / 10.4);
+  }
 }
 
 .hero__subtext {
@@ -810,6 +824,17 @@ button { font: inherit; cursor: pointer; }
 .hero__word-wrap {
   display: inline-block;
   white-space: pre;
+}
+
+/* The lead line's last word ("from") shows at the end of line one on wide
+   screens, and in front of "one" on phones. display:none keeps it out of
+   the accessible name, so the heading still reads once. */
+.hero__carry--narrow { display: none; }
+
+@media (max-width: 639px) {
+  .hero__carry--wide { display: none; }
+  .hero__carry--narrow { display: inline; }
+  .hero__row-space { display: none; }
 }
 
 .hero__hover-word {
@@ -862,6 +887,10 @@ button { font: inherit; cursor: pointer; }
   gap: 0 0.28em;
   overflow: visible;
   position: relative;
+}
+
+@media (max-width: 639px) {
+  .hero__title-line--gradient-row { flex-direction: column; }
 }
 
 .hero__gradient-phrase,
@@ -1453,10 +1482,10 @@ button { font: inherit; cursor: pointer; }
   position: absolute;
   top: 0;
   left: 50%;
-  width: 68px;
-  height: 68px;
-  margin-left: -34px;
-  margin-top: -34px;
+  width: var(--node-size);
+  height: var(--node-size);
+  margin-left: calc(var(--node-size) / -2);
+  margin-top: calc(var(--node-size) / -2);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1526,7 +1555,7 @@ button { font: inherit; cursor: pointer; }
 /* Text label appearing cleanly below the node when aligned in Flow Section */
 .constellation-node__label {
   position: absolute;
-  top: calc(100% + 14px);
+  top: calc(100% + var(--node-label-gap));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1551,15 +1580,18 @@ button { font: inherit; cursor: pointer; }
   color: var(--node-tint, var(--blue-400));
 }
 
+/* Full size from 360px up; below that the two-column berths get narrower than
+   the widest label ("Capacity & Approval", ~148px), so the type steps down with
+   the viewport rather than letting neighbouring labels touch. */
 .constellation-node__title {
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: clamp(12px, 3.9vw, 14px);
   font-weight: 700;
   color: var(--text-on-dark);
 }
 
 .constellation-node__note {
-  font-size: 11.5px;
+  font-size: clamp(10.5px, 3.2vw, 11.5px);
   color: var(--text-on-dark-secondary);
 }
 
@@ -1592,12 +1624,13 @@ button { font: inherit; cursor: pointer; }
 
 .flow-section {
   position: relative;
-  min-height: 100svh;
+  /* One full screen, plus the gap before the next section. */
+  min-height: calc(100svh + var(--section-gap));
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding-block: var(--space-20) var(--space-16);
+  padding-block: var(--below-header) var(--section-gap);
   z-index: var(--z-content);
   overflow: visible;
 }
@@ -1671,32 +1704,39 @@ button { font: inherit; cursor: pointer; }
   width: 100%;
 }
 
+/* A berth is sized from the node that docks into it: the slot is the glass
+   square (HeroFlowConstellation seats each node on its slot's centre), and the
+   padding below it is the label's room. The grid's row gap is then clear air
+   between one label and the next node, at every column count. */
 .flow-pipeline__berth {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 160px;
+  padding-bottom: calc(var(--node-label-gap) + var(--node-label-h));
   background: transparent;
   border: none;
   box-shadow: none;
   pointer-events: none;
 }
 
+.flow-pipeline__berth-slot {
+  width: var(--node-size);
+  height: var(--node-size);
+  flex: 0 0 auto;
+}
+
 @media (max-width: 1080px) {
   .flow-pipeline__berths {
     grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-3);
+    gap: var(--space-10) var(--space-3);
   }
 }
 
 @media (max-width: 640px) {
   .flow-pipeline__berths {
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-2);
-  }
-  .flow-pipeline__berth {
-    min-height: 140px;
+    gap: var(--space-12) var(--space-2);
   }
 }
 
@@ -1799,12 +1839,14 @@ button { font: inherit; cursor: pointer; }
    takes the rest - so the frame fits the viewport at any height without anyone
    hardcoding a pixel figure for the copy above it.
    The section's own padding-block from .section is dropped: it would be added
-   to 100svh and push the bottom of the wall off screen. */
+   to 100svh and push the bottom of the wall off screen. The section gap is
+   added to the height as well as the bottom padding, so the frame inside is
+   still exactly one screen and the gap sits after it. */
 .testimonials {
   position: relative;
-  height: 100svh;
-  min-height: 560px;
-  padding-block: 0;
+  height: calc(100svh + var(--section-gap));
+  min-height: calc(560px + var(--section-gap));
+  padding-block: 0 var(--section-gap);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1841,17 +1883,52 @@ button { font: inherit; cursor: pointer; }
   height: 100%;
 }
 
-/* THE CARD TURNS OVER ON HOVER - glass to white, the same move the offering
-   cards make in section 3. Everything inside is therefore tokenised twice, once
-   for the glass rest state and once for the light hover state, so no text is
-   ever left carrying an on-dark colour against white. The --ink-* properties
-   are the single switch: the children read them and never name a colour. */
+/* Narrow walls take their tile width from the screen, not a fixed number, so
+   the plane - columns x (tile + gap) - never outgrows the viewport and no quote
+   is cut off mid-word. The gutter matches .container's. !important because
+   DriftWall writes the width prop inline; only the width moves here, the tile
+   HEIGHT stays a prop because the drift maths uses it. */
+@media (max-width: 900px) {
+  .testimonials .drift-wall {
+    --dw-tile-w: min(340px, calc((100vw - 2 * clamp(16px, 4vw, 32px)) / 2 - var(--dw-gap))) !important;
+  }
+}
+
+@media (max-width: 639px) {
+  .testimonials .drift-wall {
+    --dw-tile-w: min(360px, calc(100vw - 2 * clamp(16px, 4vw, 32px) - var(--dw-gap))) !important;
+  }
+}
+
+/* Three columns, then four. The wall runs full-bleed, so a flat 24px gutter
+   either side; the 1.04 is the planeScale Testimonials.tsx sets up here,
+   divided back out so the plane fits after it is scaled. */
+@media (min-width: 901px) and (max-width: 1199px) {
+  .testimonials .drift-wall {
+    --dw-tile-w: min(320px, calc((100vw - 48px) / (3 * 1.04) - var(--dw-gap))) !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  .testimonials .drift-wall {
+    --dw-tile-w: min(320px, calc((100vw - 48px) / (4 * 1.04) - var(--dw-gap))) !important;
+  }
+}
+
+/* SOLID WHITE CARDS on the dark page, at rest and held. The --ink-* properties
+   are still the single switch for the text colours: the children read them and
+   never name a colour, so the held state only has to change the tokens.
+
+   The name sits directly under the quote (a fixed gap), not pushed to the
+   bottom of the tile. The tile is measured to the tallest quote in
+   Testimonials.tsx, and the shorter ones are centred in it, so whatever room
+   they have left is split top and bottom rather than pooling under the name. */
 .quote {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: var(--space-5);
+  justify-content: center;
+  gap: var(--space-4);
   /* Fixed, because the cards must not resize as they travel - a fluid width
      would make the track length depend on content and the seam would drift. */
   width: 320px;
@@ -1860,27 +1937,19 @@ button { font: inherit; cursor: pointer; }
   margin: 0;
   isolation: isolate;
 
-  --ink-body: var(--text-on-dark);
-  --ink-name: var(--text-on-dark);
-  --ink-role: var(--text-on-dark-secondary);
+  --ink-body: #334155;
+  --ink-name: #0F172A;
+  --ink-role: #64748B;
   --glow-x: 50%;
   --glow-y: 50%;
   --glow-intensity: 0;
   --glow-radius: 240px;
 
-  /* Glass. A translucent veil over the page ground plus a real backdrop blur,
-     so the midnight behind it - and anything passing over it, which the
-     floating module does - shows through softened rather than hidden. The
-     saturate is what stops blurred midnight going flat and grey. */
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.09),
-    rgba(255, 255, 255, 0.04)
-  );
-  backdrop-filter: blur(14px) saturate(130%);
-  -webkit-backdrop-filter: blur(14px) saturate(130%);
-  border: 1px solid var(--border-on-dark);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: #FFFFFF;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow:
+    0 1px 2px rgba(2, 6, 23, 0.25),
+    0 14px 32px -18px rgba(2, 6, 23, 0.7);
 
   /* transform is NOT here on purpose. GSAP animates it for the pointer tilt,
      and a CSS transition on the same property fights whichever of the two
@@ -1919,17 +1988,20 @@ button { font: inherit; cursor: pointer; }
   z-index: 1;
 }
 
+/* Held: still white - the card comes forward with a deeper shadow, the indigo
+   rim lights under the pointer, and the text firms up a step. */
 .drift-wall__tile.is-active .quote,
 .quote:hover {
-    background: rgba(18, 28, 68, 0.85);
-    border-color: rgba(99, 102, 241, 0.6);
+    background: #FFFFFF;
+    border-color: rgba(79, 70, 229, 0.3);
     z-index: 2;
     box-shadow:
-      0 18px 40px -12px rgba(2, 10, 36, 0.75),
-      0 0 30px rgba(var(--glow-color, 79, 70, 229), 0.3);
-    --ink-body: #ffffff;
-    --ink-name: #ffffff;
-    --ink-role: var(--blue-300);
+      0 2px 4px rgba(2, 6, 23, 0.25),
+      0 24px 48px -20px rgba(2, 10, 36, 0.85),
+      0 0 32px rgba(var(--glow-color, 79, 70, 229), 0.25);
+    --ink-body: #1E293B;
+    --ink-name: #0F172A;
+    --ink-role: #4F46E5;
     --glow-intensity: 1;
 }
 
@@ -1951,17 +2023,16 @@ button { font: inherit; cursor: pointer; }
   line-height: var(--lh-relaxed);
   color: var(--ink-body);
   transition: color var(--duration-base) var(--ease-standard);
-  /* Four lines reserved, whether or not there are four lines in it yet. A real
-     quote at this width runs three or four rows, so an empty slot that is one
-     row tall would let the whole section relayout the day the copy lands - and
-     would be a placeholder that lies about the space it is holding. */
-  min-height: calc(var(--fs-sm) * var(--lh-relaxed) * 4);
+  /* Never squeezed by a short tile: its natural height is what the tile
+     height is measured from (see Testimonials.tsx). */
+  flex-shrink: 0;
 }
 
 .quote__by {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  flex-shrink: 0;
 }
 
 /* A real image once a client has agreed to one; the monogram below is what
@@ -1976,7 +2047,7 @@ button { font: inherit; cursor: pointer; }
   height: 44px;
   border-radius: var(--radius-full);
   object-fit: cover;
-  border: 1px solid var(--border-on-dark);
+  border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 /* Type on a token fill, never a photograph of someone who is not the client -
@@ -1989,12 +2060,22 @@ button { font: inherit; cursor: pointer; }
   width: 36px;
   height: 36px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--border-on-dark);
-  background: var(--midnight-800);
+  border: 0;
+  background: var(--blue-500);
   font-family: var(--font-display);
   font-size: var(--fs-xs);
   font-weight: var(--fw-semibold);
-  color: var(--text-on-dark);
+  color: #FFFFFF;
+}
+
+/* The three brand colours, assigned per card in Testimonials.tsx so no two
+   stacked cards match. */
+.quote__mark[data-tone="midnight"] {
+  background: var(--midnight-500);
+}
+
+.quote__mark[data-tone="coral"] {
+  background: var(--coral-600);
 }
 
 .quote__who {
@@ -2051,7 +2132,6 @@ button { font: inherit; cursor: pointer; }
   .quote__body {
     font-size: var(--fs-xs);
     line-height: 1.35;
-    min-height: auto;
   }
   .quote__avatar {
     width: 32px;
@@ -2141,12 +2221,14 @@ button { font: inherit; cursor: pointer; }
    shorter padding step than the page default. */
 .work-section {
   position: relative;
-  min-height: 100svh;
+  /* The gap is added to the height too, so the screen the content has to
+     clear is unchanged; the gap follows it. */
+  min-height: calc(100svh + var(--section-gap));
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding-top: var(--below-header);
-  padding-bottom: clamp(var(--space-6), 3vh, var(--space-10));
+  padding-bottom: var(--section-gap);
   overflow: hidden;
 }
 
@@ -2806,7 +2888,7 @@ button { font: inherit; cursor: pointer; }
    --------------------------------------------------------------- */
 .method-section {
   position: relative;
-  min-height: 100svh;
+  min-height: calc(100svh + var(--section-gap));
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -2817,7 +2899,7 @@ button { font: inherit; cursor: pointer; }
      .method__head is sticky at header-height + space-6 - the track was simply
      never given the same allowance. */
   padding-top: var(--below-header);
-  padding-bottom: var(--space-4);
+  padding-bottom: var(--section-gap);
   z-index: var(--z-content);
   overflow: visible;
 }
@@ -3122,8 +3204,10 @@ button { font: inherit; cursor: pointer; }
    and capturing the scroll on touch is how you build a page people cannot get
    past. Stacked and flowing normally, the steps are just content. */
 @media (max-width: 900px) {
+  /* The pin that used to supply the header clearance is no longer rendered,
+     so the section takes it itself, like every other section. */
   .method-section {
-    padding-block: 0;
+    padding-block: var(--below-header) var(--section-gap);
   }
   .method__runway {
     height: calc(100svh + var(--method-runway, 0px));
@@ -3158,11 +3242,17 @@ button { font: inherit; cursor: pointer; }
     flex: 1;
     min-height: 0;
   }
+  /* Not sticky here: in one column a stuck heading slides over the steps
+     scrolling beneath it. */
   .method__head {
+    position: relative;
+    top: auto;
     align-self: stretch;
     flex-shrink: 0;
     border-bottom: 1px solid var(--gray-200);
     padding-bottom: clamp(var(--space-2), 1.5vh, var(--space-4));
+    /* The step chain below sizes itself against this width (cqi). */
+    container-type: inline-size;
   }
   .method__eyebrow {
     font-size: var(--fs-xs);
@@ -3177,6 +3267,21 @@ button { font: inherit; cursor: pointer; }
     font-size: var(--fs-xs);
     gap: 4px;
     margin-bottom: 4px;
+  }
+  /* One line at any phone width: spacing in em so it scales with the type, and
+     the type capped so the whole chain (~26em) fits the heading's width. It
+     only drops below 12px under ~370px wide. Browsers without container units
+     keep the wrapping chain above. */
+  @supports (width: 1cqi) {
+    .method__chain {
+      flex-wrap: nowrap;
+      white-space: nowrap;
+      gap: 0.3em;
+      font-size: min(var(--fs-xs), 100cqi / 26.5);
+    }
+    .method__chain .method__chain-arrow {
+      margin-right: 0.3em;
+    }
   }
   .method__lede {
     display: none;
@@ -3291,7 +3396,7 @@ button { font: inherit; cursor: pointer; }
   justify-content: center;
   /* Generous vertical clearance */
   padding-top: var(--below-header);
-  padding-bottom: clamp(var(--space-12), 6vh, var(--space-20));
+  padding-bottom: var(--section-gap);
   overflow: visible;
   background: transparent;
 }
@@ -3323,10 +3428,56 @@ button { font: inherit; cursor: pointer; }
   max-width: 860px;
 }
 
+/* Wording for how the reader will actually press: "Tap" on a touchscreen,
+   "Click" with a mouse or trackpad. Keyed on the INPUT, not the width - a
+   narrow desktop window still has a mouse, and a tablet is still touch.
+   display: contents when shown, so the wrapper adds no box of its own: its
+   icon and text lay out as if they were the parent's children. */
+.only-pointer { display: contents; }
+.only-touch { display: none; }
+
+@media (hover: none) and (pointer: coarse) {
+  .only-pointer { display: none; }
+  .only-touch { display: contents; }
+}
+
+/* The coverflow's card size, as one continuous curve: 66% of a phone's width
+   (the old 180px floor left a small card in a band of empty space), holding
+   at 280px through tablets and small laptops, then the original 24vw up to
+   300px once that is larger (~1170px wide and up). */
+.our-work__carousel {
+  --our-work-card: max(min(66vw, 280px), clamp(180px, 24vw, 300px));
+  /* Caption under the centred card. The component's 15/13px defaults read as
+     small print; these land at 18/15px on a 375px phone and 20/16px from
+     ~420px up. */
+  --cf-caption-title: clamp(18px, 4.8vw, 20px);
+  --cf-caption-text: clamp(15px, 4vw, 16px);
+  /* The dots sit under the cards and above the caption. The frame's bottom
+     padding (--cf-pad-y, kept for the card shadows) already spaces them off
+     the cards, so this pulls them back to a steady 24px below the images at
+     any padding - close enough to read as the cards' own, clear of the title. */
+  --cf-dots-gap: calc(var(--space-6) - var(--cf-pad-y, 2.5rem));
+  --cf-caption-gap: var(--space-8);
+}
+
+/* The frame pads above and below the cards to keep their shadows inside its
+   clip; on a phone 40px each way was most of the empty band.
+   The gap from the dots down to the caption, though, is the one place a phone
+   has room to spare: tied to screen HEIGHT, it opens up on tall phones (that
+   space otherwise sat unused under the hint) and stays compact on short ones. */
+@media (max-width: 640px) {
+  .our-work__carousel {
+    --cf-pad-y: var(--space-6);
+    /* Grows faster than the screen does: ~16px at 568px tall (no room to
+       give), ~30px at 667, ~50px at 812, ~66px at 932. */
+    --cf-caption-gap: clamp(var(--space-4), 14svh - 64px, 88px);
+  }
+}
+
 .our-work__hint {
   margin-top: var(--space-3);
   text-align: center;
-  font-size: var(--fs-sm);
+  font-size: clamp(15px, 4vw, 16px);
   color: var(--text-on-dark-secondary);
 }
 
@@ -3338,8 +3489,13 @@ button { font: inherit; cursor: pointer; }
   background: transparent;
   border-top: none;
   border-bottom: none;
-  padding-block: clamp(var(--space-12), 6vw, var(--space-20));
-  margin-top: var(--space-8);
+  /* No top padding and no margin-top: the section right above this one
+     (testimonials) already ends with a full --section-gap as its own
+     bottom padding - adding this sections own top spacing on top of that
+     stacked into a double gap. Only the bottom half of the old padding
+     survives, for the room below the headline before the footer. */
+  padding-block: 0 clamp(var(--space-12), 6vw, var(--space-20));
+  margin-top: 0;
   text-align: center;
   position: relative;
   z-index: var(--z-content);
@@ -3356,21 +3512,25 @@ button { font: inherit; cursor: pointer; }
 
 .cta-strip__title {
   font-family: var(--font-display);
-  font-size: clamp(22px, 4.8vw, 56px);
+  /* The floor eases below ~305px wide so a folded phone still gets two lines
+     rather than three; everywhere else it is the same 22-56px. */
+  font-size: clamp(min(22px, 7.2vw), 4.8vw, 56px);
   font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-tight);
   line-height: 1.15;
   text-align: center;
   margin: 0 auto;
-  white-space: nowrap;
   max-width: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
+/* One line wherever it fits; where it doesn't (every phone, and laptops near
+   1280px at the 56px cap) it wraps into two balanced lines instead of running
+   off both edges. The shine is a background clipped to the text, painted
+   across the whole inline-block, so it sweeps both lines as one. */
 .cta-strip__title .shiny-text {
-  white-space: nowrap;
+  max-width: 100%;
+  white-space: normal;
+  text-wrap: balance;
 }
 
 /* ---------------------------------------------------------------
@@ -3881,12 +4041,12 @@ textarea.input { resize: vertical; min-height: 120px; }
 
 .intro-section {
   position: relative;
-  min-height: 100svh;
+  min-height: calc(100svh + var(--section-gap));
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding-block: var(--space-20) var(--space-12);
+  padding-block: var(--space-20) var(--section-gap);
   overflow: visible;
 }
 
@@ -3970,9 +4130,11 @@ textarea.input { resize: vertical; min-height: 120px; }
   -webkit-text-fill-color: transparent;
 }
 
+/* On phones the intro is taller than the screen whatever its padding, so it
+   takes the same header clearance as every other section. */
 @media (max-width: 860px) {
   .intro-section {
-    padding-block: var(--space-12) var(--space-8);
+    padding-block: var(--below-header) var(--section-gap);
   }
 
   .intro__content {
@@ -4056,6 +4218,8 @@ textarea.input { resize: vertical; min-height: 120px; }
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
+  /* The card fills the section's height; the carousel sits in its middle. */
+  justify-content: center;
   /* NO BACKGROUND AND NO SHADOW. The white surface is drawn by the particle
      field behind this element - see lib/particleCardBackground. A background
      here would hide it; a drop shadow would redraw the hard rounded rectangle
@@ -4072,291 +4236,157 @@ textarea.input { resize: vertical; min-height: 120px; }
   color: #0F172A;
 }
 
-/* 1. Horizontal 3D Pill Tab Navigation */
-.offering-tabs-wrapper {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: none;
-}
-
-.offering-tabs-wrapper::-webkit-scrollbar {
-  display: none;
-}
-
-.offering-tabs {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-radius: 9999px;
-  max-width: 100%;
-}
-
-.offering-tab {
-  position: relative;
-  padding: 10px 22px;
-  border-radius: 9999px;
-  font-family: inherit;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #475569;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  outline: none;
-}
-
-.offering-tab:hover {
-  color: #0F172A;
-  background: #F1F5F9;
-}
-
-.offering-tab--active {
-  color: #FFFFFF !important;
-  font-weight: 600;
-  background: #2563EB !important;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.38) !important;
-}
-
-/* 2. Active Capability Panel */
-.offering-panel {
-  flex: 1 0 auto;
+/* ---------------------------------------------------------------
+   Offerings carousel - one card per module, inside the showcase.
+   Placement is JS (components/OfferingsCarousel); everything else is here.
+   Colours are the light-surface set the showcase has always used: the white
+   underneath is the particle field, not a background.
+   --------------------------------------------------------------- */
+.offer-carousel {
   display: flex;
   flex-direction: column;
-  margin-top: clamp(14px, 2.6vh, 32px);
-  animation: offeringFade 0.3s ease forwards;
+  gap: clamp(16px, 2.6vh, 28px);
 }
 
-@keyframes offeringFade {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.offer-intro {
+  text-align: center;
 }
 
-/* Header with Title and "Discuss this module" CTA */
-.offering-panel__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.offering-panel__eyebrow {
-  display: block;
-  font-size: 11px;
+.offer-intro__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 0.9rem + 0.6vw, 1.35rem);
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #2563EB;
-  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+  color: #0F172A;
+  text-wrap: balance;
 }
 
-.offering-panel__title {
-  font-family: var(--font-display, sans-serif);
-  font-size: clamp(28px, 3.2vw, 38px);
-  font-weight: 800;
+.offer-intro__hint {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #64748B;
+}
+
+/* The clip. Padded (and pulled back by the same amount) so the active card's
+   shadow isn't cut off at the clip edge. Horizontal drags are the carousel's;
+   vertical ones stay the page's. */
+.offer-viewport {
+  position: relative;
+  overflow: hidden;
+  padding-block: 10px 28px;
+  margin-block: -10px -28px;
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.offer-viewport[data-dragging] {
+  cursor: grabbing;
+  user-select: none;
+}
+
+/* Side cards fade into the card edge rather than being cut by it. Not on
+   phones, where only a sliver of the next card shows and a fade would hide it. */
+@media (min-width: 640px) {
+  .offer-viewport {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  }
+}
+
+/* All cards share one grid cell: the row is the tallest card, and every card
+   stretches to it. */
+.offer-track {
+  --offer-card-w: 86%;
+  --offer-gap: 12px;
+  display: grid;
+  justify-items: center;
+}
+
+@media (min-width: 640px) {
+  .offer-track {
+    --offer-card-w: clamp(280px, 40%, 400px);
+    --offer-gap: 20px;
+  }
+}
+
+.offer-card {
+  grid-area: 1 / 1;
+  width: var(--offer-card-w);
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(18px, 4vw, 28px);
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 22px;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 10px 28px -18px rgba(15, 23, 42, 0.22);
+  transition: border-color 250ms ease, box-shadow 250ms ease;
+  will-change: transform;
+  container-type: inline-size;
+}
+
+.offer-card[data-active] {
+  border-color: rgba(37, 99, 235, 0.22);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 22px 44px -24px rgba(37, 99, 235, 0.4);
+}
+
+/* While a card is open, the rest keep the collapsed row height instead of
+   stretching to the open one. */
+.offer-track[data-open] .offer-card {
+  align-self: start;
+  min-height: var(--offer-card-h, auto);
+}
+
+.offer-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.offer-card__icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  color: #2563EB;
+  background: linear-gradient(180deg, #EFF6FF, #DBEAFE);
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.12);
+}
+
+.offer-card__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.offer-card__index {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: #94A3B8;
+}
+
+/* cqi here is the card's own width, so the type fits the card on any screen. */
+.offer-card__title {
+  margin: 0 0 14px;
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 7cqi, 1.6rem);
+  font-weight: 700;
+  line-height: 1.15;
   letter-spacing: -0.02em;
   color: #0F172A;
-  margin: 0;
+  text-wrap: balance;
 }
 
-.offering-panel__cta-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 24px;
-  background: #2563EB;
-  color: #FFFFFF;
-  border-radius: 9999px;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.offering-panel__cta-btn:hover {
-  background: #1D4ED8;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
-}
-
-.offering-panel__cta-btn:active {
-  transform: translateY(0);
-}
-
-.offering-panel__cta-icon {
-  transition: transform 0.2s ease;
-}
-
-.offering-panel__cta-btn:hover .offering-panel__cta-icon {
-  transform: translateX(3px);
-}
-
-/* The Bottleneck Alert Banner (Warm Peach/Apricot) */
-.offering-bottleneck {
-  margin-top: clamp(10px, 2.2vh, 22px);
-  padding: clamp(9px, 1.9vh, 18px) 22px;
-  background: #FFF7ED;
-  border: 1px solid #FFEDD5;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.offering-bottleneck__icon {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-}
-
-.offering-bottleneck__text {
-  color: #7C2D12;
-  font-size: 14.5px;
-  line-height: 1.55;
-  margin: 0;
-}
-
-.offering-bottleneck__label {
-  color: #C2410C;
-  font-weight: 700;
-}
-
-/* 3D Bento Grid Layout */
-.offering-bento {
-  flex: 1 0 auto;
-  display: grid;
-  grid-template-columns: 1.45fr 1fr;
-  gap: clamp(12px, 2.4vh, 26px);
-  margin-top: clamp(10px, 2.4vh, 26px);
-}
-
-/* 3D Bento Card Component (Light Mode) */
-.offering-card {
-  position: relative;
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  border-radius: 20px;
-  padding: clamp(14px, 3.2vh, 34px);
-  overflow: hidden;
-  transform-style: preserve-3d;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease-out;
-  will-change: transform;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
-}
-
-.offering-card:hover {
-  border-color: #CBD5E1;
-  box-shadow:
-    0 14px 30px -10px rgba(0, 0, 0, 0.08),
-    0 0 20px rgba(37, 99, 235, 0.06);
-}
-
-.offering-card__glow {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(400px circle at var(--glow-x, 50%) var(--glow-y, 50%), rgba(37, 99, 235, 0.08), transparent 65%);
-  opacity: var(--glow-opacity, 0);
-  transition: opacity 0.3s ease;
-}
-
-.offering-card__content {
-  position: relative;
-  z-index: 1;
-}
-
-/* The card stretches, but its content wrapper was display: block, so the list
-   inside it could not take the leftover height and everything pooled at the
-   top. This is the link in the chain that was missing. */
-.offering-bento__capabilities > .offering-card__content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Left Card: Key Capabilities & Workflows */
-.offering-bento__capabilities {
-  display: flex;
-  flex-direction: column;
-}
-
-.offering-bento__section-title {
-  font-size: 15.5px;
-  font-weight: 700;
-  color: #0F172A;
-  margin: 0 0 clamp(8px, 2.2vh, 22px) 0;
-  letter-spacing: -0.01em;
-}
-
-/* The bento stretches to fill the card, so its contents distribute the height
-   rather than stacking at the top and leaving dead space under the last item. */
-.offering-bento__list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  justify-content: space-evenly;
-  gap: clamp(7px, 2.1vh, 22px);
-}
-
-.offering-bento__list-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.offering-bento__check {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.offering-bento__list-text {
-  color: #334155;
-  font-size: 14.5px;
-  line-height: 1.55;
-}
-
-/* Right Stack: Who Uses It & How It Connects */
-/* Both side cards share the column evenly and centre their own contents, so
-   the pair reads as a matched set rather than two short boxes at the top. */
-.offering-bento__side-stack {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(10px, 2.4vh, 26px);
-}
-
-.offering-bento__side-stack > .offering-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.offering-bento__tag-header {
-  margin-bottom: 8px;
-}
-
-.offering-bento__tag {
+.offer-card__label {
+  margin: 0 0 6px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -4364,26 +4394,368 @@ textarea.input { resize: vertical; min-height: 120px; }
   color: #64748B;
 }
 
-.offering-bento__role-text {
+.offer-card__label--problem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #C2410C;
+}
+
+.offer-card__label--problem::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #F97316;
+}
+
+.offer-card__text {
+  margin: 0;
+  font-size: clamp(14px, 4.3cqi, 15.5px);
+  line-height: 1.55;
+  color: #334155;
+}
+
+.offer-card__for {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 16px 0 18px;
+  font-size: clamp(13px, 4cqi, 14px);
+  line-height: 1.5;
+  color: #475569;
+}
+
+.offer-card__for svg {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  color: #94A3B8;
+}
+
+.offer-card__for-label {
+  font-weight: 600;
+  color: #0F172A;
+}
+
+/* margin-top: auto lines the toggles up along the bottom of equal-height
+   cards. The details open BELOW it, so the button stays under the finger. */
+.offer-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin-top: auto;
+  padding: 14px 0 0;
+  border: 0;
+  border-top: 1px solid #EEF2F7;
+  background: none;
+  font: inherit;
   font-size: 14.5px;
   font-weight: 600;
-  color: #1E293B;
+  color: #1D4ED8;
+  text-align: left;
+  cursor: pointer;
+}
+
+.offer-toggle__icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #EFF6FF;
+  color: #2563EB;
+  transition:
+    transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
+    background-color 200ms ease;
+}
+
+.offer-toggle__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.offer-toggle[aria-expanded="true"] .offer-toggle__icon {
+  transform: rotate(45deg);
+  background: #DBEAFE;
+}
+
+.offer-toggle:active .offer-toggle__icon {
+  transform: scale(0.92);
+}
+
+.offer-toggle[aria-expanded="true"]:active .offer-toggle__icon {
+  transform: rotate(45deg) scale(0.92);
+}
+
+.offer-toggle:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .offer-toggle:hover .offer-toggle__icon {
+    background: #DBEAFE;
+  }
+}
+
+/* 0fr -> 1fr animates to the content's real height, whatever it is. */
+.offer-more {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 280ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.offer-more[data-open] {
+  grid-template-rows: 1fr;
+}
+
+.offer-more__inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Out fast, in a beat after the height starts moving. */
+.offer-more__content {
+  padding-top: 18px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
+}
+
+.offer-more[data-open] .offer-more__content {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 240ms ease 60ms,
+    transform 280ms cubic-bezier(0.23, 1, 0.32, 1) 60ms;
+}
+
+.offer-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.offer-list__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: clamp(13.5px, 4.1cqi, 15px);
   line-height: 1.5;
-  margin: 0;
+  color: #334155;
 }
 
-.offering-bento__connect-text {
-  font-size: 14px;
+.offer-list__check {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 999px;
+  background: #EFF6FF;
+  color: #2563EB;
+}
+
+.offer-list__check svg {
+  width: 12px;
+  height: 12px;
+}
+
+.offer-connect {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  background: #F8FAFC;
+}
+
+.offer-connect__text {
+  margin: 0;
+  font-size: clamp(13px, 4cqi, 14px);
+  line-height: 1.5;
   color: #475569;
-  line-height: 1.55;
-  margin: 0;
 }
 
-/* Responsive Breakpoints */
-@media (max-width: 960px) {
-  .offering-bento {
-    grid-template-columns: 1fr;
-    gap: 16px;
+.offer-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: #2563EB;
+  color: #FFFFFF;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  box-shadow: 0 6px 16px -6px rgba(37, 99, 235, 0.55);
+  cursor: pointer;
+  transition:
+    transform 160ms ease-out,
+    background-color 200ms ease;
+}
+
+.offer-cta svg {
+  width: 16px;
+  height: 16px;
+}
+
+.offer-cta:active {
+  transform: scale(0.97);
+}
+
+.offer-cta:focus-visible {
+  outline: 2px solid #1D4ED8;
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .offer-cta:hover {
+    background: #1D4ED8;
+  }
+}
+
+.offer-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.offer-arrow,
+.offer-pause {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #E2E8F0;
+  border-radius: 999px;
+  background: #FFFFFF;
+  color: #0F172A;
+  cursor: pointer;
+  transition:
+    transform 160ms ease-out,
+    border-color 200ms ease,
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+.offer-arrow svg {
+  width: 18px;
+  height: 18px;
+}
+
+.offer-pause {
+  width: 36px;
+  height: 36px;
+  border-color: transparent;
+  background: transparent;
+  color: #64748B;
+}
+
+.offer-pause svg {
+  width: 13px;
+  height: 13px;
+}
+
+.offer-arrow:active,
+.offer-pause:active {
+  transform: scale(0.94);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .offer-arrow:hover {
+    border-color: #CBD5E1;
+    background: #F8FAFC;
+  }
+
+  .offer-pause:hover {
+    background: #F1F5F9;
+    color: #0F172A;
+  }
+}
+
+.offer-arrow:focus-visible,
+.offer-pause:focus-visible,
+.offer-dot:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
+
+.offer-dots {
+  display: flex;
+  align-items: center;
+}
+
+/* The button is a comfortable touch target; the pill inside is the dot. */
+.offer-dot {
+  display: grid;
+  place-items: center;
+  height: 32px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+}
+
+.offer-dot__track {
+  position: relative;
+  display: block;
+  width: 8px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #CBD5E1;
+  transition:
+    width 300ms cubic-bezier(0.23, 1, 0.32, 1),
+    background-color 200ms ease;
+}
+
+.offer-dot[aria-current="true"] .offer-dot__track {
+  width: 32px;
+  background: #BFDBFE;
+}
+
+/* The autoplay clock: linear, because it is a measure of time. */
+.offer-dot__fill {
+  position: absolute;
+  inset: 0;
+  background: #2563EB;
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: offer-progress linear forwards;
+}
+
+.offer-dot__fill--static {
+  transform: none;
+  animation: none;
+}
+
+@keyframes offer-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .offer-more,
+  .offer-more__content,
+  .offer-more[data-open] .offer-more__content,
+  .offer-dot__track,
+  .offer-toggle__icon {
+    transition: none;
   }
 }
 
@@ -4391,21 +4763,6 @@ textarea.input { resize: vertical; min-height: 120px; }
   .offering-showcase {
     padding: 24px 18px;
     border-radius: 20px;
-  }
-
-  .offering-tab {
-    padding: 8px 16px;
-    font-size: 12.5px;
-  }
-
-  .offering-panel__header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .offering-panel__cta-btn {
-    width: 100%;
-    justify-content: center;
   }
 }
 
@@ -4449,10 +4806,6 @@ textarea.input { resize: vertical; min-height: 120px; }
    that fits it once the header clearance is paid.
    --------------------------------------------------------------- */
 @media (max-height: 900px) {
-  .method-section {
-    padding-bottom: var(--space-4);
-  }
-
   .method__step {
     padding-block: clamp(6px, 1.1vh, 12px);
   }
@@ -4480,42 +4833,6 @@ textarea.input { resize: vertical; min-height: 120px; }
     padding: clamp(14px, 2.2vh, 22px);
   }
 
-  .offering-panel {
-    margin-top: clamp(10px, 1.6vh, 16px);
-  }
-
-  .offering-card {
-    padding: clamp(12px, 2.2vh, 34px);
-  }
-
-  .offering-bento {
-    gap: clamp(10px, 1.6vh, 26px);
-    margin-top: clamp(8px, 1.6vh, 26px);
-  }
-
-  .offering-bento__section-title {
-    margin-bottom: clamp(6px, 1.4vh, 22px);
-  }
-
-  .offering-bento__side-stack {
-    gap: clamp(8px, 1.6vh, 26px);
-  }
-
-  .offering-bento__list {
-    gap: clamp(5px, 0.9vh, 9px);
-  }
-
-  .offering-bento__list-text,
-  .offering-bento__role-text,
-  .offering-bottleneck__text {
-    font-size: 13.5px;
-  }
-
-  .offering-bottleneck {
-    margin-top: clamp(8px, 1.5vh, 22px);
-    padding: clamp(8px, 1.3vh, 18px) 22px;
-  }
-
   .work__head {
     margin-bottom: clamp(var(--space-3), 2vh, var(--space-8));
   }
@@ -4531,9 +4848,15 @@ textarea.input { resize: vertical; min-height: 120px; }
   .our-work__container {
     gap: clamp(var(--space-3), 2vh, var(--space-10));
   }
+}
 
+/* The intro's short-viewport top trim is for laptops fitting it in one screen.
+   A phone is under 900px tall too, but its intro never fits one screen, so the
+   trim only cost it its header clearance there. Only the top is trimmed: the
+   section gap is below the fold, so it costs the fit nothing. */
+@media (max-height: 900px) and (min-width: 861px) {
   .intro-section {
-    padding-block: var(--space-6);
+    padding-block: var(--space-6) var(--section-gap);
   }
 }
 
@@ -4551,34 +4874,6 @@ textarea.input { resize: vertical; min-height: 120px; }
   .offering-showcase {
     padding: clamp(10px, 1.8vh, 22px);
   }
-
-  .offering-tab {
-    padding: 6px 16px;
-    font-size: 12.5px;
-  }
-
-  .offering-bottleneck {
-    padding: 8px 16px;
-  }
-
-  .offering-card {
-    padding: clamp(10px, 1.6vh, 24px);
-  }
-
-  .offering-bento__list {
-    gap: clamp(4px, 0.8vh, 9px);
-  }
-
-  .offering-bento__list-text,
-  .offering-bento__role-text,
-  .offering-bottleneck__text {
-    font-size: 12.5px;
-    line-height: 1.45;
-  }
-
-  .offering-bento__section-title {
-    margin-bottom: clamp(5px, 1vh, 14px);
-  }
 }
 
 /* ===============================================================
@@ -4587,7 +4882,9 @@ textarea.input { resize: vertical; min-height: 120px; }
 .faq-section {
   position: relative;
   z-index: var(--z-content);
-  padding-block: clamp(var(--space-20), 10vh, var(--space-28));
+  /* Was clamp(space-20, 10vh, space-28): there is no --space-28 token, which
+     made the whole declaration invalid and left the FAQ with no padding. */
+  padding-block: var(--below-header) var(--section-gap);
   background: transparent;
   overflow: visible;
 }

@@ -222,6 +222,23 @@
      Anything pinned to the top of the viewport starts here, not at 0. */
   --below-header: calc(var(--space-5) + var(--header-h) + var(--space-6));
 
+  /* ---- Section rhythm ---- */
+
+  /* The room every section leaves after its content before the next section
+     begins. Tied to viewport HEIGHT, so each section reads as its own screen
+     on a tall phone and a short laptop alike: ~114px on a 812px-tall phone,
+     ~93px on a 667px one, capped for tall desktops and floored for landscape. */
+  --section-gap: clamp(var(--space-12), 14svh, 9rem);
+
+  /* ---- Flow constellation node ----
+     The docked node is the glass square plus its label hanging below it. The
+     flow section's berths reserve exactly this, so a node can never sit on the
+     label of the one above it. The label is fixed-px type, so its height is a
+     constant; the value carries a few px of slack over the measured 67px. */
+  --node-size: 68px;
+  --node-label-gap: 14px;
+  --node-label-h: 72px;
+
   /* ---- Elevation ---- */
   --shadow-sm: 0 1px 2px rgba(10,20,60,.06), 0 1px 1px rgba(10,20,60,.04);
   --shadow-md: 0 4px 12px rgba(10,20,60,.08), 0 2px 4px rgba(10,20,60,.05);

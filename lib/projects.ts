@@ -1,19 +1,16 @@
 /**
  * The builds shown in the Our Work section, and the case study each one opens.
  *
- * DRAFT CONTENT - REVIEW BEFORE THIS GOES LIVE.
- *
- * - Every photo is an Unsplash stock image chosen to suit the story beat, not a
- *   screenshot of what was built; there are none in the repo yet. Swap each
- *   `src` for a capture of the real product (drop them in
- *   public/assets/work/<project-id>/ and reference them as
- *   "/assets/work/<project-id>/<file>"). The illustrations are the site's own
- *   Zeal scenes and can stay.
- * - The story copy (tagline, challenge, approach, shift, captions) is written
- *   from each project's existing description and feature list: it describes the
- *   problems those features exist to solve, not a record of what the client
- *   told us. It deliberately makes no numeric claims and quotes no one. Replace
- *   it with the real story wherever the details differ.
+ * - Every screenshot is a capture of the real product, served from
+ *   public/assets/work/<project-id>/. card.webp is the square crop the
+ *   carousel shows; the rest are full screens (kind: "screenshot"), shown
+ *   whole in the case study rather than cropped like a photo. The
+ *   illustrations are the site's own Zeal scenes, used for the "where it
+ *   started" and "where it landed" beats, which no screenshot can show.
+ * - The story copy (tagline, challenge, approach, shift, captions) describes
+ *   the problems each product's screens exist to solve. It makes no numeric
+ *   claims and quotes no one. Replace it with the real story wherever the
+ *   details differ.
  */
 
 /** An image and what it shows. Used for the hero slideshow and the story. */
@@ -21,8 +18,11 @@ export interface ProjectFigure {
   src: string;
   alt: string;
   caption: string;
-  /** Illustrations are cut-outs, shown whole rather than cropped. */
-  kind?: "photo" | "illustration";
+  /**
+   * Photos are cropped to fill their frame. Illustrations are cut-outs and
+   * screenshots are interfaces, so both are shown whole.
+   */
+  kind?: "photo" | "illustration" | "screenshot";
 }
 
 export interface ProjectBuildItem {
@@ -75,666 +75,439 @@ export interface Project {
   gallery: ProjectFigure[];
 }
 
-const unsplash = (id: string, width = 1600, height = 1000) =>
-  `https://images.unsplash.com/photo-${id}?q=80&w=${width}&h=${height}&auto=format&fit=crop`;
+/** A capture of the real product, from public/assets/work/<project>/<file>.webp. */
+const shot = (project: string, file: string, alt: string, caption: string): ProjectFigure => ({
+  src: `/assets/work/${project}/${file}.webp`,
+  alt,
+  caption,
+  kind: "screenshot",
+});
 
 /* The site's own illustrations - transparent cut-outs of Zeal, the mascot. */
 const SCENE_PAPERWORK = "/assets/mascot/scenes/scene-paperwork.webp";
 const SCENE_RUNNING = "/assets/mascot/scenes/scene-running.webp";
-const SCENE_COUNTER = "/assets/mascot/scenes/scene-counter.webp";
 
 const PAPERWORK_ALT =
   "Illustration: a worried business owner at a desk stacked with paper invoices, with Zeal the Potentiaa mascot beside him";
 const RUNNING_ALT =
   "Illustration: a relaxed business owner checking his phone, with Zeal the Potentiaa mascot beside him";
 
+const started = (caption: string): ProjectFigure => ({
+  src: SCENE_PAPERWORK,
+  alt: PAPERWORK_ALT,
+  caption,
+  kind: "illustration",
+});
+
+const landed = (caption: string): ProjectFigure => ({
+  src: SCENE_RUNNING,
+  alt: RUNNING_ALT,
+  caption,
+  kind: "illustration",
+});
+
+/* ---- FQUAD ------------------------------------------------------------ */
+
+const FQUAD = {
+  homeHero: shot(
+    "fquad-website",
+    "home-hero",
+    "The F.QUAD homepage: a modern house lit at dusk under the headline 'Space is our medium'",
+    "The homepage, opening on the studio's own work.",
+  ),
+  featuredProjects: shot(
+    "fquad-website",
+    "featured-projects",
+    "The F.QUAD featured projects gallery, led by the Juice Salon unisex salon and spa",
+    "Featured projects, placed where visitors look first.",
+  ),
+  projectShowcase: shot(
+    "fquad-website",
+    "project-showcase",
+    "The F.QUAD project showcase: an interior seen through carved wooden doors, beside the F.Quad wordmark",
+    "Each project presented image first, one at a time.",
+  ),
+  contactFooter: shot(
+    "fquad-website",
+    "contact-footer",
+    "The F.QUAD contact section with 'Have a project in mind?', WhatsApp and Start a Project buttons, above the footer",
+    "Enquiries by WhatsApp or project brief, one step from any page.",
+  ),
+  processAndPress: shot(
+    "fquad-website",
+    "process-and-press",
+    "The F.QUAD process in four steps - brief, concept, development, delivery - above press features and a client testimonial",
+    "The studio's process, press and client words, told on the site.",
+  ),
+};
+
+/* ---- Raghuvansh ------------------------------------------------------- */
+
+const RAGHUVANSH = {
+  ramayanHero: shot(
+    "raghuvansh-website",
+    "ramayan-hero",
+    "The Raghuvansh Ki Ramayan page: an actor in costume on a lit stage, with Watch Ramayan and Book Us buttons",
+    "Flagship shows presented front and centre, with a way to book them.",
+  ),
+  home: shot(
+    "raghuvansh-website",
+    "home",
+    "The Raghuvansh homepage: 'Preserving the classical, pioneering the contemporary', a founder portrait and featured press coverage",
+    "The homepage: the group's story, founder and press coverage.",
+  ),
+  productions: shot(
+    "raghuvansh-website",
+    "productions",
+    "The Raghuvansh productions page showing posters for Baki Itihas, Baaki Itihaas and Saari Raat",
+    "Productions and their posters, added as new shows open.",
+  ),
+  repertoire: shot(
+    "raghuvansh-website",
+    "repertoire",
+    "The Raghuvansh repertoire section: Ramayan, Productions and Mehfil-e-Ghazal musical evenings",
+    "The repertoire, from Ramayan to musical evenings.",
+  ),
+  bookingFooter: shot(
+    "raghuvansh-website",
+    "booking-footer",
+    "The Raghuvansh footer: 'Bring Raghuvansh to your stage' with a WhatsApp enquiry link and contact details",
+    "Booking enquiries, one tap from every page.",
+  ),
+};
+
+/* ---- Dental ----------------------------------------------------------- */
+
+const DPMS = {
+  dashboard: shot(
+    "dental-erp",
+    "dashboard",
+    "The DPMS dashboard greeting Dr. Rahul, with revenue, revenue breakdown, income and expense, and the lab work pipeline",
+    "The dashboard: revenue, expenses and lab orders at a glance.",
+  ),
+  receptionDesk: shot(
+    "dental-erp",
+    "reception-desk",
+    "The DPMS reception desk: patient intake and billing, the live patient queue, doctors' status and today's appointments",
+    "Patients registered, billed and queued at the front desk.",
+  ),
+  labWork: shot(
+    "dental-erp",
+    "lab-work-pipeline",
+    "The DPMS lab work and prosthetics pipeline, with orders moving from impression to dispatched, received and delivered",
+    "Each lab order on its round trip, stage by stage.",
+  ),
+  inventory: shot(
+    "dental-erp",
+    "inventory",
+    "The DPMS inventory: stock valuation, low-stock and expiry alerts, and medicine cards with stock levels and reorder points",
+    "Medicine stock, reorder points and expiry dates.",
+  ),
+  assetsAndEmis: shot(
+    "dental-erp",
+    "assets-and-emis",
+    "The DPMS financial ledger's Assets and EMIs tab: clinic equipment with total cost, monthly EMI and repayment progress",
+    "The financial ledger, down to equipment EMIs.",
+  ),
+  clinicalTemplates: shot(
+    "dental-erp",
+    "clinical-templates",
+    "The DPMS admin panel's clinical templates for procedures such as scaling, fillings, root canals and extractions",
+    "Clinical notes turned into templates the doctors reuse.",
+  ),
+};
+
+/* ---- Business MIS ----------------------------------------------------- */
+
+const MIS = {
+  executiveDashboard: shot(
+    "business-mis",
+    "executive-dashboard",
+    "The MIS executive dashboard: financial overview, sales pipeline summary, at-risk projects and team capacity",
+    "The executive dashboard: finance, pipeline, delivery and capacity.",
+  ),
+  salesCrm: shot(
+    "business-mis",
+    "sales-crm",
+    "The MIS sales CRM board with leads in New, In Discussion, Proposal Sent and Closed Won columns",
+    "Every lead by stage, with its value and follow-up date.",
+  ),
+  teamOperations: shot(
+    "business-mis",
+    "team-operations",
+    "The MIS team and operations workload board, with tasks under To Do, In Progress, In Review, Blockers and Done",
+    "Tasks by status, priority and owner, blockers included.",
+  ),
+  knowledgeBase: shot(
+    "business-mis",
+    "knowledge-base",
+    "The MIS knowledge base: a company overview document beside folders for company, products, operations and go-to-market",
+    "How the company works, written down in one place.",
+  ),
+  contentMarketing: shot(
+    "business-mis",
+    "content-marketing",
+    "The MIS content and marketing hub comparing Instagram, LinkedIn, YouTube, X and newsletter by audience, reach, leads and cost per lead",
+    "Every channel's reach, leads and cost per lead, side by side.",
+  ),
+};
+
 export const PROJECTS: Project[] = [
   {
     id: "fquad-website",
     title: "FQUAD Website",
     description: "Website, SEO engine, real-time analytics & custom CMS.",
-    image: unsplash("1460925895917-afdab827c52f", 1200, 1200),
-    imageAlt: "FQUAD Website Analytics & CMS Dashboard",
+    image: "/assets/work/fquad-website/card.webp",
+    imageAlt: "The F.QUAD homepage: a modern house lit at dusk",
     features: ["Website", "SEO Engine", "Analytics", "CMS"],
-    industry: "Website platform",
-    tagline: "A website the team can run themselves, and measure as they go.",
+    industry: "Architecture & interior design",
+    tagline: "A studio's work, shown the way it deserves, and a site the team runs itself.",
     challenge: {
-      title: "A website shouldn't need a developer for every change",
-      body: "FQUAD needed more than a brochure site. They wanted to be found in search, to know which pages were actually bringing in enquiries, and to keep their own content current without waiting on someone else to publish it.",
+      title: "A portfolio shouldn't need a developer for every change",
+      body: "F.QUAD is an architecture and interior design studio, and its projects are its best argument. The studio needed a site that puts that work first, gets found in search, shows which pages bring in enquiries, and stays current without waiting on someone else to publish.",
       pains: [
-        "Content updates that depend on a developer",
+        "Project updates that depend on a developer",
         "No clear view of which pages bring in enquiries",
         "Search visibility left to chance",
       ],
-      figure: {
-        src: unsplash("1467232004584-a241de8bcf5d"),
-        alt: "A developer's desk at night with code on two monitors",
-        caption: "Where it started: every change to the site went through a developer's desk.",
-      },
+      figure: started("Where it started: every project update and enquiry handled by hand."),
     },
     approach: [
-      { stage: "Understand", body: "Who FQUAD needs to reach, and how they describe their own services." },
-      { stage: "Map", body: "Each page matched to what people search for, and to the enquiry it should lead to." },
+      { stage: "Understand", body: "Who the studio needs to reach, and how those clients look for a designer." },
+      { stage: "Map", body: "Projects placed first, with each page matched to what people search for and the enquiry it leads to." },
       { stage: "Build", body: "The site, SEO engine, analytics and CMS as one system on shared content." },
-      { stage: "Train", body: "Publishing pages and reading the dashboard, handed over to the team." },
+      { stage: "Train", body: "Publishing projects and reading the dashboard, handed over to the team." },
     ],
-    approachFigure: {
-      src: unsplash("1522542550221-31fd19575a2d"),
-      alt: "Colourful page wireframes sketched on paper",
-      caption: "Pages planned around what people search for, before any design.",
-    },
+    approachFigure: FQUAD.featuredProjects,
     built: [
       {
         title: "Website",
-        detail: "A fast, responsive site that presents FQUAD's services clearly on every screen size.",
-        figure: {
-          src: unsplash("1547658719-da2b51169166"),
-          alt: "Landing page designs on a desktop monitor, tablet and phone",
-          caption: "The site, laid out to read cleanly on every screen.",
-        },
+        detail: "A fast, responsive site that presents the studio's projects image first, on every screen size.",
+        figure: FQUAD.homeHero,
       },
       {
         title: "SEO engine",
-        detail: "Page titles, descriptions, sitemaps and structured data generated from the content itself, so new pages are search-ready when they are published.",
-        figure: {
-          src: unsplash("1543286386-713bdd548da4"),
-          alt: "A hand-drawn growth chart on paper beside a ruler and pens",
-          caption: "Search structure planned once, then generated for every new page.",
-        },
+        detail: "Page titles, descriptions, sitemaps and structured data generated from the content itself, so new project pages are search-ready when they are published.",
+        figure: FQUAD.projectShowcase,
       },
       {
         title: "Real-time analytics",
         detail: "A live view of visitors, traffic sources and enquiries, so the team can see what is working.",
-        figure: {
-          src: unsplash("1551288049-bebda4e38f71"),
-          alt: "Traffic and engagement charts on a tablet screen",
-          caption: "Visitors, sources and enquiries, live.",
-        },
+        figure: FQUAD.contactFooter,
       },
       {
         title: "Custom CMS",
-        detail: "An editor built around FQUAD's own content, for updating pages, posts and media without touching code.",
-        figure: {
-          src: unsplash("1504868584819-f8e8b4b6d7e3"),
-          alt: "A laptop showing a content dashboard",
-          caption: "The editor the team publishes from.",
-        },
+        detail: "An editor built around the studio's own content, for updating projects, process and press without touching code.",
+        figure: FQUAD.processAndPress,
       },
     ],
     shift: [
-      { before: "Copy changes queued for a developer", after: "Pages and posts edited directly in the CMS" },
+      { before: "Project updates queued for a developer", after: "Projects and pages edited directly in the CMS" },
       { before: "Guessing which pages work", after: "Live visitors, sources and enquiries on one dashboard" },
       { before: "SEO handled page by page, if at all", after: "Metadata, sitemaps and structured data generated automatically" },
     ],
-    outcomeFigure: {
-      src: unsplash("1522071820081-009f0129c71c", 1800, 800),
-      alt: "A team working together at laptops around a table",
-      caption: "Where it landed: a team that publishes and measures on its own.",
-    },
+    outcomeFigure: landed("Where it landed: a studio that publishes and measures on its own."),
     gallery: [
-      {
-        src: unsplash("1460925895917-afdab827c52f"),
-        alt: "Analytics dashboard open on a laptop",
-        caption: "Real-time analytics dashboard",
-      },
-      {
-        src: unsplash("1504868584819-f8e8b4b6d7e3"),
-        alt: "A laptop showing a content dashboard",
-        caption: "Content management",
-      },
-      {
-        src: unsplash("1547658719-da2b51169166"),
-        alt: "Landing page designs on a desktop monitor, tablet and phone",
-        caption: "Responsive page layouts",
-      },
-      {
-        src: unsplash("1498050108023-c5249f4df085"),
-        alt: "A laptop with code open on a white desk",
-        caption: "Site build",
-      },
+      FQUAD.homeHero,
+      FQUAD.featuredProjects,
+      FQUAD.projectShowcase,
+      FQUAD.processAndPress,
+      FQUAD.contactFooter,
     ],
   },
   {
     id: "raghuvansh-website",
     title: "Raghuvansh Website",
-    description: "Luxury brand website, SEO engine, real-time analytics & CMS.",
-    image: unsplash("1507238691740-187a5b1d37b8", 1200, 1200),
-    imageAlt: "Raghuvansh Luxury Flagship Web Platform",
+    description: "Theatre group website, SEO engine, real-time analytics & CMS.",
+    image: "/assets/work/raghuvansh-website/card.webp",
+    imageAlt: "The Raghuvansh Ki Ramayan page: an actor in costume on a lit stage",
     features: ["Website", "SEO Engine", "Analytics", "CMS"],
-    industry: "Luxury brand",
-    tagline: "A flagship site that feels like the brand, and runs like a tool.",
+    industry: "Performing arts · Theatre",
+    tagline: "A stage online for a theatre group's productions, repertoire and bookings.",
     challenge: {
-      title: "A premium brand needs a site that looks the part",
-      body: "For a luxury brand, the website is often the first impression, and it has to carry the same care as the product. Raghuvansh also needed that site to be discoverable, measurable, and easy for their own team to keep fresh.",
+      title: "A stage presence that has to carry online",
+      body: "Raghuvansh Group of Performing Arts has been bringing classical Indian theatre to the stage since 2000. Its website needed to present the productions and repertoire with the same grandeur, be found by people looking for shows, turn visits into bookings, and stay easy for the group to keep current.",
       pains: [
-        "An online presence that has to match the product's quality",
-        "Collections and content that should stay in the brand team's hands",
-        "Visits and enquiries that need to be measurable",
+        "Productions and repertoire with no single home online",
+        "Booking enquiries arriving through scattered channels",
+        "Show updates that should stay in the group's own hands",
       ],
-      figure: {
-        src: unsplash("1432888498266-38ffec3eaf0a"),
-        alt: "A designer sketching layouts on paper beside a phone",
-        caption: "Where it started: a brand that expects craft in every detail, online too.",
-      },
+      figure: started("Where it started: productions, bookings and updates handled by hand."),
     },
     approach: [
-      { stage: "Understand", body: "The brand's tone and imagery, and how its customers expect to be spoken to." },
-      { stage: "Map", body: "Page flow paced so the collections lead, with search structure built in from the start." },
-      { stage: "Build", body: "A design-led front end on the same SEO, analytics and CMS foundation as our other web builds." },
-      { stage: "Train", body: "Collections, pages and media, managed by the brand team." },
+      { stage: "Understand", body: "The group's story, its productions, and how audiences and organisers find a show." },
+      { stage: "Map", body: "Pages paced around the productions and repertoire, with search structure built in from the start." },
+      { stage: "Build", body: "A design-led site on the same SEO, analytics and CMS foundation as our other web builds." },
+      { stage: "Train", body: "Productions, pages and media, managed by the group itself." },
     ],
-    approachFigure: {
-      src: unsplash("1522542550221-31fd19575a2d"),
-      alt: "Colourful page wireframes sketched on paper",
-      caption: "The page flow, paced so the collections lead.",
-    },
+    approachFigure: RAGHUVANSH.repertoire,
     built: [
       {
-        title: "Luxury brand website",
-        detail: "A design-led site with the pacing, imagery and typography a premium brand calls for.",
-        figure: {
-          src: unsplash("1507238691740-187a5b1d37b8"),
-          alt: "A laptop showing a minimal brand website",
-          caption: "The flagship homepage.",
-        },
+        title: "Performing arts website",
+        detail: "A design-led site with the grandeur, imagery and typography of the stage.",
+        figure: RAGHUVANSH.home,
       },
       {
         title: "SEO engine",
         detail: "Search-ready metadata, sitemaps and structured data for every page, generated automatically.",
-        figure: {
-          src: unsplash("1543286386-713bdd548da4"),
-          alt: "A hand-drawn growth chart on paper beside a ruler and pens",
-          caption: "Search-ready from the first page published.",
-        },
+        figure: RAGHUVANSH.ramayanHero,
       },
       {
         title: "Real-time analytics",
-        detail: "Live visitor and enquiry tracking in one dashboard.",
-        figure: {
-          src: unsplash("1504868584819-f8e8b4b6d7e3"),
-          alt: "A laptop showing a dashboard of charts",
-          caption: "Visitor and enquiry tracking in one place.",
-        },
+        detail: "Live visitor and booking-enquiry tracking in one dashboard.",
+        figure: RAGHUVANSH.bookingFooter,
       },
       {
         title: "CMS",
-        detail: "Collections, pages and media the brand team manages themselves.",
-        figure: {
-          src: unsplash("1517694712202-14dd9538aa97"),
-          alt: "A code editor open on a laptop beside a plant",
-          caption: "Collections, pages and media, managed in-house.",
-        },
+        detail: "Productions, pages and media the group manages themselves.",
+        figure: RAGHUVANSH.productions,
       },
     ],
     shift: [
-      { before: "Every update briefed out to someone else", after: "Collections and pages managed in-house" },
-      { before: "A brand story told in fragments", after: "One considered flagship experience" },
-      { before: "No view of what visitors engage with", after: "Live visitor and enquiry tracking" },
+      { before: "Productions scattered across posters and social posts", after: "Every production and the repertoire in one place" },
+      { before: "Every update briefed out to someone else", after: "Productions and pages managed in-house" },
+      { before: "No view of what visitors engage with", after: "Live visitor and booking-enquiry tracking" },
     ],
-    outcomeFigure: {
-      src: unsplash("1498050108023-c5249f4df085", 1800, 800),
-      alt: "A laptop on a bright, uncluttered desk",
-      caption: "Where it landed: one considered flagship, kept fresh by the brand team.",
-    },
+    outcomeFigure: landed("Where it landed: the group's stage, online and kept current by the group."),
     gallery: [
-      {
-        src: unsplash("1507238691740-187a5b1d37b8"),
-        alt: "A laptop showing a minimal brand website",
-        caption: "Brand homepage",
-      },
-      {
-        src: unsplash("1547658719-da2b51169166"),
-        alt: "Page designs on a desktop monitor, tablet and phone",
-        caption: "Responsive layouts",
-      },
-      {
-        src: unsplash("1432888498266-38ffec3eaf0a"),
-        alt: "A designer sketching layouts on paper beside a phone",
-        caption: "Design system",
-      },
-      {
-        src: unsplash("1517694712202-14dd9538aa97"),
-        alt: "A code editor open on a laptop beside a plant",
-        caption: "CMS and site build",
-      },
+      RAGHUVANSH.ramayanHero,
+      RAGHUVANSH.home,
+      RAGHUVANSH.productions,
+      RAGHUVANSH.repertoire,
+      RAGHUVANSH.bookingFooter,
     ],
   },
   {
     id: "dental-erp",
     title: "Dental Practice Management",
-    description: "Revenue tracking, patient history, lab work pipeline, clinic ledger & chemist management.",
-    image: unsplash("1576091160399-112ba8d25d1d", 1200, 1200),
-    imageAlt: "Dental Practice Management System Dashboard",
-    features: ["Revenue Tracking", "Patient History", "Lab Pipeline", "Clinic Ledger", "Chemist"],
+    description: "Revenue dashboard, reception desk, lab work pipeline, clinic ledger & inventory.",
+    image: "/assets/work/dental-erp/card.webp",
+    imageAlt: "The DPMS dashboard greeting Dr. Rahul, with revenue charts",
+    features: ["Revenue Dashboard", "Reception Desk", "Lab Pipeline", "Clinic Ledger", "Inventory"],
     industry: "Healthcare · Dental clinic",
     tagline: "Registers, lab slips and ledgers, replaced by one system the whole clinic uses.",
     challenge: {
       title: "A clinic running on registers and memory",
-      body: "A busy dental practice juggles far more than appointments: every patient's treatment history, lab work going out and coming back, the clinic's own accounts, and a chemist counter on top. When those live in separate registers, the end of the month becomes an exercise in piecing it all back together.",
+      body: "A busy dental practice juggles far more than appointments: patients arriving at the front desk, lab work going out and coming back, the clinic's own accounts and equipment loans, and medicine stock on top. When those live in separate registers, the end of the month becomes an exercise in piecing it all back together.",
       pains: [
-        "Patient history spread across files and registers",
+        "Patient visits and bills spread across files and registers",
         "Lab orders followed up by memory and phone calls",
         "Revenue only visible after a manual tally",
       ],
-      figure: {
-        src: SCENE_PAPERWORK,
-        alt: PAPERWORK_ALT,
-        caption: "Where it started: records, lab slips and accounts, all on paper.",
-        kind: "illustration",
-      },
+      figure: started("Where it started: records, lab slips and accounts, all on paper."),
     },
     approach: [
-      { stage: "Understand", body: "A clinic day end to end: front desk, chair, lab and chemist counter." },
-      { stage: "Map", body: "A visit, a lab order's round trip, a bill and a medicine sale, each traced step by step." },
+      { stage: "Understand", body: "A clinic day end to end: front desk, chair, lab and medicine stock." },
+      { stage: "Map", body: "A visit, a lab order's round trip, a bill and a treatment note, each traced step by step." },
       { stage: "Build", body: "Five modules on one patient record, so everything connects back to the person." },
       { stage: "Train", body: "Doctors and staff onboarded to the screens they actually use." },
     ],
-    approachFigure: {
-      src: unsplash("1629909613654-28e377c37b09"),
-      alt: "A modern dental clinic treatment room",
-      caption: "Every workflow traced through the clinic, from the front desk to the chair.",
-    },
+    approachFigure: DPMS.clinicalTemplates,
     built: [
       {
-        title: "Revenue tracking",
-        detail: "Earnings by treatment, doctor and day, updated as bills are raised.",
-        figure: {
-          src: unsplash("1551288049-bebda4e38f71"),
-          alt: "Revenue charts on a tablet screen",
-          caption: "Revenue by treatment, doctor and day.",
-        },
+        title: "Revenue dashboard",
+        detail: "Revenue, expenses and profit over time, with the day's lab orders alongside.",
+        figure: DPMS.dashboard,
       },
       {
-        title: "Patient history",
-        detail: "Visits, treatments, notes and records for every patient, in one place.",
-        figure: {
-          src: unsplash("1588776814546-1ffcf47267a5"),
-          alt: "A dentist reviewing dental X-rays on a light board",
-          caption: "Treatments, notes and imaging on the patient's record.",
-        },
+        title: "Reception desk",
+        detail: "Patients registered and billed at the front desk, with a live queue and each doctor's availability.",
+        figure: DPMS.receptionDesk,
       },
       {
         title: "Lab work pipeline",
         detail: "Each lab order tracked from impression to delivery, so nothing is lost between the clinic and the lab.",
-        figure: {
-          src: unsplash("1566576721346-d4a3b4eaeb55"),
-          alt: "A parcel being handed over for delivery",
-          caption: "Each lab order tracked on its round trip.",
-        },
+        figure: DPMS.labWork,
       },
       {
         title: "Clinic ledger",
-        detail: "Income and expenses recorded as they happen rather than reconciled later.",
-        figure: {
-          src: unsplash("1543286386-713bdd548da4"),
-          alt: "A hand-drawn chart on paper beside a ruler and pens",
-          caption: "Income and expenses, recorded as they happen.",
-        },
-      },
-      {
-        title: "Chemist management",
-        detail: "Medicine stock and sales from the in-house chemist, tied to the same patient records.",
-        figure: {
-          src: unsplash("1604719312566-8912e9227c6a"),
-          alt: "Long aisles of stocked shelves",
-          caption: "Medicine stock and sales, tied to patient records.",
-        },
-      },
-    ],
-    shift: [
-      { before: "Flipping through registers for a patient's past treatment", after: "The full history on one screen" },
-      { before: "Lab work chased over the phone", after: "Every lab order tracked from impression to delivery" },
-      { before: "A month-end tally to see what the clinic earned", after: "Revenue visible as bills are raised" },
-      { before: "Chemist stock counted by hand", after: "Medicine stock and sales tied to the same records" },
-    ],
-    outcomeFigure: {
-      src: SCENE_RUNNING,
-      alt: RUNNING_ALT,
-      caption: "Where it landed: the clinic's whole day, in one system.",
-      kind: "illustration",
-    },
-    gallery: [
-      {
-        src: unsplash("1576091160399-112ba8d25d1d"),
-        alt: "A doctor using an app on a phone",
-        caption: "Practice app",
-      },
-      {
-        src: unsplash("1629909613654-28e377c37b09"),
-        alt: "A modern dental clinic treatment room",
-        caption: "Chair-side patient records",
-      },
-      {
-        src: unsplash("1588776814546-1ffcf47267a5"),
-        alt: "A dentist reviewing dental X-rays on a light board",
-        caption: "Patient history and imaging",
-      },
-      {
-        src: unsplash("1551288049-bebda4e38f71"),
-        alt: "Revenue charts on a tablet screen",
-        caption: "Revenue and ledger reports",
-      },
-    ],
-  },
-  {
-    id: "event-erp",
-    title: "Event Management App",
-    description: "Complete organisation billing, inventory, labour tracking & revenue tracking.",
-    image: unsplash("1511578314322-379afb476865", 1200, 1200),
-    imageAlt: "Event Operations & Production Management System",
-    features: ["Billing", "Inventory", "Labour Tracking", "Revenue Tracking"],
-    industry: "Events & production",
-    tagline: "Every event's bills, gear and crew, accounted for in one place.",
-    challenge: {
-      title: "Every event is a small business of its own",
-      body: "An events company runs dozens of short, intense projects: quoting the client, sending equipment out, booking crew, and collecting payment afterwards. When that lives across spreadsheets and chats, it is hard to know where the gear is, who is owed what, or whether an event actually made money.",
-      pains: [
-        "Equipment going out without a clear record of what came back",
-        "Crew hours and payments worked out after the fact",
-        "No clear picture of what each event earned",
-      ],
-      figure: {
-        src: SCENE_PAPERWORK,
-        alt: PAPERWORK_ALT,
-        caption: "Where it started: quotes, gear lists and crew payments, spread across paper and chats.",
-        kind: "illustration",
-      },
-    },
-    approach: [
-      { stage: "Understand", body: "An event from enquiry to wrap-up, and where time and money slip through." },
-      { stage: "Map", body: "Billing, inventory, labour and revenue organised around the event itself." },
-      { stage: "Build", body: "One app where every quote, equipment movement and crew shift belongs to an event." },
-      { stage: "Train", body: "Office and on-ground teams onboarded to the parts they use." },
-    ],
-    approachFigure: {
-      src: unsplash("1505373877841-8d25f7d46678"),
-      alt: "A presenter on stage in front of a large screen",
-      caption: "An event followed from the first enquiry to the final bow.",
-    },
-    built: [
-      {
-        title: "Billing",
-        detail: "Quotes and invoices for every event, raised from the job itself.",
-        figure: {
-          src: unsplash("1563013544-824ae1b704d3"),
-          alt: "A card payment being made on a laptop",
-          caption: "Quotes and invoices raised from the event itself.",
-        },
+        detail: "Income, expenses and dues recorded as they happen, down to the EMIs on clinic equipment.",
+        figure: DPMS.assetsAndEmis,
       },
       {
         title: "Inventory",
-        detail: "Equipment booked out to events and checked back in, so stock is always accounted for.",
-        figure: {
-          src: unsplash("1511578314322-379afb476865"),
-          alt: "An event hall set up with screens and seating",
-          caption: "Equipment booked out to each event, and checked back in.",
-        },
-      },
-      {
-        title: "Labour tracking",
-        detail: "Crew assigned to each event, with hours and payments recorded against the job.",
-        figure: {
-          src: unsplash("1522071820081-009f0129c71c"),
-          alt: "A team working together at laptops around a table",
-          caption: "Crew, hours and payments, against every job.",
-        },
-      },
-      {
-        title: "Revenue tracking",
-        detail: "Income and costs per event and across the business, in one view.",
-        figure: {
-          src: unsplash("1551288049-bebda4e38f71"),
-          alt: "Revenue charts on a tablet screen",
-          caption: "Income and costs per event, side by side.",
-        },
+        detail: "Medicine and supply stock with reorder points and expiry alerts.",
+        figure: DPMS.inventory,
       },
     ],
     shift: [
-      { before: "Gear lists on paper, checked back by memory", after: "Equipment booked out and checked in against each event" },
-      { before: "Crew payments pieced together from messages", after: "Hours and payments recorded against the job" },
-      { before: "Guessing which events were worth it", after: "Income and costs per event, side by side" },
+      { before: "Patients and bills written up by hand at the desk", after: "Intake, billing and the queue on one screen" },
+      { before: "Lab work chased over the phone", after: "Every lab order tracked from impression to delivery" },
+      { before: "A month-end tally to see what the clinic earned", after: "Revenue visible as bills are raised" },
+      { before: "Stock counted by hand, expiries missed", after: "Reorder points and expiry alerts in the inventory" },
     ],
-    outcomeFigure: {
-      src: SCENE_RUNNING,
-      alt: RUNNING_ALT,
-      caption: "Where it landed: every event accounted for, in one place.",
-      kind: "illustration",
-    },
+    outcomeFigure: landed("Where it landed: the clinic's whole day, in one system."),
     gallery: [
-      {
-        src: unsplash("1511578314322-379afb476865"),
-        alt: "An event hall set up with screens and seating",
-        caption: "Event setup and bookings",
-      },
-      {
-        src: unsplash("1505373877841-8d25f7d46678"),
-        alt: "A presenter on stage in front of a large screen",
-        caption: "Event-day operations",
-      },
-      {
-        src: unsplash("1540575467063-178a50c2df87"),
-        alt: "An audience seated at a conference",
-        caption: "Crew and labour tracking",
-      },
-      {
-        src: unsplash("1492684223066-81342ee5ff30"),
-        alt: "Confetti over a concert crowd",
-        caption: "Revenue per event",
-      },
+      DPMS.dashboard,
+      DPMS.receptionDesk,
+      DPMS.labWork,
+      DPMS.inventory,
+      DPMS.assetsAndEmis,
+      DPMS.clinicalTemplates,
     ],
   },
   {
-    id: "warehouse-hub",
-    title: "Warehouse & Dispatch Hub",
-    description: "Barcode scanning, 1-click challans, inventory tracking & multi-godown stock sync.",
-    image: unsplash("1586528116311-ad8dd3c8310d", 1200, 1200),
-    imageAlt: "Warehouse & Logistics Inventory Management System",
-    features: ["Warehouse ERP", "Barcode Scanner", "1-Click Challans", "Stock Sync"],
-    industry: "Logistics & warehousing",
-    tagline: "Stock that matches reality, across every godown.",
+    id: "business-mis",
+    title: "Business MIS",
+    description: "Executive dashboard, sales CRM, team operations, knowledge base & marketing hub.",
+    image: "/assets/work/business-mis/card.webp",
+    imageAlt: "The MIS executive dashboard with the financial overview and at-risk projects",
+    features: ["Executive Dashboard", "Sales CRM", "Team Operations", "Knowledge Base", "Marketing Hub"],
+    industry: "Services business · MIS",
+    tagline: "Money, pipeline, people and knowledge, on one screen the founder checks first.",
     challenge: {
-      title: "Stock counts that never quite match",
-      body: "Running more than one godown multiplies every stock problem. When goods move between locations and out to customers faster than registers can be updated, the numbers on paper drift away from what is on the shelves, and every dispatch still needs its challan written up by hand.",
+      title: "Running a growing team from too many tools",
+      body: "A growing services business has a lot moving at once: leads working through a pipeline, projects at risk of slipping, a team with more work than hours, documents nobody can find, and marketing spread across several channels. When each lives in its own tool, the founder has to stitch the picture together before any decision can be made.",
       pains: [
-        "A manual entry at every stock movement",
-        "Challans prepared by hand for each dispatch",
-        "Godowns out of step with each other",
+        "Revenue, receivables and pipeline checked in separate places",
+        "Delayed projects and overloaded people spotted too late",
+        "Company knowledge scattered across chats and drives",
+        "Marketing spend with no clear line to the leads it brings",
       ],
-      figure: {
-        src: SCENE_PAPERWORK,
-        alt: PAPERWORK_ALT,
-        caption: "Where it started: stock registers and handwritten challans.",
-        kind: "illustration",
-      },
+      figure: started("Where it started: numbers, tasks and documents, spread across tools."),
     },
     approach: [
-      { stage: "Understand", body: "The flow of goods: receiving, storing, moving between godowns, dispatching." },
-      { stage: "Map", body: "Every movement turned into a scan point, where stock physically changes hands." },
-      { stage: "Build", body: "A warehouse ERP with barcode scanning, one-click challans and live godown sync." },
-      { stage: "Train", body: "Scanning first for floor staff: the one habit everything else depends on." },
+      { stage: "Understand", body: "How the founder, sales and delivery teams actually spend their week." },
+      { stage: "Map", body: "How the company works written down first, then each team's daily questions mapped to a screen." },
+      { stage: "Build", body: "One MIS where every module feeds the executive dashboard." },
+      { stage: "Train", body: "Each team onboarded to its own workspace, and the founder to the dashboard." },
     ],
-    approachFigure: {
-      src: unsplash("1553413077-190dd305871c"),
-      alt: "A long warehouse aisle with high racking",
-      caption: "Every movement of goods mapped to a point where it can be scanned.",
-    },
+    approachFigure: MIS.knowledgeBase,
     built: [
       {
-        title: "Warehouse ERP",
-        detail: "Receiving, storage and dispatch run from one system instead of separate registers.",
-        figure: {
-          src: unsplash("1586528116311-ad8dd3c8310d"),
-          alt: "A warehouse floor stacked with boxes",
-          caption: "Receiving, storage and dispatch in one system.",
-        },
+        title: "Executive dashboard",
+        detail: "Collections, receivables, payables and pipeline value, with at-risk projects and team capacity, on one customisable screen.",
+        figure: MIS.executiveDashboard,
       },
       {
-        title: "Barcode scanning",
-        detail: "Items scanned at every movement, so counts come from the scan rather than a manual entry.",
-        figure: {
-          src: unsplash("1587293852726-70cdb56c2866"),
-          alt: "Warehouse shelves stocked with cartons",
-          caption: "Stock counted by scan, not by hand.",
-        },
+        title: "Sales CRM",
+        detail: "Every lead on a board by stage, from first enquiry to won, with deal value and follow-up dates.",
+        figure: MIS.salesCrm,
       },
       {
-        title: "1-click challans",
-        detail: "Delivery challans generated straight from the dispatch, ready to print or share.",
-        figure: {
-          src: unsplash("1566576721346-d4a3b4eaeb55"),
-          alt: "A parcel being handed over for delivery",
-          caption: "A challan generated with every dispatch.",
-        },
+        title: "Team operations",
+        detail: "A workload board of every task by status and priority, with daily tracking and a skill matrix.",
+        figure: MIS.teamOperations,
       },
       {
-        title: "Multi-godown stock sync",
-        detail: "Stock levels kept consistent across every godown as goods move between them.",
-        figure: {
-          src: unsplash("1504868584819-f8e8b4b6d7e3"),
-          alt: "A laptop showing a dashboard of charts",
-          caption: "One stock position across every godown.",
-        },
+        title: "Marketing hub",
+        detail: "Each acquisition channel's audience, reach, leads and cost per lead, compared side by side.",
+        figure: MIS.contentMarketing,
       },
     ],
     shift: [
-      { before: "Counts entered by hand and corrected later", after: "Every movement recorded by barcode scan" },
-      { before: "A challan written up for each dispatch", after: "Challans generated from the dispatch in one click" },
-      { before: "Each godown with its own version of the truth", after: "One stock position, synced across locations" },
+      { before: "Revenue and pipeline pulled from separate tools", after: "Finance and pipeline together on the executive dashboard" },
+      { before: "Delays and overload noticed after the deadline", after: "At-risk projects and team capacity flagged as they happen" },
+      { before: "Documents lost across chats and drives", after: "One knowledge base the whole team works from" },
+      { before: "Marketing spend judged by feel", after: "Leads and cost per lead compared by channel" },
     ],
-    outcomeFigure: {
-      src: SCENE_RUNNING,
-      alt: RUNNING_ALT,
-      caption: "Where it landed: stock numbers that match the shelves.",
-      kind: "illustration",
-    },
+    outcomeFigure: landed("Where it landed: the whole business, visible from one screen."),
     gallery: [
-      {
-        src: unsplash("1586528116311-ad8dd3c8310d"),
-        alt: "A warehouse floor stacked with boxes",
-        caption: "Godown overview",
-      },
-      {
-        src: unsplash("1553413077-190dd305871c"),
-        alt: "A long warehouse aisle with high racking",
-        caption: "Inventory by location",
-      },
-      {
-        src: unsplash("1587293852726-70cdb56c2866"),
-        alt: "Warehouse shelves stocked with cartons",
-        caption: "Barcode stock counts",
-      },
-      {
-        src: unsplash("1566576721346-d4a3b4eaeb55"),
-        alt: "A parcel being handed over for delivery",
-        caption: "Dispatch and challans",
-      },
-    ],
-  },
-  {
-    id: "retail-pos",
-    title: "Retail POS & Multi-Store",
-    description: "1-click GST retail billing, customer credit ledgers & live profit margin tracking.",
-    image: unsplash("1556740738-b6a63e27c4df", 1200, 1200),
-    imageAlt: "Shopkeeper billing a customer on a tablet point-of-sale",
-    features: ["Retail POS", "1-Click GST", "Customer Ledger", "Profit Tracking"],
-    industry: "Retail · Multi-store",
-    tagline: "Faster counters, clean GST bills, and margins you can see.",
-    challenge: {
-      title: "Busy counters, and profit nobody can see",
-      body: "A retailer with several stores lives at the counter: bills need to be quick and GST-correct, regular customers buy on credit, and the owner wants to know which products and which stores are actually making money. Without one system across the stores, that picture only comes together much later.",
-      pains: [
-        "Tax worked out bill by bill at the counter",
-        "Customer credit tracked outside the billing system",
-        "Margins by store only visible long after the sale",
-      ],
-      figure: {
-        src: SCENE_PAPERWORK,
-        alt: PAPERWORK_ALT,
-        caption: "Where it started: bills, tax and credit, worked out by hand.",
-        kind: "illustration",
-      },
-    },
-    approach: [
-      { stage: "Understand", body: "What a bill looks like at rush hour, and what slows it down." },
-      { stage: "Map", body: "Billing, credit and margins mapped to one catalogue shared by every store." },
-      { stage: "Build", body: "A counter-first POS with GST, ledgers and profit tracking underneath." },
-      { stage: "Train", body: "Cashiers on the billing screen; owners on the ledgers and profit views." },
-    ],
-    approachFigure: {
-      src: unsplash("1556741533-6e6a62bd8b49"),
-      alt: "A customer paying at a shop counter",
-      caption: "A bill traced where it happens: at the counter.",
-    },
-    built: [
-      {
-        title: "Retail POS",
-        detail: "A fast counter billing screen that works the same way in every store.",
-        figure: {
-          src: unsplash("1556740738-b6a63e27c4df"),
-          alt: "A shopkeeper billing a customer on a tablet point-of-sale",
-          caption: "The counter billing screen.",
-        },
-      },
-      {
-        title: "1-click GST billing",
-        detail: "Tax calculated and applied automatically on every bill.",
-        figure: {
-          src: unsplash("1556742502-ec7c0e9f34b1"),
-          alt: "A card payment on a handheld reader",
-          caption: "A GST-correct bill and payment, in one step.",
-        },
-      },
-      {
-        title: "Customer credit ledger",
-        detail: "Running balances for customers who buy on credit, with a record of every payment.",
-        figure: {
-          src: unsplash("1563013544-824ae1b704d3"),
-          alt: "A card payment being made on a laptop",
-          caption: "A running balance for every credit customer.",
-        },
-      },
-      {
-        title: "Live profit tracking",
-        detail: "Margins by product and by store, updated with each sale.",
-        figure: {
-          src: unsplash("1551288049-bebda4e38f71"),
-          alt: "Charts on a tablet screen",
-          caption: "Margins by product and store, live.",
-        },
-      },
-    ],
-    shift: [
-      { before: "GST calculated by hand on each bill", after: "A GST-correct bill in one click" },
-      { before: "Credit balances kept separately from sales", after: "A running ledger for every credit customer" },
-      { before: "Profit known at the end of the quarter", after: "Margins by product and store, live" },
-    ],
-    outcomeFigure: {
-      src: SCENE_COUNTER,
-      alt: "Illustration: a smiling shopkeeper at his counter while Zeal the Potentiaa mascot holds up a phone",
-      caption: "Where it landed: a counter that bills in one click.",
-      kind: "illustration",
-    },
-    gallery: [
-      {
-        src: unsplash("1556740738-b6a63e27c4df"),
-        alt: "A shopkeeper billing a customer on a tablet point-of-sale",
-        caption: "Counter billing",
-      },
-      {
-        src: unsplash("1556741533-6e6a62bd8b49"),
-        alt: "A customer paying at a shop counter",
-        caption: "GST bills at checkout",
-      },
-      {
-        src: unsplash("1441986300917-64674bd600d8"),
-        alt: "The interior of a clothing store",
-        caption: "Multi-store inventory",
-      },
-      {
-        src: unsplash("1556742502-ec7c0e9f34b1"),
-        alt: "A card payment on a handheld reader",
-        caption: "Payments and credit ledger",
-      },
+      MIS.executiveDashboard,
+      MIS.salesCrm,
+      MIS.teamOperations,
+      MIS.contentMarketing,
+      MIS.knowledgeBase,
     ],
   },
 ];

@@ -27,8 +27,23 @@ function AnimatedWord({ text, isAccent = false }: { text: string; isAccent?: boo
   );
 }
 
-function AnimatedLine({ line, isAccent = false }: { line: string; isAccent?: boolean }) {
+/** The last word of a line, e.g. "from" of "Run your business from". */
+function lastWordOf(line: string) {
+  return line.slice(line.lastIndexOf(" ") + 1);
+}
+
+function AnimatedLine({
+  line,
+  isAccent = false,
+  carryLast = false,
+}: {
+  line: string;
+  isAccent?: boolean;
+  /** Render the last word as wide-screen only; on phones it moves down to join "one". */
+  carryLast?: boolean;
+}) {
   const words = line.split(" ");
+  const carried = carryLast ? words.pop() : undefined;
   return (
     <span className={`hero__title-line ${isAccent ? "hero__title-line--accent" : ""}`}>
       {words.map((word, i) => (
@@ -37,6 +52,14 @@ function AnimatedLine({ line, isAccent = false }: { line: string; isAccent?: boo
           {i < words.length - 1 ? " " : ""}
         </span>
       ))}
+      {carried && (
+        /* The space leads here rather than trailing "business", so the line
+           stays centred when this word is hidden. */
+        <span className="hero__word-wrap hero__carry--wide">
+          {" "}
+          <AnimatedWord text={carried} isAccent={isAccent} />
+        </span>
+      )}
     </span>
   );
 }
@@ -81,12 +104,23 @@ export default function Hero({
         <div className="hero__copy">
           <Reveal delay={60}>
             <h1 className="hero__title">
-              {site.hero.titleLead.map((line) => (
-                <AnimatedLine key={line} line={line} isAccent={false} />
+              {site.hero.titleLead.map((line, i, lines) => (
+                <AnimatedLine
+                  key={line}
+                  line={line}
+                  isAccent={false}
+                  carryLast={i === lines.length - 1}
+                />
               ))}
               <span className="hero__title-line hero__title-line--gradient-row">
                 <span className="hero__word-wrap">
-                  <AnimatedWord text="one" />{" "}
+                  <span className="hero__carry--narrow">
+                    <AnimatedWord
+                      text={lastWordOf(site.hero.titleLead[site.hero.titleLead.length - 1] ?? "")}
+                    />{" "}
+                  </span>
+                  <AnimatedWord text="one" />
+                  <span className="hero__row-space"> </span>
                 </span>
                 <ParticleText
                   text={site.hero.titleGradient || "connected system."}
