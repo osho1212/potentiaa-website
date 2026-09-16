@@ -64,12 +64,21 @@ export default function ContactModal() {
         templateId,
         {
           to_email: site.contact.email,
+          name: name,
           from_name: name,
+          user_name: name,
           phone: phone,
+          user_phone: phone,
+          phone_number: phone,
+          email: email || "Not provided",
           from_email: email || "Not provided",
           reply_to: email || site.contact.email,
+          user_email: email || "Not provided",
+          title: `Project enquiry from ${name || "a business owner"}`,
+          subject: `Project enquiry from ${name || "a business owner"}`,
           message: message,
-          sent_at: new Date().toLocaleString(),
+          time: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
+          sent_at: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
         },
         publicKey
       );
