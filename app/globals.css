@@ -3552,13 +3552,26 @@ button { font: inherit; cursor: pointer; }
 
 .cta-strip__title {
   font-family: var(--font-display);
-  font-size: clamp(28px, 4.8vw, 56px);
+  font-size: clamp(24px, 3.2vw, 48px);
   font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-tight);
   line-height: 1.16;
   text-align: center;
   margin: 0 auto;
   max-width: 100%;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .cta-strip__title {
+    font-size: clamp(24px, 3.2vw, 48px);
+    white-space: nowrap;
+  }
+  .cta-strip__title .shiny-text {
+    white-space: nowrap !important;
+    text-wrap: nowrap !important;
+    max-width: none;
+  }
 }
 
 @media (max-width: 767px) {
@@ -3569,17 +3582,13 @@ button { font: inherit; cursor: pointer; }
     font-size: clamp(26px, 7.6vw, 34px);
     line-height: 1.18;
     padding-inline: var(--space-3);
+    white-space: normal;
   }
-}
-
-/* One line wherever it fits; where it doesn't (every phone, and laptops near
-   1280px at the 56px cap) it wraps into two balanced lines instead of running
-   off both edges. The shine is a background clipped to the text, painted
-   across the whole inline-block, so it sweeps both lines as one. */
-.cta-strip__title .shiny-text {
-  max-width: 100%;
-  white-space: normal;
-  text-wrap: balance;
+  .cta-strip__title .shiny-text {
+    max-width: 100%;
+    white-space: normal;
+    text-wrap: balance;
+  }
 }
 
 /* ---------------------------------------------------------------
