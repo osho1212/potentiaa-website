@@ -3519,12 +3519,6 @@ button { font: inherit; cursor: pointer; }
   }
 }
 
-.our-work__hint {
-  margin-top: var(--space-4);
-  text-align: center;
-  font-size: clamp(15px, 4vw, 16px);
-  color: var(--text-on-dark-secondary);
-}
 
 /* ---------------------------------------------------------------
    CTA Strip (Center-aligned single-line text with seamless background)

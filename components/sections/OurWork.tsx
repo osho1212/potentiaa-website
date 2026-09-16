@@ -67,10 +67,6 @@ export default function OurWork() {
             }
           />
         </div>
-        <p className="our-work__hint">
-          <span className="only-pointer">Click</span>
-          <span className="only-touch">Tap</span> a project to see what we built.
-        </p>
       </Reveal>
 
       {openProject && <ProjectModal key={openProject.id} project={openProject} onClose={close} />}
