@@ -3459,25 +3459,21 @@ button { font: inherit; cursor: pointer; }
    at 280px through tablets and small laptops, then the original 24vw up to
    300px once that is larger (~1170px wide and up). */
 .our-work__carousel {
-  --our-work-card: clamp(170px, 17.5vw, 250px);
-  /* Caption under the centred card. The component's 15/13px defaults read as
-     small print; these land at 18/15px on a 375px phone and 20/16px from
-     ~420px up. */
-  --cf-caption-title: clamp(18px, 4.8vw, 20px);
-  --cf-caption-text: clamp(15px, 4vw, 16px);
-  /* The dots sit under the cards and above the caption. The frame's bottom
-     padding (--cf-pad-y, kept for the card shadows) already spaces them off
-     the cards, so this pulls them back to a steady 24px below the images at
-     any padding - close enough to read as the cards' own, clear of the title. */
+  --our-work-card: clamp(230px, 25vw, 360px);
+  --cf-pad-y: clamp(2rem, 3.8vw, 3.5rem);
+  /* Caption under the centred card. */
+  --cf-caption-title: clamp(20px, 4vw, 24px);
+  --cf-caption-text: clamp(15px, 3.2vw, 16px);
+  /* The dots sit under the cards and above the caption. */
   --cf-dots-gap: calc(var(--space-6) - var(--cf-pad-y, 2.5rem));
-  --cf-caption-gap: var(--space-8);
+  --cf-caption-gap: var(--space-6);
 }
 
 @media (max-width: 640px) {
   .our-work__carousel {
-    --our-work-card: min(68vw, 260px);
-    --cf-pad-y: var(--space-6);
-    --cf-caption-gap: clamp(var(--space-4), 14svh - 64px, 88px);
+    --our-work-card: min(78vw, 300px);
+    --cf-pad-y: var(--space-5);
+    --cf-caption-gap: clamp(var(--space-4), 12svh - 48px, 64px);
   }
 }
 
