@@ -4586,39 +4586,25 @@ textarea.input,
   color: #ffffff;
 }
 
-/* 3D High-Contrast White Showcase Container */
+/* 3D High-Contrast Floating Showcase Container */
 .offering-showcase {
   position: relative;
   z-index: 1;
-  /* Part of the fit-to-viewport chain: .work-section .container hands its
-     height down and this takes it, so the card fills the section instead of
-     sitting at its natural height with the slack split above and below. */
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  /* The card fills the section's height; the carousel sits in its middle. */
   justify-content: center;
-  /* NO BACKGROUND AND NO SHADOW. The white surface is drawn by the particle
-     field behind this element - see lib/particleCardBackground. A background
-     here would hide it; a drop shadow would redraw the hard rounded rectangle
-     the particles exist to form, which is what made an earlier attempt read as
-     a card with an effect near it rather than a card made of the effect.
-     The border-radius stays because the particle corner radius is matched to
-     it, and because inner content still clips against it. */
   background: transparent;
   border-radius: 28px;
-  /* vh, not vw: sized off viewport WIDTH these hit their maximum exactly when
-     a wide short screen has least room for them. */
-  padding: clamp(18px, 3.4vh, 44px);
+  padding: clamp(10px, 2.5vh, 24px) 0;
   perspective: 1200px;
-  color: #0F172A;
+  color: #FFFFFF;
 }
 
 /* ---------------------------------------------------------------
    Offerings carousel - one card per module, inside the showcase.
    Placement is JS (components/OfferingsCarousel); everything else is here.
-   Colours are the light-surface set the showcase has always used: the white
-   underneath is the particle field, not a background.
+   Colours are optimized for floating cards over the deep space background.
    --------------------------------------------------------------- */
 .offer-carousel {
   display: flex;
@@ -4633,17 +4619,17 @@ textarea.input,
 .offer-intro__title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.05rem, 0.9rem + 0.6vw, 1.35rem);
+  font-size: clamp(1.15rem, 1rem + 0.8vw, 1.5rem);
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: #0F172A;
+  color: #FFFFFF;
   text-wrap: balance;
 }
 
 .offer-intro__hint {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   font-size: 14px;
-  color: #64748B;
+  color: var(--text-on-dark-secondary, rgba(255, 255, 255, 0.65));
 }
 
 /* The clip. Padded (and pulled back by the same amount) so the active card's
@@ -4696,21 +4682,21 @@ textarea.input,
   flex-direction: column;
   padding: clamp(18px, 4vw, 28px);
   background: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  border: 1px solid rgba(255, 255, 255, 0.85);
   border-radius: 22px;
   box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 10px 28px -18px rgba(15, 23, 42, 0.22);
+    0 16px 40px -10px rgba(0, 0, 0, 0.65),
+    0 4px 16px rgba(0, 0, 0, 0.3);
   transition: border-color 250ms ease, box-shadow 250ms ease;
   will-change: transform;
   container-type: inline-size;
 }
 
 .offer-card[data-active] {
-  border-color: rgba(37, 99, 235, 0.22);
+  border-color: rgba(99, 102, 241, 0.45);
   box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.05),
-    0 22px 44px -24px rgba(37, 99, 235, 0.4);
+    0 24px 54px -12px rgba(0, 0, 0, 0.75),
+    0 0 32px rgba(99, 102, 241, 0.3);
 }
 
 /* While a card is open, the rest keep the collapsed row height instead of
@@ -5018,16 +5004,18 @@ textarea.input,
   place-items: center;
   width: 40px;
   height: 40px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 999px;
-  background: #FFFFFF;
-  color: #0F172A;
+  background: rgba(14, 16, 27, 0.75);
+  color: #FFFFFF;
+  backdrop-filter: blur(12px);
   cursor: pointer;
   transition:
     transform 160ms ease-out,
     border-color 200ms ease,
     background-color 200ms ease,
-    color 200ms ease;
+    color 200ms ease,
+    box-shadow 200ms ease;
 }
 
 .offer-arrow svg {
@@ -5040,7 +5028,7 @@ textarea.input,
   height: 36px;
   border-color: transparent;
   background: transparent;
-  color: #64748B;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .offer-pause svg {
@@ -5055,20 +5043,22 @@ textarea.input,
 
 @media (hover: hover) and (pointer: fine) {
   .offer-arrow:hover {
-    border-color: #CBD5E1;
-    background: #F8FAFC;
+    border-color: rgba(99, 102, 241, 0.45);
+    background: rgba(20, 24, 40, 0.9);
+    box-shadow: 0 0 16px rgba(99, 102, 241, 0.3);
+    color: #FFFFFF;
   }
 
   .offer-pause:hover {
-    background: #F1F5F9;
-    color: #0F172A;
+    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
   }
 }
 
 .offer-arrow:focus-visible,
 .offer-pause:focus-visible,
 .offer-dot:focus-visible {
-  outline: 2px solid #2563EB;
+  outline: 2px solid #6366F1;
   outline-offset: 2px;
 }
 
@@ -5096,7 +5086,7 @@ textarea.input,
   height: 8px;
   overflow: hidden;
   border-radius: 999px;
-  background: #CBD5E1;
+  background: rgba(255, 255, 255, 0.25);
   transition:
     width 300ms cubic-bezier(0.23, 1, 0.32, 1),
     background-color 200ms ease;
@@ -5104,14 +5094,14 @@ textarea.input,
 
 .offer-dot[aria-current="true"] .offer-dot__track {
   width: 32px;
-  background: #BFDBFE;
+  background: rgba(99, 102, 241, 0.4);
 }
 
 /* The autoplay clock: linear, because it is a measure of time. */
 .offer-dot__fill {
   position: absolute;
   inset: 0;
-  background: #2563EB;
+  background: #6366F1;
   transform-origin: left center;
   transform: scaleX(0);
   animation: offer-progress linear forwards;
