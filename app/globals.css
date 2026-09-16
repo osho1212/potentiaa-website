@@ -3448,6 +3448,7 @@ button { font: inherit; cursor: pointer; }
   display: flex;
   flex-direction: column;
   justify-content: center;
+  gap: clamp(var(--space-4), 2.5vh, var(--space-8));
   /* Generous vertical clearance */
   padding-top: var(--below-header);
   padding-bottom: var(--section-gap);
@@ -3461,7 +3462,7 @@ button { font: inherit; cursor: pointer; }
   top: 30%;
   left: 50%;
   transform: translate(-50%, -30%);
-  width: min(1200px, 92vw);
+  width: min(1600px, 98vw);
   height: 600px;
   background: radial-gradient(ellipse 65% 45% at 50% 50%, rgba(255, 255, 255, 0.05) 0%, rgba(96, 165, 250, 0.03) 40%, transparent 75%);
   filter: blur(50px);
@@ -3475,7 +3476,6 @@ button { font: inherit; cursor: pointer; }
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: clamp(var(--space-3), 2.4vh, var(--space-10));
 }
 
 .our-work__head {
@@ -3495,31 +3495,32 @@ button { font: inherit; cursor: pointer; }
   .only-touch { display: contents; }
 }
 
-/* The coverflow's card size, as one continuous curve: 66% of a phone's width
-   (the old 180px floor left a small card in a band of empty space), holding
-   at 280px through tablets and small laptops, then the original 24vw up to
-   300px once that is larger (~1170px wide and up). */
+/* The coverflow's card size: fills the screen horizontally with 5 cards
+   spanning across desktop viewports, scaling up to 440px on wide screens. */
 .our-work__carousel {
-  --our-work-card: clamp(230px, 25vw, 360px);
+  width: 100%;
+  max-width: 100vw;
+  overflow: visible;
+  --our-work-card: clamp(280px, 28vw, 440px);
   --cf-pad-y: clamp(2rem, 3.8vw, 3.5rem);
   /* Caption under the centred card. */
-  --cf-caption-title: clamp(20px, 4vw, 24px);
-  --cf-caption-text: clamp(15px, 3.2vw, 16px);
+  --cf-caption-title: clamp(20px, 3.5vw, 26px);
+  --cf-caption-text: clamp(15px, 2.8vw, 16px);
   /* The dots sit under the cards and above the caption. */
   --cf-dots-gap: calc(var(--space-6) - var(--cf-pad-y, 2.5rem));
-  --cf-caption-gap: var(--space-6);
+  --cf-caption-gap: var(--space-5);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .our-work__carousel {
-    --our-work-card: min(78vw, 300px);
+    --our-work-card: min(82vw, 320px);
     --cf-pad-y: var(--space-5);
-    --cf-caption-gap: clamp(var(--space-4), 12svh - 48px, 64px);
+    --cf-caption-gap: clamp(var(--space-3), 8svh - 24px, 40px);
   }
 }
 
 .our-work__hint {
-  margin-top: var(--space-3);
+  margin-top: var(--space-4);
   text-align: center;
   font-size: clamp(15px, 4vw, 16px);
   color: var(--text-on-dark-secondary);
