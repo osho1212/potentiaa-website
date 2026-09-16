@@ -2,7 +2,7 @@
 
 import { ContactProvider } from "./ContactContext";
 import SmoothScroll from "./SmoothScroll";
-import BackgroundVideo from "./BackgroundVideo";
+import BackgroundCanvas from "./BackgroundCanvas";
 import DepthField from "./DepthField";
 import ModuleStack from "./ModuleStack";
 import Header from "./Header";
@@ -39,7 +39,7 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
   return (
     <ContactProvider>
       <SmoothScroll />
-      <BackgroundVideo />
+      <BackgroundCanvas />
       <DepthField />
       {narrow === false ? <ModuleStack /> : null}
       <Header />
