@@ -3313,7 +3313,7 @@ button { font: inherit; cursor: pointer; }
     margin-bottom: 2px;
   }
   .method__title {
-    font-size: clamp(var(--fs-lg), 4.5vw, var(--fs-2xl));
+    font-size: clamp(32px, 4.5vw, 52px);
     margin-bottom: 4px;
     line-height: var(--lh-snug);
   }
