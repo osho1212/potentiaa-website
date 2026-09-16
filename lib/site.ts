@@ -99,7 +99,7 @@ export const site = {
    * Offerings: 5 Tailored Capability modules.
    */
   work: {
-    title: "Our Offerings",
+    title: "Our Services",
     eyebrow: "Tailored Capabilities",
     intro: "Five modules. One connected system.",
     hint: "Open any card to see what's included.",
