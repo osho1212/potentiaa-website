@@ -402,6 +402,19 @@ button { font: inherit; cursor: pointer; }
 
 @media (max-width: 767px) {
   .header__nav { display: none; }
+
+  /* Hide the outer background navbar pill in mobile view so only the clean Get in touch button is shown */
+  .header__pill--nav,
+  .header__pill--nav:hover,
+  .header__pill--nav[data-surface="light"],
+  .header__pill--nav[data-surface="light"]:hover {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+  }
 }
 
 /* ---------------------------------------------------------------
