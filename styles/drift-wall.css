@@ -17,7 +17,7 @@
   --dw-tile-h: 200px;
   --dw-gap: 18px;
   --dw-radius: var(--radius-lg);
-  --dw-lift: 64px;
+  --dw-hold-scale: 1.04;
   --dw-dim: 0.55;
 
   /* The wall dissolves into the page top and bottom, so drifting columns arrive
@@ -118,27 +118,19 @@
     opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* THE LIFT IS THE MAGNIFICATION.
-   The source scales nothing - it moves the tile toward the viewer, and
-   perspective does the rest. At the values used here that works out at
-   1200 / (1200 - 64) = 1.056, which is within a rounding error of the
-   scale(1.06) the flat cards use, so the hovered tile grows by the same amount
-   it did before the wall existed. That is why .quote drops its own scale
-   inside a tile (see globals.css) - two magnifications would compound. */
+/* A HELD TILE GROWS IN PLACE, AND ONLY A LITTLE.
+   The source moved the tile toward the viewer and let perspective magnify it.
+   But perspective also pushes anything off-centre further OUT as it comes
+   closer, so the outer columns grew past the screen edge, and phones stacked a
+   scale(1.2) on top that took a card 30px wider than the screen. A plain scale
+   grows about the tile's own centre, so its growth is exactly
+   width x (--dw-hold-scale - 1) - at 1.04 at most 7px a side on a phone,
+   against a 22px margin. The 1px of Z only keeps it in front of its neighbours
+   in the 3D stack; it moves nothing you can see. */
 .drift-wall__tile.is-active .drift-wall__inner,
 .drift-wall__tile:focus-within .drift-wall__inner {
   opacity: 1;
-  transform: translateZ(var(--dw-lift));
-}
-
-@media (max-width: 900px) {
-  .drift-wall__tile.is-active {
-    z-index: 25;
-  }
-  .drift-wall__tile.is-active .drift-wall__inner,
-  .drift-wall__tile:focus-within .drift-wall__inner {
-    transform: translateZ(var(--dw-lift)) scale(1.2);
-  }
+  transform: translateZ(1px) scale(var(--dw-hold-scale, 1.04));
 }
 
 /* Reduced motion: the wall holds still, and everything comes up to full

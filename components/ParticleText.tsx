@@ -43,6 +43,7 @@ export default function ParticleText({
 }: ParticleTextProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLSpanElement>(null);
+  const sizerRef = useRef<HTMLSpanElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const mouseRef = useRef<{ x: number; y: number; active: boolean }>({
     x: -1000,
@@ -94,6 +95,10 @@ export default function ParticleText({
       measure();
     });
     ro.observe(container);
+    /* The wrapper's box is the last measurement, so it doesn't change when
+       only the font does (a rotation or resize across the fluid heading size,
+       or the web font replacing the fallback face). The hidden text's box does. */
+    if (sizerRef.current) ro.observe(sizerRef.current);
 
     return () => ro.disconnect();
   }, [text]);
@@ -293,7 +298,7 @@ export default function ParticleText({
       onMouseLeave={handleMouseLeave}
     >
       <canvas ref={canvasRef} className="particle-text-canvas" aria-label={text} />
-      <span className="particle-text-fallback" aria-hidden="true">
+      <span ref={sizerRef} className="particle-text-fallback" aria-hidden="true">
         {text}
       </span>
     </span>

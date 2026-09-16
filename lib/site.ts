@@ -97,11 +97,11 @@ export const site = {
   work: {
     title: "Our Offerings",
     eyebrow: "Tailored Capabilities",
-    tabs: [
+    intro: "Five modules. One connected system.",
+    hint: "Open any card to see what's included.",
+    modules: [
       {
         id: "billing",
-        label: "Billing & Collections",
-        eyebrow: "TAILORED CAPABILITY",
         title: "Billing & Collections",
         bottleneck: "Invoices created manually in separate tools delay collections and create accounting reconciliation headaches.",
         capabilities: [
@@ -115,8 +115,6 @@ export const site = {
       },
       {
         id: "inventory",
-        label: "Inventory & Stock Movement",
-        eyebrow: "TAILORED CAPABILITY",
         title: "Inventory & Stock Movement",
         bottleneck: "Physical stock registers don't match computer numbers, leading to stockouts or dead inventory.",
         capabilities: [
@@ -130,8 +128,6 @@ export const site = {
       },
       {
         id: "workflows",
-        label: "Workflows & Approvals",
-        eyebrow: "TAILORED CAPABILITY",
         title: "Workflows & Approvals",
         bottleneck: "Critical jobs and approvals get trapped in WhatsApp chats and forgotten email threads.",
         capabilities: [
@@ -145,8 +141,6 @@ export const site = {
       },
       {
         id: "dashboards",
-        label: "Management Dashboards",
-        eyebrow: "TAILORED CAPABILITY",
         title: "Management Dashboards",
         bottleneck: "Business owners spend hours asking three managers for reports before knowing where things stand.",
         capabilities: [
@@ -160,8 +154,6 @@ export const site = {
       },
       {
         id: "integrations",
-        label: "Integrations & Migration",
-        eyebrow: "TAILORED CAPABILITY",
         title: "Integrations & Migration",
         bottleneck: "Existing spreadsheets and isolated legacy tools trap historical data in silos.",
         capabilities: [
@@ -282,48 +274,58 @@ export const site = {
     eyebrow: "What owners say",
     title: "Hours back in your week.",
     lede: "Real results from business owners who simplified their operations.",
+    /* Real client quotes. The wall deals these into columns round-robin (4 on
+       desktop, 2 on phones), so the two website quotes sit at 3rd and 8th to
+       land in different columns at both. No avatar: the card shows the
+       client's initials until a client supplies a real image. */
     items: [
       {
         quote:
-          "Closing the daily books used to take 4 hours every evening. Now it takes 15 minutes on a tablet.",
-        name: "Ramesh Aggarwal",
-        role: "Aggarwal Wholesale & Distribution",
-        avatar: "/assets/testimonials/anita.svg",
+          "Potentiaa made our event billing and operations much more organised. The software is simple to use and built around the way we actually work.",
+        name: "Lallooji Shiv Govind Das Tent Co.",
+        role: "Event Billing & Operations",
       },
       {
         quote:
-          "Stock and billing sync automatically now. We stopped paying for items we already had in the back.",
-        name: "Devraj Mehta",
-        role: "Mehta Hardware & Electricals",
-        avatar: "/assets/testimonials/devraj.svg",
+          "Potentiaa helped us move away from scattered manual records and bring our dairy operations into one organised management system.",
+        name: "Madhav Dairy",
+        role: "Dairy Operations Management",
       },
       {
         quote:
-          "I run three clinic branches from my phone. I see patient visits and collections without calling staff.",
-        name: "Dr. Farah Sheikh",
-        role: "CarePlus Clinics (3 Branches)",
-        avatar: "/assets/testimonials/farah.svg",
+          "Potentiaa gave Raguvansh a website that genuinely represents who we are as a theatre group. It feels like our identity, not just another website.",
+        name: "Raguvansh",
+        role: "Theatre Group Website",
       },
       {
         quote:
-          "They built the exact billing tool we needed in under 3 weeks. Fast, simple, and zero confusion.",
-        name: "Gopal Nair",
-        role: "Nair Logistics & Freight",
-        avatar: "/assets/testimonials/gopal.svg",
+          "DPMS has made managing our dental practice much more organised by bringing our day-to-day practice operations into one system.",
+        name: "Dr. Rahul",
+        role: "DPMS · Dental Practice Management",
       },
       {
         quote:
-          "Two staff members used to spend every Friday re-typing orders. Now invoices generate in 1 click.",
-        name: "Meera Krishnan",
-        role: "Krishnan Packaged Foods",
-        avatar: "/assets/testimonials/meera.svg",
+          "Our restaurant operations are much easier to manage with everything brought together in one system. Potentiaa understood our requirements and built around them.",
+        name: "Amritsari Restaurant",
+        role: "Restaurant Operations",
       },
       {
         quote:
-          "They told me honestly what not to build. The custom system we did build paid for itself in 2 months.",
-        name: "Suresh Pillai",
-        role: "Pillai Auto & Heavy Repair Works",
-        avatar: "/assets/testimonials/suresh.svg",
+          "Potentiaa built a system around our HVAC business, bringing inventory, billing and daily operations together in one place.",
+        name: "Airmistic Engineers Pvt. Ltd.",
+        role: "HVAC Business Management",
+      },
+      {
+        quote:
+          "Potentiaa built specialised tools for Vastu and astrology that have made our work more organised, accessible, and easier to manage.",
+        name: "Vastu Wisdom",
+        role: "Specialised Tools for Vastu & Astrology",
+      },
+      {
+        quote:
+          "The website gives our architecture projects the presentation they deserve and has given F-Quad a much stronger digital presence.",
+        name: "F-Quad",
+        role: "Architecture Firm Website",
       },
     ],
   },

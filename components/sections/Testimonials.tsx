@@ -19,6 +19,43 @@ type Item = {
   pending?: boolean;
 };
 
+/** The initials badge takes one of the three brand colours. */
+const MARK_TONES = ["midnight", "blue", "coral"] as const;
+type MarkTone = (typeof MARK_TONES)[number];
+
+/**
+ * Which colour a card's badge gets, so no two cards stacked in a column match.
+ *
+ * Cycling in plain list order does not survive the round-robin deal: at three
+ * columns, items 0, 3 and 6 share a column AND a colour. So the cycle runs down
+ * each column instead, offset by the column so neighbouring columns start on
+ * different colours. Columns loop, which puts the last card beside the first;
+ * when the column's length would give those two the same colour, the last one
+ * takes the third colour instead.
+ */
+function toneFor(index: number, columns: number, count: number): MarkTone {
+  const n = MARK_TONES.length;
+  const column = index % columns;
+  const length = Math.ceil((count - column) / columns);
+  const position = Math.floor(index / columns);
+  let slot = (position + column) % n;
+  if (length > 1 && position === length - 1 && length % n === 1) slot = (slot + 1) % n;
+  return MARK_TONES[slot];
+}
+
+/** Words that say what kind of entity a name is rather than which one. */
+const NOT_A_NAME = new Set(["dr", "mr", "mrs", "ms", "co", "pvt", "ltd", "llp", "inc"]);
+
+/** "Madhav Dairy" -> "MD", "F-Quad" -> "FQ", "Dr. Rahul" -> "R". */
+function initialsOf(name: string) {
+  return name
+    .split(/[\s-]+/)
+    .filter((word) => word && !NOT_A_NAME.has(word.replace(/\./g, "").toLowerCase()))
+    .slice(0, 2)
+    .map((word) => word[0].toUpperCase())
+    .join("");
+}
+
 /**
  * One quote.
  *
@@ -37,7 +74,15 @@ type Item = {
  * POINTER EVENTS, NOT MOUSE EVENTS. The rim glow has to light under a finger as
  * well as a cursor, and mousemove does not fire for touch.
  */
-function QuoteCard({ item, interactive }: { item: Item; interactive: boolean }) {
+function QuoteCard({
+  item,
+  interactive,
+  tone,
+}: {
+  item: Item;
+  interactive: boolean;
+  tone: MarkTone;
+}) {
   const ref = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -111,8 +156,8 @@ function QuoteCard({ item, interactive }: { item: Item; interactive: boolean }) 
           // screen reader from reading the person twice.
           <img className="quote__avatar" src={item.avatar} alt="" width={44} height={44} loading="lazy" />
         ) : (
-          <span className="quote__mark" aria-hidden="true">
-            —
+          <span className="quote__mark" data-tone={tone} aria-hidden="true">
+            {item.pending ? "—" : initialsOf(item.name)}
           </span>
         )}
         <span className="quote__who">
@@ -135,22 +180,85 @@ function QuoteCard({ item, interactive }: { item: Item; interactive: boolean }) 
  * THE CARDS FACE THE READER. React Bits ships this pitched and yawed - tilt 16,
  * turn -14 - which is tuned for photographs, where the skew IS the effect and
  * nothing has to be read. These tiles carry four lines of body copy, so the
- * wall is flat: tilt and turn are 0 and the plane sits at depth 0. What is kept
- * from the 3D is the part that earns its place - the hover lift, which is a
- * real translateZ toward the reader through the container's perspective, so a
- * held card genuinely comes forward rather than just scaling.
+ * wall is flat: tilt and turn are 0 and the plane sits at depth 0, and a held
+ * card grows a little in place rather than lifting toward the reader - see the
+ * hold note in styles/drift-wall.css.
  */
 export default function Testimonials() {
   const items = site.testimonials.items as readonly Item[];
 
-  /* Narrow viewports get ONE column, and the plane stops being blown up.
-     Not a breakpoint for its own sake - it is arithmetic. The plane is
-     columns x (tile + gap) wide before planeScale, so four 320px columns is
-     1352px. On a 375px phone that put 656px of plane behind a 375px window and
-     every card lost a third of its width off BOTH edges, mid-word. Clipping a
-     photograph is an edge treatment; clipping a sentence is a bug. */
+  /* THE PLANE MUST FIT THE SCREEN. It is columns x (tile + gap) wide, times
+     planeScale, and anything past the viewport is a quote cut off mid-word -
+     clipping a photograph is an edge treatment, clipping a sentence is a bug.
+     Fixed widths broke it at every size in turn: two 220px columns on phones,
+     and four 320px columns (1406px) on anything under ~1400px wide. So the
+     column COUNT steps with the viewport here, and the tile WIDTH is derived
+     from the viewport in CSS (.testimonials .drift-wall in globals.css). */
   const narrow = useMediaQuery("(max-width: 900px)");
   const isNarrow = narrow === true;
+  const phone = useMediaQuery("(max-width: 639px)");
+  const isPhone = phone === true;
+  const midWidth = useMediaQuery("(max-width: 1199px)");
+  const columns = isPhone ? 1 : isNarrow ? 2 : midWidth === true ? 3 : 4;
+
+  /* TILES AS TALL AS THE LONGEST QUOTE, AND NO TALLER. The drift maths needs one
+     tile height, but what the quotes need depends on how wide the tiles came
+     out, which CSS decides. So it is measured: the tallest card's content plus
+     its padding, re-read whenever the wall resizes and once the web font lands.
+     A fixed height either clipped the longest quote or left the short ones a
+     gap between the words and the name. */
+  const wallRef = useRef<HTMLDivElement>(null);
+  const [fitHeight, setFitHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const wall = wallRef.current;
+    if (!wall) return;
+    let frame = 0;
+    let disposed = false;
+
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (disposed) return;
+        let tallest = 0;
+        wall.querySelectorAll<HTMLElement>(".quote").forEach((quote) => {
+          const body = quote.querySelector<HTMLElement>(".quote__body");
+          const by = quote.querySelector<HTMLElement>(".quote__by");
+          if (!body || !by) return;
+          const cs = getComputedStyle(quote);
+          const chrome =
+            parseFloat(cs.paddingTop) +
+            parseFloat(cs.paddingBottom) +
+            parseFloat(cs.borderTopWidth) +
+            parseFloat(cs.borderBottomWidth) +
+            (parseFloat(cs.rowGap) || 0);
+          // offsetHeight, not the rect: layout size, unaffected by planeScale
+          // or a held card's scale.
+          tallest = Math.max(tallest, body.offsetHeight + by.offsetHeight + chrome);
+        });
+        if (tallest > 0) {
+          const next = Math.ceil(tallest) + 2;
+          setFitHeight((prev) => (prev === next ? prev : next));
+        }
+      });
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(wall);
+    // And every time the wall comes on screen, so a measurement that missed
+    // (a hidden tab, a font swap, a remount) is corrected before anyone sees it.
+    const visible = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) measure();
+    });
+    visible.observe(wall);
+    document.fonts?.ready.then(measure);
+    return () => {
+      disposed = true;
+      observer.disconnect();
+      visible.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [columns]);
 
   /* Pointer-driven tilt is meaningless without a pointer and unwelcome when
      motion is reduced - the same gate Work.tsx puts on the same effect, and
@@ -187,14 +295,27 @@ export default function Testimonials() {
 
       {/* Takes whatever height the head leaves - see .testimonials in
           globals.css, where the section is pinned to exactly one viewport. */}
-      <div className="testimonials__wall">
+      <div className="testimonials__wall" ref={wallRef}>
         <DriftWall
           items={items}
-          renderItem={(item) => <QuoteCard item={item} interactive={interactive} />}
-          columns={isNarrow ? 2 : 4}
+          renderItem={(item) => (
+            <QuoteCard
+              item={item}
+              interactive={interactive}
+              /* The wall's own index restarts in every column; the tone needs
+                 the position in the whole list. */
+              tone={toneFor(items.indexOf(item), columns, items.length)}
+            />
+          )}
+          columns={columns}
+          /* Overridden by the viewport-derived width in globals.css; this is
+             only the width before that stylesheet applies. */
           tileWidth={isNarrow ? 220 : 320}
-          tileHeight={isNarrow ? 180 : 210}
+          /* Measured above; these are the first-paint estimates. */
+          tileHeight={fitHeight ?? (isNarrow ? 180 : 240)}
           gap={isNarrow ? 12 : 18}
+          /* Keep in step with the 1.04 in the wide tile-width rules in
+             globals.css - they divide it back out so the scaled plane fits. */
           planeScale={isNarrow ? 1 : 1.04}
           tilt={0}
           turn={0}
@@ -204,13 +325,11 @@ export default function Testimonials() {
           direction="up"
           variance={0.4}
           parallax={0}
-          lift={isNarrow ? 30 : 70}
+          holdScale={1.04}
           fade={0.62}
-          /* The resting dim is expressed as OPACITY, so the dark overlay it
-             leaves is 1 - dim. 0.9 is a 10% overlay - just enough to sit the
-             unheld tiles back off the held one, and no longer doing any of the
-             dimming work it was originally there for. */
-          dim={0.9}
+          /* No resting dim: the dim is OPACITY, and the cards are solid white -
+             anything under 1 lets the dark page show through them. */
+          dim={1}
           ariaLabel="What business owners say about working with Potentiaa"
         />
       </div>
