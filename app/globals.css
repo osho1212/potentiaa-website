@@ -402,6 +402,19 @@ button { font: inherit; cursor: pointer; }
 
 @media (max-width: 767px) {
   .header__nav { display: none; }
+
+  /* Hide the outer background navbar pill in mobile view so only the clean Get in touch button is shown */
+  .header__pill--nav,
+  .header__pill--nav:hover,
+  .header__pill--nav[data-surface="light"],
+  .header__pill--nav[data-surface="light"]:hover {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+  }
 }
 
 /* ---------------------------------------------------------------
@@ -3446,31 +3459,21 @@ button { font: inherit; cursor: pointer; }
    at 280px through tablets and small laptops, then the original 24vw up to
    300px once that is larger (~1170px wide and up). */
 .our-work__carousel {
-  --our-work-card: max(min(66vw, 280px), clamp(180px, 24vw, 300px));
-  /* Caption under the centred card. The component's 15/13px defaults read as
-     small print; these land at 18/15px on a 375px phone and 20/16px from
-     ~420px up. */
-  --cf-caption-title: clamp(18px, 4.8vw, 20px);
-  --cf-caption-text: clamp(15px, 4vw, 16px);
-  /* The dots sit under the cards and above the caption. The frame's bottom
-     padding (--cf-pad-y, kept for the card shadows) already spaces them off
-     the cards, so this pulls them back to a steady 24px below the images at
-     any padding - close enough to read as the cards' own, clear of the title. */
+  --our-work-card: clamp(230px, 25vw, 360px);
+  --cf-pad-y: clamp(2rem, 3.8vw, 3.5rem);
+  /* Caption under the centred card. */
+  --cf-caption-title: clamp(20px, 4vw, 24px);
+  --cf-caption-text: clamp(15px, 3.2vw, 16px);
+  /* The dots sit under the cards and above the caption. */
   --cf-dots-gap: calc(var(--space-6) - var(--cf-pad-y, 2.5rem));
-  --cf-caption-gap: var(--space-8);
+  --cf-caption-gap: var(--space-6);
 }
 
-/* The frame pads above and below the cards to keep their shadows inside its
-   clip; on a phone 40px each way was most of the empty band.
-   The gap from the dots down to the caption, though, is the one place a phone
-   has room to spare: tied to screen HEIGHT, it opens up on tall phones (that
-   space otherwise sat unused under the hint) and stays compact on short ones. */
 @media (max-width: 640px) {
   .our-work__carousel {
-    --cf-pad-y: var(--space-6);
-    /* Grows faster than the screen does: ~16px at 568px tall (no room to
-       give), ~30px at 667, ~50px at 812, ~66px at 932. */
-    --cf-caption-gap: clamp(var(--space-4), 14svh - 64px, 88px);
+    --our-work-card: min(78vw, 300px);
+    --cf-pad-y: var(--space-5);
+    --cf-caption-gap: clamp(var(--space-4), 12svh - 48px, 64px);
   }
 }
 
@@ -3646,6 +3649,64 @@ button { font: inherit; cursor: pointer; }
   .site-footer__action-btn:hover {
     color: #ffffff;
   }
+}
+
+.site-footer__list--connect {
+  gap: var(--space-2);
+}
+
+.site-footer__connect-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #94a3b8;
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  transition: all var(--duration-fast) var(--ease-out);
+  padding: 3px 0;
+}
+
+.site-footer__icon-box {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  transition: all var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.site-footer__connect-link:hover {
+  color: #ffffff;
+}
+
+.site-footer__connect-link:hover .site-footer__icon-box {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.site-footer__social-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.site-footer__social-icon:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  transform: translateY(-2px);
 }
 
 .site-footer__bottom {
@@ -3850,7 +3911,7 @@ button { font: inherit; cursor: pointer; }
 .modal__panel {
   position: relative;
   width: min(100%, 940px);
-  max-height: min(86vh, 720px);
+  max-height: min(88vh, 720px);
   overflow-y: auto;
   display: grid;
   grid-template-columns: 340px 1fr;
@@ -3858,35 +3919,100 @@ button { font: inherit; cursor: pointer; }
   background: var(--surface-card-dark);
   border: 1px solid var(--border-on-dark);
   box-shadow: var(--shadow-lg);
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal__aside {
   padding: var(--space-8);
   border-right: 1px solid var(--border-on-dark);
   background: var(--sunken-on-dark-soft);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-.modal__main { padding: var(--space-8); }
+.modal__aside-header {
+  display: block;
+}
+
+.modal__main {
+  padding: var(--space-8);
+  overflow-y: visible;
+}
 
 .modal__close {
   position: absolute;
   top: var(--space-4);
   right: var(--space-4);
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-on-dark);
   background: var(--veil-subtle);
   color: var(--text-on-dark);
-  transition: background-color var(--duration-base) var(--ease-standard);
+  z-index: 10;
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: background-color var(--duration-base) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
 }
 @media (hover: hover) and (pointer: fine) {
-  .modal__close:hover { background: var(--veil-strong); }
+  .modal__close:hover {
+    background: var(--veil-strong);
+    transform: scale(1.05);
+  }
 }
 
-.modal__title { font-size: var(--fs-xl); margin-bottom: var(--space-3); }
+.modal__title {
+  font-size: var(--fs-xl);
+  margin-bottom: var(--space-3);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.modal__aside-desc {
+  color: var(--text-on-dark-secondary);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+}
+
+.modal__direct-connect {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-on-dark);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal__direct-label {
+  font-size: var(--fs-xs);
+  color: var(--text-on-dark-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.modal__email-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  background: var(--veil-subtle);
+  border: 1px solid var(--border-on-dark);
+  color: var(--text-on-dark);
+  font-size: var(--fs-xs);
+  text-decoration: none;
+  width: fit-content;
+  transition: border-color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard);
+}
+.modal__email-pill:hover {
+  border-color: var(--border-on-dark-strong);
+  background: var(--veil-strong);
+}
 
 /* Replaced the gradient avatar placeholder. Zeal walked the reader down the
    page; handing them off to an empty circle at the moment they ask for help was
@@ -3907,7 +4033,11 @@ button { font: inherit; cursor: pointer; }
   .modal__zeal { animation: none; }
 }
 
-.field-row { display: grid; gap: var(--space-2); margin-bottom: var(--space-5); }
+.field-row {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
 
 .field-row label {
   font-size: var(--fs-sm);
@@ -3924,24 +4054,226 @@ button { font: inherit; cursor: pointer; }
   color: var(--text-on-dark);
   font-family: var(--font-body);
   font-size: var(--fs-base);
-  transition: border-color var(--duration-base) var(--ease-standard);
+  transition: border-color var(--duration-base) var(--ease-standard), box-shadow var(--duration-base) var(--ease-standard);
 }
 .input::placeholder { color: var(--text-on-dark-muted); }
+.input:focus {
+  outline: none;
+  border-color: var(--gold-400);
+  box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.2);
+}
 @media (hover: hover) and (pointer: fine) {
   .input:hover { border-color: var(--border-on-dark-strong); }
 }
 
-textarea.input { resize: vertical; min-height: 120px; }
+textarea.input,
+.modal__textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.modal__action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: var(--space-3);
+}
+
+.modal__submit-btn {
+  width: 100%;
+  min-height: 46px;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.modal__btn-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+  color: #ffffff !important;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  padding: 10px 20px;
+  text-decoration: none;
+  width: 100%;
+  min-height: 46px;
+  transition: opacity var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+}
+.modal__btn-whatsapp:hover {
+  opacity: 0.94;
+  transform: translateY(-1px);
+}
+
+.modal__spinner-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.modal__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: modal-spin 0.7s linear infinite;
+}
+@keyframes modal-spin {
+  to { transform: rotate(360deg); }
+}
+
+.modal__success {
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: modal-fade-in 300ms ease-out both;
+}
+@keyframes modal-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal__success-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--space-4);
+}
+.modal__success-title {
+  font-size: var(--fs-xl);
+  margin-bottom: var(--space-2);
+  color: #ffffff;
+}
+.modal__success-desc {
+  font-size: var(--fs-sm);
+  color: var(--text-on-dark-secondary);
+  max-width: 360px;
+  margin: 0 auto var(--space-6);
+  line-height: 1.5;
+}
+.modal__success-actions {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal__error-banner {
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius-sm);
+  color: #fca5a5;
+  font-size: var(--fs-xs);
+  margin-bottom: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.modal__error-fallback-link {
+  color: #ffffff;
+  text-decoration: underline;
+  font-weight: 500;
+}
 
 .modal__note {
   font-size: var(--fs-xs);
   color: var(--text-on-dark-secondary);
   margin-top: var(--space-4);
+  text-align: center;
 }
 
 @media (max-width: 767px) {
-  .modal__panel { grid-template-columns: 1fr; }
-  .modal__aside { border-right: 0; border-bottom: 1px solid var(--border-on-dark); }
+  .modal {
+    padding: var(--space-3);
+  }
+
+  .modal__panel {
+    grid-template-columns: 1fr;
+    max-height: min(92dvh, 760px);
+    border-radius: var(--radius-xl);
+  }
+
+  .modal__close {
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .modal__aside {
+    padding: 16px 18px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-on-dark);
+  }
+
+  .modal__aside-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-right: 40px;
+  }
+
+  .modal__zeal {
+    width: 52px;
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+
+  .modal__title {
+    font-size: 1.15rem;
+    margin-bottom: 3px;
+    line-height: 1.25;
+  }
+
+  .modal__aside-desc {
+    font-size: 0.8rem;
+    line-height: 1.35;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .modal__direct-connect {
+    display: none;
+  }
+
+  .modal__main {
+    padding: 16px 18px max(var(--space-6), env(safe-area-inset-bottom, 20px));
+  }
+
+  .field-row {
+    margin-bottom: 12px;
+    gap: 4px;
+  }
+
+  .input {
+    font-size: 16px !important; /* CRITICAL: Prevents iOS Safari viewport auto-zoom */
+    padding: 11px 12px;
+  }
+
+  textarea.input,
+  .modal__textarea {
+    min-height: 76px;
+    max-height: 150px;
+  }
+
+  .modal__submit-btn,
+  .modal__btn-whatsapp {
+    min-height: 48px;
+    font-size: 15px;
+  }
 }
 
 /* ---------------------------------------------------------------

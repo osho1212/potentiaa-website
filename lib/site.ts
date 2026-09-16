@@ -14,8 +14,12 @@ export const site = {
   tagline: "Unlock. Transform. Grow.",
 
   contact: {
-    email: "hello@potentiaa.com",
-    whatsapp: "+91 82678 39736",
+    email: "contact@potentiaa.com",
+    whatsapp: "+91 8267839736",
+    whatsappDisplay: "+91 82678 39736",
+    phone: "+91 8267839736",
+    phoneDisplay: "+91 82678 39736",
+    instagram: "https://www.instagram.com/potentiaa.global",
   },
 
   hero: {
@@ -95,7 +99,7 @@ export const site = {
    * Offerings: 5 Tailored Capability modules.
    */
   work: {
-    title: "Our Offerings",
+    title: "Our Services",
     eyebrow: "Tailored Capabilities",
     intro: "Five modules. One connected system.",
     hint: "Open any card to see what's included.",

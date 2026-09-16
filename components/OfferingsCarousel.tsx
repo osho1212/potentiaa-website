@@ -382,7 +382,7 @@ export default function OfferingsCarousel({
       className="offer-carousel"
       role="region"
       aria-roledescription="carousel"
-      aria-label="Our offerings"
+      aria-label="Our services"
       onKeyDown={onKeyDown}
       onFocus={onFocus}
       onBlur={onBlur}

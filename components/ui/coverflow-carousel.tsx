@@ -121,24 +121,45 @@ export function CoverflowCarousel({
       }
 
       const distance = Math.abs(offset);
-      // Both the tilt and the recession ease off as cards travel out —
-      // doubling the distance adds only about half again as much of each.
-      // A linear ramp folds the second card shut; this keeps it readable.
-      const ramp = Math.pow(distance, falloff);
-      // Capped short of edge-on so a far card never turns its back.
-      const tilt = Math.min(rotate * ramp, 82) * Math.sign(offset);
+      const dClamped1 = Math.min(distance, 1);
+      const dClamped2 = Math.max(0, Math.min(distance - 1, 1));
+
+      // 1. Size hierarchy: Center is biggest (1.02), first neighbours smaller (0.83), outer two smallest (0.69)
+      const scale = Math.max(0.65, 1.02 - 0.19 * dClamped1 - 0.14 * dClamped2);
+
+      // 2. Horizontal spacing: Evenly distributes the 5 cards across the 3D stage
+      const xOffset = Math.sign(offset) * width * (0.72 * dClamped1 + 0.56 * Math.max(0, distance - 1));
+
+      // 3. 3D Depth recession: Center forward at +24px, distance 1 at -110px, distance 2 at -240px
+      const zOffset = 24 - 134 * dClamped1 - 130 * Math.max(0, distance - 1);
+
+      // 4. 3D Rotation (yaw): Center 0deg, distance 1 at 38deg, distance 2 at 52deg
+      const tilt = Math.sign(offset) * (38 * dClamped1 + 14 * dClamped2);
 
       card.style.transform =
-        `translateX(calc(-50% + ${offset * pitch}px)) ` +
-        `translateZ(${-depth * width * ramp}px) rotateY(${-tilt}deg)`;
+        `translateX(calc(-50% + ${xOffset}px)) ` +
+        `translateZ(${zOffset}px) ` +
+        `rotateY(${-tilt}deg) ` +
+        `scale(${scale})`;
 
-      // A card is teleported across the ring at exactly half a turn out, so it
-      // has to be gone by then or the jump is visible.
-      const edge = loop ? Math.min(1, Math.max(0, count / 2 - distance)) : 1;
+      // 5. 3D Lighting & Shadows: Center card is fully illuminated and glowing; side cards dim realistically
+      const brightness = Math.max(0.62, 1 - 0.16 * dClamped1 - 0.18 * dClamped2);
+      card.style.filter = `brightness(${brightness})`;
+
+      if (distance < 0.5) {
+        card.style.boxShadow =
+          "0 24px 60px -10px rgba(0, 0, 0, 0.9), 0 0 40px rgba(38, 93, 255, 0.3), inset 0 1px 1.5px rgba(255, 255, 255, 0.35)";
+      } else {
+        card.style.boxShadow =
+          "0 16px 36px -6px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 0, 0, 0.5)";
+      }
+
+      // 6. Smooth ring edge wrap
+      const edge = loop ? Math.min(1, Math.max(0, (count / 2 - distance) * 2.5)) : 1;
       card.style.opacity = String(Math.max(0, 1 - fade * distance) * edge);
-      card.style.zIndex = String(100 - Math.round(distance));
+      card.style.zIndex = String(100 - Math.round(distance * 10));
     });
-  }, [count, depth, fade, falloff, gap, loop, rotate]);
+  }, [count, fade, loop]);
 
   const settle = React.useCallback(
     (target: number) => {
