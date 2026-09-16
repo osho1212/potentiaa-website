@@ -2335,7 +2335,7 @@ button { font: inherit; cursor: pointer; }
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: clamp(var(--space-2), 1.8vh, var(--space-5));
+  gap: 0;
   margin-bottom: clamp(var(--space-3), 3vh, var(--space-8));
 }
 
@@ -4562,11 +4562,14 @@ textarea.input,
 }
 
 .work__head {
-  text-align: center;
+  text-align: left;
   margin-bottom: clamp(32px, 5vw, 56px);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  gap: 0;
+  width: 100%;
+  max-width: 860px;
   position: relative;
   z-index: 1;
 }
@@ -4578,7 +4581,7 @@ textarea.input,
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #60A5FA;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .work__title {
@@ -5280,16 +5283,18 @@ textarea.input,
   z-index: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  width: 100%;
 }
 
 .faq__head {
-  text-align: center;
+  text-align: left;
   margin-bottom: clamp(32px, 5vw, 56px);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  max-width: 720px;
+  align-items: flex-start;
+  max-width: 860px;
+  width: 100%;
 }
 
 .faq__eyebrow {
@@ -5312,7 +5317,7 @@ textarea.input,
 
 .faq__grid {
   width: 100%;
-  max-width: 1120px;
+  max-width: 100%;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
