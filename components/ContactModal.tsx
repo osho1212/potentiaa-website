@@ -41,62 +41,46 @@ export default function ContactModal() {
     close();
   };
 
-  const getMailtoUrl = () => {
-    const subject = encodeURIComponent(`Project enquiry from ${name || "a business owner"}`);
-    const body = encodeURIComponent(
-      [
-        `Name: ${name}`,
-        `Phone / WhatsApp: ${phone}`,
-        `Email: ${email || "Not specified"}`,
-        "",
-        `Daily bottleneck:`,
-        message,
-        "",
-        `Sent via potentiaa.com contact modal`,
-      ].join("\n")
-    );
-    return `mailto:${site.contact.email}?subject=${subject}&body=${body}`;
-  };
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setStatus("sending");
+    setErrorMessage("");
 
     const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
     const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
     const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
 
-    // If EmailJS credentials are fully set up
-    if (serviceId && templateId && publicKey) {
-      setStatus("sending");
-      setErrorMessage("");
+    if (!serviceId || !templateId || !publicKey) {
+      setStatus("error");
+      setErrorMessage(
+        "EmailJS credentials missing. Please set NEXT_PUBLIC_EMAILJS_SERVICE_ID, NEXT_PUBLIC_EMAILJS_TEMPLATE_ID, and NEXT_PUBLIC_EMAILJS_PUBLIC_KEY in .env.local."
+      );
+      return;
+    }
 
-      try {
-        await emailjs.send(
-          serviceId,
-          templateId,
-          {
-            to_email: site.contact.email,
-            from_name: name,
-            phone: phone,
-            from_email: email || "Not provided",
-            message: message,
-            sent_at: new Date().toLocaleString(),
-          },
-          publicKey
-        );
-        setStatus("success");
-      } catch (err: unknown) {
-        console.error("EmailJS delivery failed:", err);
-        const errObj = err as { text?: string; message?: string };
-        setStatus("error");
-        setErrorMessage(
-          errObj?.text || errObj?.message || "Failed to deliver online. You can send directly via Email or WhatsApp below."
-        );
-      }
-    } else {
-      // Fallback if keys are not yet configured: opens prefilled email to contact@potentiaa.com
-      window.location.href = getMailtoUrl();
+    try {
+      await emailjs.send(
+        serviceId,
+        templateId,
+        {
+          to_email: site.contact.email,
+          from_name: name,
+          phone: phone,
+          from_email: email || "Not provided",
+          reply_to: email || site.contact.email,
+          message: message,
+          sent_at: new Date().toLocaleString(),
+        },
+        publicKey
+      );
       setStatus("success");
+    } catch (err: unknown) {
+      console.error("EmailJS delivery failed:", err);
+      const errObj = err as { text?: string; message?: string };
+      setStatus("error");
+      setErrorMessage(
+        errObj?.text || errObj?.message || "Failed to automatically send email. Please check your EmailJS service & template settings."
+      );
     }
   };
 
@@ -185,9 +169,6 @@ export default function ContactModal() {
               {status === "error" && (
                 <div className="modal__error-banner" role="alert">
                   <p>{errorMessage}</p>
-                  <a href={getMailtoUrl()} className="modal__error-fallback-link">
-                    Open in Mail App &rarr;
-                  </a>
                 </div>
               )}
 
