@@ -706,6 +706,10 @@ button { font: inherit; cursor: pointer; }
   width: 100vw;
   height: 100vh;
   display: block;
+  opacity: 0.55;
+  filter: blur(2.5px);
+  transform: scale(1.04);
+  transform-origin: center center;
 }
 
 .site-background-canvas__aurora {
@@ -5334,37 +5338,29 @@ textarea.input,
 
 .faq__accordion-item {
   width: 100%;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.018);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.45),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-lg, 16px);
+  background: rgba(14, 16, 27, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   transition:
-    border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
 }
 
 .faq__accordion-item:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(76, 121, 255, 0.45);
-  box-shadow:
-    0 16px 40px rgba(0, 0, 0, 0.6),
-    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.25),
-    0 0 24px rgba(38, 93, 255, 0.18);
+  background: rgba(14, 16, 27, 0.78);
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 24px rgba(99, 102, 241, 0.12);
 }
 
 .faq__accordion-item--open {
-  background: rgba(255, 255, 255, 0.038);
-  border-color: rgba(76, 121, 255, 0.65);
-  box-shadow:
-    0 22px 50px rgba(0, 0, 0, 0.7),
-    inset 0 1px 2px 0 rgba(255, 255, 255, 0.35),
-    0 0 32px rgba(38, 93, 255, 0.28);
+  background: rgba(14, 16, 27, 0.85);
+  border-color: rgba(99, 102, 241, 0.55);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 0 28px rgba(99, 102, 241, 0.2);
 }
 
 .faq__question-btn {
