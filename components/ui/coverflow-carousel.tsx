@@ -134,7 +134,7 @@ export function CoverflowCarousel({
 
       // A card is teleported across the ring at exactly half a turn out, so it
       // has to be gone by then or the jump is visible.
-      const edge = loop ? Math.min(1, Math.max(0, count / 2 - distance)) : 1;
+      const edge = loop ? Math.min(1, Math.max(0, (count / 2 - distance) * 2.5)) : 1;
       card.style.opacity = String(Math.max(0, 1 - fade * distance) * edge);
       card.style.zIndex = String(100 - Math.round(distance));
     });

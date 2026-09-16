@@ -3459,7 +3459,7 @@ button { font: inherit; cursor: pointer; }
    at 280px through tablets and small laptops, then the original 24vw up to
    300px once that is larger (~1170px wide and up). */
 .our-work__carousel {
-  --our-work-card: max(min(66vw, 280px), clamp(180px, 24vw, 300px));
+  --our-work-card: clamp(170px, 17.5vw, 250px);
   /* Caption under the centred card. The component's 15/13px defaults read as
      small print; these land at 18/15px on a 375px phone and 20/16px from
      ~420px up. */
@@ -3473,16 +3473,10 @@ button { font: inherit; cursor: pointer; }
   --cf-caption-gap: var(--space-8);
 }
 
-/* The frame pads above and below the cards to keep their shadows inside its
-   clip; on a phone 40px each way was most of the empty band.
-   The gap from the dots down to the caption, though, is the one place a phone
-   has room to spare: tied to screen HEIGHT, it opens up on tall phones (that
-   space otherwise sat unused under the hint) and stays compact on short ones. */
 @media (max-width: 640px) {
   .our-work__carousel {
+    --our-work-card: min(68vw, 260px);
     --cf-pad-y: var(--space-6);
-    /* Grows faster than the screen does: ~16px at 568px tall (no room to
-       give), ~30px at 667, ~50px at 812, ~66px at 932. */
     --cf-caption-gap: clamp(var(--space-4), 14svh - 64px, 88px);
   }
 }

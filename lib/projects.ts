@@ -510,4 +510,91 @@ export const PROJECTS: Project[] = [
       MIS.knowledgeBase,
     ],
   },
+  {
+    id: "warehouse-erp",
+    title: "Warehouse ERP & Dispatch",
+    description: "Multi-godown inventory sync, barcode receiving, 1-click challans & live vehicle dispatch.",
+    image: "/assets/work/erp-dispatch.jpg",
+    imageAlt: "Warehouse ERP dispatch management dashboard with inventory and orders",
+    features: ["Warehouse ERP", "Barcode Scanning", "Multi-Godown Sync", "Dispatch Challans", "Live Tracking"],
+    industry: "Logistics · Wholesale & Warehouse",
+    tagline: "Every carton tracked from receiving dock to customer dispatch.",
+    challenge: {
+      title: "Stock registers that don't match the warehouse floor",
+      body: "Wholesale distribution and warehousing involves inventory constantly in motion. Dispatches stall when staff can't locate pallets, and physical stock never matches what the sales team is promising to buyers.",
+      pains: [
+        "Manual registers causing dispatch bottlenecks",
+        "Discrepancies between warehouse floor counts and sales orders",
+        "No real-time tracking of multi-godown transfers",
+        "Slow handwritten challans delaying delivery vehicles",
+      ],
+      figure: started("Where it started: handwritten registers, misplaced stock, and dispatch delays."),
+    },
+    approach: [
+      { stage: "Understand", body: "Mapping the physical flow of goods from dock receiving to delivery vehicles." },
+      { stage: "Map", body: "Configuring barcode scan points for every pallet movement, storage rack, and dispatch." },
+      { stage: "Build", body: "A warehouse management system with real-time stock sync and instant delivery challans." },
+      { stage: "Train", body: "Equipping warehouse staff and dispatch drivers with fast handheld mobile workflows." },
+    ],
+    approachFigure: {
+      src: "/assets/work/erp-dispatch.jpg",
+      alt: "Warehouse ERP dispatch management screen",
+      caption: "Live dispatch overview across every warehouse location.",
+      kind: "screenshot",
+    },
+    built: [
+      {
+        title: "Real-time dispatch management",
+        detail: "Automated challan generation, dispatch queue sorting, and customer delivery notification.",
+        figure: {
+          src: "/assets/work/erp-dispatch.jpg",
+          alt: "Warehouse ERP dispatch operations dashboard",
+          caption: "Live dispatch queue and vehicle loading status.",
+          kind: "screenshot",
+        },
+      },
+      {
+        title: "Floor inventory & barcode scan",
+        detail: "Scan-based receiving, bin allocation, and automated low-threshold reorder alerts.",
+        figure: {
+          src: "/assets/work/field-ops.jpg",
+          alt: "Floor operations and inventory tracking",
+          caption: "Mobile barcode scanning on the warehouse floor.",
+          kind: "screenshot",
+        },
+      },
+      {
+        title: "Billing & accounting sync",
+        detail: "Direct connection between dispatch challans, customer invoices, and automated ledgers.",
+        figure: {
+          src: "/assets/work/billing-reconcile.jpg",
+          alt: "Billing and reconciliation dashboard",
+          caption: "One-click invoice generation from dispatched items.",
+          kind: "screenshot",
+        },
+      },
+      {
+        title: "Operational analytics",
+        detail: "Turnaround times, stock velocity, and fulfillment efficiency tracked by branch.",
+        figure: {
+          src: "/assets/work/strata-analytics.jpg",
+          alt: "Analytics and performance charts",
+          caption: "Fulfillment velocity and dispatch turnaround metrics.",
+          kind: "screenshot",
+        },
+      },
+    ],
+    shift: [
+      { before: "Handwritten gate passes and dispatch delays", after: "Instant barcode-verified delivery challans" },
+      { before: "Disputed inventory counts between branches", after: "Unified multi-location inventory ledger" },
+      { before: "Stockouts discovered only at the dispatch dock", after: "Automated low-threshold alerts and purchase reorders" },
+    ],
+    outcomeFigure: landed("Where it landed: zero stockouts, rapid turnaround, and complete audit transparency."),
+    gallery: [
+      { src: "/assets/work/erp-dispatch.jpg", alt: "ERP dispatch board", caption: "Dispatch operations", kind: "screenshot" },
+      { src: "/assets/work/field-ops.jpg", alt: "Warehouse inventory ops", caption: "Field & floor operations", kind: "screenshot" },
+      { src: "/assets/work/billing-reconcile.jpg", alt: "Billing reconciliation", caption: "Billing & collections", kind: "screenshot" },
+      { src: "/assets/work/strata-analytics.jpg", alt: "Operational analytics", caption: "Performance analytics", kind: "screenshot" },
+    ],
+  },
 ];
