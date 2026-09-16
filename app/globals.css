@@ -1857,9 +1857,9 @@ button { font: inherit; cursor: pointer; }
    still exactly one screen and the gap sits after it. */
 .testimonials {
   position: relative;
-  height: calc(100svh + var(--section-gap));
-  min-height: calc(560px + var(--section-gap));
-  padding-block: 0 var(--section-gap);
+  height: 100svh;
+  min-height: 560px;
+  padding-block: 0 var(--space-6);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -3492,12 +3492,7 @@ button { font: inherit; cursor: pointer; }
   background: transparent;
   border-top: none;
   border-bottom: none;
-  /* No top padding and no margin-top: the section right above this one
-     (testimonials) already ends with a full --section-gap as its own
-     bottom padding - adding this sections own top spacing on top of that
-     stacked into a double gap. Only the bottom half of the old padding
-     survives, for the room below the headline before the footer. */
-  padding-block: 0 clamp(var(--space-12), 6vw, var(--space-20));
+  padding-block: var(--space-4) clamp(var(--space-10), 5vw, var(--space-16));
   margin-top: 0;
   text-align: center;
   position: relative;
@@ -3515,15 +3510,24 @@ button { font: inherit; cursor: pointer; }
 
 .cta-strip__title {
   font-family: var(--font-display);
-  /* The floor eases below ~305px wide so a folded phone still gets two lines
-     rather than three; everywhere else it is the same 22-56px. */
-  font-size: clamp(min(22px, 7.2vw), 4.8vw, 56px);
+  font-size: clamp(28px, 4.8vw, 56px);
   font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-tight);
-  line-height: 1.15;
+  line-height: 1.16;
   text-align: center;
   margin: 0 auto;
   max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  .cta-strip {
+    padding-block: var(--space-2) clamp(var(--space-8), 4vw, var(--space-12));
+  }
+  .cta-strip__title {
+    font-size: clamp(26px, 7.6vw, 34px);
+    line-height: 1.18;
+    padding-inline: var(--space-3);
+  }
 }
 
 /* One line wherever it fits; where it doesn't (every phone, and laptops near
