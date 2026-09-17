@@ -52,8 +52,8 @@ export default function OfferingsCarousel({
   hint,
 }: {
   modules: readonly OfferingModule[];
-  intro: string;
-  hint: string;
+  intro?: string;
+  hint?: string;
 }) {
   const count = modules.length;
   const { open: openContact } = useContact();
@@ -389,15 +389,10 @@ export default function OfferingsCarousel({
       onPointerEnter={(event) => event.pointerType === "mouse" && setHovered(true)}
       onPointerLeave={(event) => event.pointerType === "mouse" && setHovered(false)}
     >
-      <div className="offer-intro" data-form-step={0}>
-        <p className="offer-intro__title">{intro}</p>
-        <p className="offer-intro__hint">{hint}</p>
-      </div>
-
       <div
         ref={viewportRef}
         className="offer-viewport"
-        data-form-step={1}
+        data-form-step={0}
         data-dragging={dragging || undefined}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -512,7 +507,7 @@ export default function OfferingsCarousel({
         </div>
       </div>
 
-      <div className="offer-controls" data-form-step={2}>
+      <div className="offer-controls" data-form-step={1}>
         <button type="button" className="offer-arrow" aria-label="Previous module" onClick={() => stepBy(-1)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <polyline points="15 18 9 12 15 6" />

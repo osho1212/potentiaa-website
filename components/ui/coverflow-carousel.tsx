@@ -82,6 +82,7 @@ export function CoverflowCarousel({
       swallow a keypress that lands mid-flight, before the round-off moves. */
   const targetRef = React.useRef(0);
   const widthRef = React.useRef(0);
+  const stageWidthRef = React.useRef(0);
   const rafRef = React.useRef<number | null>(null);
   const dragRef = React.useRef<{
     id: number;
@@ -106,7 +107,7 @@ export function CoverflowCarousel({
   const paint = React.useCallback(() => {
     const width = widthRef.current;
     if (!width) return;
-    const pitch = width * (1 + gap);
+    const stageWidth = stageWidthRef.current || width * 4;
     const pos = posRef.current;
 
     cardRefs.current.forEach((card, index) => {
@@ -127,8 +128,22 @@ export function CoverflowCarousel({
       // 1. Size hierarchy: Center is biggest (1.02), first neighbours smaller (0.83), outer two smallest (0.69)
       const scale = Math.max(0.65, 1.02 - 0.19 * dClamped1 - 0.14 * dClamped2);
 
-      // 2. Horizontal spacing: Evenly distributes the 5 cards across the 3D stage
-      const xOffset = Math.sign(offset) * width * (0.72 * dClamped1 + 0.56 * Math.max(0, distance - 1));
+      // 2. Adaptive stage-aware horizontal spacing:
+      // Spans the 5 cards across the entire horizontal viewport width on desktop and tablet,
+      // while keeping cozy card-relative spacing on mobile so center card stays prominent.
+      const isWideStage = stageWidth >= 768;
+      const targetX1 = isWideStage
+        ? Math.max(width * 0.76, Math.min(width * 1.15, stageWidth * 0.20))
+        : width * 0.72;
+      const targetX2 = isWideStage
+        ? Math.max(width * 1.42, Math.min(width * 2.15, stageWidth * 0.385))
+        : width * 1.30;
+
+      const xOffset =
+        Math.sign(offset) *
+        (targetX1 * dClamped1 +
+          (targetX2 - targetX1) * dClamped2 +
+          (targetX2 - targetX1) * Math.max(0, distance - 2));
 
       // 3. 3D Depth recession: Center forward at +24px, distance 1 at -110px, distance 2 at -240px
       const zOffset = 24 - 134 * dClamped1 - 130 * Math.max(0, distance - 1);
@@ -283,6 +298,7 @@ export function CoverflowCarousel({
       const card = cardRefs.current[0];
       if (!card) return;
       widthRef.current = card.offsetWidth;
+      stageWidthRef.current = frame.offsetWidth;
       paint();
     };
 
@@ -390,17 +406,17 @@ export function CoverflowCarousel({
               type="button"
               aria-label="Previous slide"
               onClick={() => nudge(-1)}
-              className="absolute left-3 top-1/2 z-[200] -translate-y-1/2 rounded-full bg-background/70 p-2 text-foreground backdrop-blur transition hover:bg-background"
+              className="absolute left-3 sm:left-6 lg:left-8 top-1/2 z-[200] -translate-y-1/2 flex items-center justify-center rounded-full bg-black/65 border border-white/15 p-2.5 sm:p-3 text-white backdrop-blur-md transition-all duration-200 hover:scale-110 hover:bg-black/90 hover:border-white/30 hover:shadow-[0_0_24px_rgba(99,102,241,0.4)] active:scale-95 cursor-pointer"
             >
-              <ChevronLeft className="size-5" />
+              <ChevronLeft className="size-5 sm:size-6" />
             </button>
             <button
               type="button"
               aria-label="Next slide"
               onClick={() => nudge(1)}
-              className="absolute right-3 top-1/2 z-[200] -translate-y-1/2 rounded-full bg-background/70 p-2 text-foreground backdrop-blur transition hover:bg-background"
+              className="absolute right-3 sm:right-6 lg:right-8 top-1/2 z-[200] -translate-y-1/2 flex items-center justify-center rounded-full bg-black/65 border border-white/15 p-2.5 sm:p-3 text-white backdrop-blur-md transition-all duration-200 hover:scale-110 hover:bg-black/90 hover:border-white/30 hover:shadow-[0_0_24px_rgba(99,102,241,0.4)] active:scale-95 cursor-pointer"
             >
-              <ChevronRight className="size-5" />
+              <ChevronRight className="size-5 sm:size-6" />
             </button>
           </>
         )}

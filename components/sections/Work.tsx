@@ -34,19 +34,14 @@ export default function Work() {
           </Reveal>
         </div>
 
-        {/* The particle-formed white card. The carousel inside it carries the
-            data-form-step blocks the formation reveals in order. */}
+        {/* The particle-formed showcase card */}
         <div
           className="offering-showcase"
           ref={(el) => {
             showcaseRefs.current[0] = el;
           }}
         >
-          <OfferingsCarousel
-            modules={site.work.modules}
-            intro={site.work.intro}
-            hint={site.work.hint}
-          />
+          <OfferingsCarousel modules={site.work.modules} />
         </div>
       </div>
     </section>

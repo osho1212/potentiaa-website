@@ -9,20 +9,20 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 html {
-  background-color: #02040a;
+  background-color: #000000;
 }
 
 html, body {
   margin: 0;
   padding: 0;
-  background-color: #02040a;
+  background-color: #000000;
   background-image:
     /* Diagonal top-left aurora beams matching hero */
-    linear-gradient(132deg, rgba(59, 130, 246, 0.18) 0%, rgba(244, 114, 182, 0.12) 18%, rgba(99, 102, 241, 0.08) 36%, transparent 60%),
+    linear-gradient(132deg, rgba(59, 130, 246, 0.10) 0%, rgba(244, 114, 182, 0.07) 18%, rgba(99, 102, 241, 0.05) 36%, transparent 60%),
     /* Bottom-right orbital aura arc matching hero */
-    radial-gradient(circle at 88% 82%, rgba(244, 114, 182, 0.14) 0%, rgba(59, 130, 246, 0.16) 28%, rgba(30, 27, 75, 0.20) 48%, transparent 70%),
+    radial-gradient(circle at 88% 82%, rgba(244, 114, 182, 0.08) 0%, rgba(59, 130, 246, 0.09) 28%, rgba(30, 27, 75, 0.12) 48%, transparent 70%),
     /* Upper-center cosmic atmospheric glow */
-    radial-gradient(ellipse 85% 55% at 50% 18%, rgba(30, 27, 75, 0.45) 0%, rgba(15, 23, 42, 0.28) 45%, transparent 75%);
+    radial-gradient(ellipse 85% 55% at 50% 18%, rgba(30, 27, 75, 0.24) 0%, rgba(15, 23, 42, 0.16) 45%, transparent 75%);
   background-attachment: fixed;
   background-size: 100vw 100vh;
   background-repeat: no-repeat;
@@ -686,6 +686,47 @@ button { font: inherit; cursor: pointer; }
      What DOES still apply is size. A phone is not a desk, and 46vw of a 390px
      screen is a different object from 46vw of a 1440px one. */
   .module-stack { --cube-size: min(58vw, 34vh); }
+}
+
+/* ---------------------------------------------------------------
+   Site-Wide Cosmic Background Canvas Layer (Frame Sequence Player)
+   --------------------------------------------------------------- */
+.site-background-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background-color: #000000;
+}
+
+.site-background-canvas__media {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  opacity: 0.38;
+  filter: blur(2.5px);
+  transform: scale(1.04);
+  transform-origin: center center;
+}
+
+.site-background-canvas__aurora {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    /* Diagonal top-left aurora beams matching brand palette */
+    linear-gradient(132deg, rgba(59, 130, 246, 0.12) 0%, rgba(244, 114, 182, 0.08) 18%, rgba(99, 102, 241, 0.06) 36%, transparent 60%),
+    /* Bottom-right orbital aura arc matching hero */
+    radial-gradient(circle at 88% 82%, rgba(244, 114, 182, 0.09) 0%, rgba(59, 130, 246, 0.10) 28%, rgba(30, 27, 75, 0.13) 48%, transparent 70%),
+    /* Upper-center cosmic atmospheric glow */
+    radial-gradient(ellipse 85% 55% at 50% 18%, rgba(30, 27, 75, 0.26) 0%, rgba(15, 23, 42, 0.17) 45%, transparent 75%);
+  background-attachment: fixed;
+  background-size: 100vw 100vh;
+  background-repeat: no-repeat;
+  mix-blend-mode: screen;
 }
 
 /* ---------------------------------------------------------------
@@ -1857,9 +1898,9 @@ button { font: inherit; cursor: pointer; }
    still exactly one screen and the gap sits after it. */
 .testimonials {
   position: relative;
-  height: calc(100svh + var(--section-gap));
-  min-height: calc(560px + var(--section-gap));
-  padding-block: 0 var(--section-gap);
+  height: 100svh;
+  min-height: 560px;
+  padding-block: 0 var(--space-6);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2294,7 +2335,7 @@ button { font: inherit; cursor: pointer; }
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: clamp(var(--space-2), 1.8vh, var(--space-5));
+  gap: 0;
   margin-bottom: clamp(var(--space-3), 3vh, var(--space-8));
 }
 
@@ -2959,10 +3000,10 @@ button { font: inherit; cursor: pointer; }
 }
 
 .method__title {
-  font-family: var(--font-display);
-  font-size: clamp(var(--fs-2xl), 4vw, var(--fs-3xl));
-  font-weight: var(--fw-bold);
-  letter-spacing: var(--tracking-tight);
+  font-family: var(--font-display, sans-serif);
+  font-size: clamp(32px, 4.5vw, 52px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
   line-height: var(--lh-tight);
   color: var(--text-on-dark);
   margin-bottom: var(--space-4);
@@ -3272,7 +3313,7 @@ button { font: inherit; cursor: pointer; }
     margin-bottom: 2px;
   }
   .method__title {
-    font-size: clamp(var(--fs-lg), 4.5vw, var(--fs-2xl));
+    font-size: clamp(32px, 4.5vw, 52px);
     margin-bottom: 4px;
     line-height: var(--lh-snug);
   }
@@ -3407,6 +3448,7 @@ button { font: inherit; cursor: pointer; }
   display: flex;
   flex-direction: column;
   justify-content: center;
+  gap: clamp(var(--space-4), 2.5vh, var(--space-8));
   /* Generous vertical clearance */
   padding-top: var(--below-header);
   padding-bottom: var(--section-gap);
@@ -3420,7 +3462,7 @@ button { font: inherit; cursor: pointer; }
   top: 30%;
   left: 50%;
   transform: translate(-50%, -30%);
-  width: min(1200px, 92vw);
+  width: min(1600px, 98vw);
   height: 600px;
   background: radial-gradient(ellipse 65% 45% at 50% 50%, rgba(255, 255, 255, 0.05) 0%, rgba(96, 165, 250, 0.03) 40%, transparent 75%);
   filter: blur(50px);
@@ -3434,7 +3476,6 @@ button { font: inherit; cursor: pointer; }
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: clamp(var(--space-3), 2.4vh, var(--space-10));
 }
 
 .our-work__head {
@@ -3454,35 +3495,30 @@ button { font: inherit; cursor: pointer; }
   .only-touch { display: contents; }
 }
 
-/* The coverflow's card size, as one continuous curve: 66% of a phone's width
-   (the old 180px floor left a small card in a band of empty space), holding
-   at 280px through tablets and small laptops, then the original 24vw up to
-   300px once that is larger (~1170px wide and up). */
+/* The coverflow's card size: fills the screen horizontally with 5 cards
+   spanning across desktop viewports, scaling up to 440px on wide screens. */
 .our-work__carousel {
-  --our-work-card: clamp(230px, 25vw, 360px);
+  width: 100%;
+  max-width: 100vw;
+  overflow: visible;
+  --our-work-card: clamp(280px, 28vw, 440px);
   --cf-pad-y: clamp(2rem, 3.8vw, 3.5rem);
   /* Caption under the centred card. */
-  --cf-caption-title: clamp(20px, 4vw, 24px);
-  --cf-caption-text: clamp(15px, 3.2vw, 16px);
+  --cf-caption-title: clamp(20px, 3.5vw, 26px);
+  --cf-caption-text: clamp(15px, 2.8vw, 16px);
   /* The dots sit under the cards and above the caption. */
   --cf-dots-gap: calc(var(--space-6) - var(--cf-pad-y, 2.5rem));
-  --cf-caption-gap: var(--space-6);
+  --cf-caption-gap: var(--space-5);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .our-work__carousel {
-    --our-work-card: min(78vw, 300px);
+    --our-work-card: min(82vw, 320px);
     --cf-pad-y: var(--space-5);
-    --cf-caption-gap: clamp(var(--space-4), 12svh - 48px, 64px);
+    --cf-caption-gap: clamp(var(--space-3), 8svh - 24px, 40px);
   }
 }
 
-.our-work__hint {
-  margin-top: var(--space-3);
-  text-align: center;
-  font-size: clamp(15px, 4vw, 16px);
-  color: var(--text-on-dark-secondary);
-}
 
 /* ---------------------------------------------------------------
    CTA Strip (Center-aligned single-line text with seamless background)
@@ -3492,12 +3528,7 @@ button { font: inherit; cursor: pointer; }
   background: transparent;
   border-top: none;
   border-bottom: none;
-  /* No top padding and no margin-top: the section right above this one
-     (testimonials) already ends with a full --section-gap as its own
-     bottom padding - adding this sections own top spacing on top of that
-     stacked into a double gap. Only the bottom half of the old padding
-     survives, for the room below the headline before the footer. */
-  padding-block: 0 clamp(var(--space-12), 6vw, var(--space-20));
+  padding-block: var(--space-4) clamp(var(--space-10), 5vw, var(--space-16));
   margin-top: 0;
   text-align: center;
   position: relative;
@@ -3515,25 +3546,43 @@ button { font: inherit; cursor: pointer; }
 
 .cta-strip__title {
   font-family: var(--font-display);
-  /* The floor eases below ~305px wide so a folded phone still gets two lines
-     rather than three; everywhere else it is the same 22-56px. */
-  font-size: clamp(min(22px, 7.2vw), 4.8vw, 56px);
+  font-size: clamp(24px, 3.2vw, 48px);
   font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-tight);
-  line-height: 1.15;
+  line-height: 1.16;
   text-align: center;
   margin: 0 auto;
   max-width: 100%;
+  white-space: nowrap;
 }
 
-/* One line wherever it fits; where it doesn't (every phone, and laptops near
-   1280px at the 56px cap) it wraps into two balanced lines instead of running
-   off both edges. The shine is a background clipped to the text, painted
-   across the whole inline-block, so it sweeps both lines as one. */
-.cta-strip__title .shiny-text {
-  max-width: 100%;
-  white-space: normal;
-  text-wrap: balance;
+@media (min-width: 768px) {
+  .cta-strip__title {
+    font-size: clamp(24px, 3.2vw, 48px);
+    white-space: nowrap;
+  }
+  .cta-strip__title .shiny-text {
+    white-space: nowrap !important;
+    text-wrap: nowrap !important;
+    max-width: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .cta-strip {
+    padding-block: var(--space-2) clamp(var(--space-8), 4vw, var(--space-12));
+  }
+  .cta-strip__title {
+    font-size: clamp(26px, 7.6vw, 34px);
+    line-height: 1.18;
+    padding-inline: var(--space-3);
+    white-space: normal;
+  }
+  .cta-strip__title .shiny-text {
+    max-width: 100%;
+    white-space: normal;
+    text-wrap: balance;
+  }
 }
 
 /* ---------------------------------------------------------------
@@ -4513,11 +4562,14 @@ textarea.input,
 }
 
 .work__head {
-  text-align: center;
+  text-align: left;
   margin-bottom: clamp(32px, 5vw, 56px);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  gap: 0;
+  width: 100%;
+  max-width: 860px;
   position: relative;
   z-index: 1;
 }
@@ -4529,7 +4581,7 @@ textarea.input,
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #60A5FA;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .work__title {
@@ -4544,25 +4596,12 @@ textarea.input,
 .offering-showcase {
   position: relative;
   z-index: 1;
-  /* Part of the fit-to-viewport chain: .work-section .container hands its
-     height down and this takes it, so the card fills the section instead of
-     sitting at its natural height with the slack split above and below. */
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  /* The card fills the section's height; the carousel sits in its middle. */
   justify-content: center;
-  /* NO BACKGROUND AND NO SHADOW. The white surface is drawn by the particle
-     field behind this element - see lib/particleCardBackground. A background
-     here would hide it; a drop shadow would redraw the hard rounded rectangle
-     the particles exist to form, which is what made an earlier attempt read as
-     a card with an effect near it rather than a card made of the effect.
-     The border-radius stays because the particle corner radius is matched to
-     it, and because inner content still clips against it. */
   background: transparent;
   border-radius: 28px;
-  /* vh, not vw: sized off viewport WIDTH these hit their maximum exactly when
-     a wide short screen has least room for them. */
   padding: clamp(18px, 3.4vh, 44px);
   perspective: 1200px;
   color: #0F172A;
@@ -4571,8 +4610,7 @@ textarea.input,
 /* ---------------------------------------------------------------
    Offerings carousel - one card per module, inside the showcase.
    Placement is JS (components/OfferingsCarousel); everything else is here.
-   Colours are the light-surface set the showcase has always used: the white
-   underneath is the particle field, not a background.
+   Colours are optimized for floating cards over the deep space background.
    --------------------------------------------------------------- */
 .offer-carousel {
   display: flex;
@@ -4587,17 +4625,17 @@ textarea.input,
 .offer-intro__title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.05rem, 0.9rem + 0.6vw, 1.35rem);
+  font-size: clamp(1.15rem, 1rem + 0.8vw, 1.5rem);
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: #0F172A;
+  color: #FFFFFF;
   text-wrap: balance;
 }
 
 .offer-intro__hint {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   font-size: 14px;
-  color: #64748B;
+  color: var(--text-on-dark-secondary, rgba(255, 255, 255, 0.65));
 }
 
 /* The clip. Padded (and pulled back by the same amount) so the active card's
@@ -5245,16 +5283,18 @@ textarea.input,
   z-index: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  width: 100%;
 }
 
 .faq__head {
-  text-align: center;
+  text-align: left;
   margin-bottom: clamp(32px, 5vw, 56px);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  max-width: 720px;
+  align-items: flex-start;
+  max-width: 860px;
+  width: 100%;
 }
 
 .faq__eyebrow {
@@ -5277,7 +5317,7 @@ textarea.input,
 
 .faq__grid {
   width: 100%;
-  max-width: 1120px;
+  max-width: 100%;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
@@ -5293,37 +5333,29 @@ textarea.input,
 
 .faq__accordion-item {
   width: 100%;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.018);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.45),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-lg, 16px);
+  background: rgba(14, 16, 27, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   transition:
-    border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
 }
 
 .faq__accordion-item:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(76, 121, 255, 0.45);
-  box-shadow:
-    0 16px 40px rgba(0, 0, 0, 0.6),
-    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.25),
-    0 0 24px rgba(38, 93, 255, 0.18);
+  background: rgba(14, 16, 27, 0.78);
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 24px rgba(99, 102, 241, 0.12);
 }
 
 .faq__accordion-item--open {
-  background: rgba(255, 255, 255, 0.038);
-  border-color: rgba(76, 121, 255, 0.65);
-  box-shadow:
-    0 22px 50px rgba(0, 0, 0, 0.7),
-    inset 0 1px 2px 0 rgba(255, 255, 255, 0.35),
-    0 0 32px rgba(38, 93, 255, 0.28);
+  background: rgba(14, 16, 27, 0.85);
+  border-color: rgba(99, 102, 241, 0.55);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 0 28px rgba(99, 102, 241, 0.2);
 }
 
 .faq__question-btn {
