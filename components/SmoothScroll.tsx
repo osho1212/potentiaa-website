@@ -95,17 +95,17 @@ export default function SmoothScroll() {
      * slower, longer glide per unit of input - intentionally, so the page
      * reads as heavier rather than snappier.
      *
-     * Touch is damped far less on purpose. `syncTouch` means the content tracks
-     * the finger, and a finger that the page refuses to keep up with does not
-     * read as premium, it reads as broken.
+     * Touch is not intercepted or hijacked: native mobile compositor scrolling
+     * handles touch momentum at full display refresh rate (60-120Hz) with zero
+     * main-thread latency, while desktop wheel scrolling enjoys the tailored glide.
      */
     const lenis = new Lenis({
       duration: 1.4,
       easing: (t: number) => 1 - Math.pow(1 - t, 4),
       smoothWheel: true,
       wheelMultiplier: 0.48,
-      touchMultiplier: 1.2,
-      syncTouch: true,
+      touchMultiplier: 1.0,
+      syncTouch: false,
     });
 
     // Lenis knows its own limit and keeps it current; measureSpan is the

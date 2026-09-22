@@ -476,6 +476,10 @@ export class ParticlesSwarm {
   private currentTiltY = 0;
   private hasGyroscope = false;
   private cleanUpOrientation: (() => void) | null = null;
+  private containerWidth = 1;
+  private containerHeight = 1;
+  private heroEl: HTMLElement | null = null;
+  private heroHeight = 800;
 
   private readonly onPointerMove = (event: PointerEvent) => {
     this.pointerClientX = event.clientX;
@@ -565,6 +569,12 @@ export class ParticlesSwarm {
     const rect = container.getBoundingClientRect();
     const width = Math.max(rect.width, 1);
     const height = Math.max(rect.height, 1);
+    this.containerWidth = width;
+    this.containerHeight = height;
+    this.heroEl = typeof document !== "undefined" ? document.querySelector<HTMLElement>(".hero") : null;
+    if (this.heroEl) {
+      this.heroHeight = this.heroEl.offsetHeight || height;
+    }
 
     this.camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 2000);
     this.camera.position.set(0, 0, 100);
@@ -747,6 +757,12 @@ export class ParticlesSwarm {
   resize(width: number, height: number) {
     if (width <= 0 || height <= 0) return;
 
+    this.containerWidth = width;
+    this.containerHeight = height;
+    if (this.heroEl) {
+      this.heroHeight = this.heroEl.offsetHeight || height;
+    }
+
     const dpr = window.devicePixelRatio || 1;
     const pixelRatio = Math.min(dpr * (dpr > 1 ? 1 : SUPERSAMPLE), MAX_PIXEL_RATIO);
     this.renderer.setPixelRatio(pixelRatio);
@@ -815,7 +831,7 @@ export class ParticlesSwarm {
     this.renderFrame(this.clock.getElapsedTime());
   }
 
-  private unproject(clientX: number, clientY: number, rect: DOMRect): { x: number; y: number } {
+  private unproject(clientX: number, clientY: number, rect: { left: number; top: number; width: number; height: number }): { x: number; y: number } {
     const px = (clientX - rect.left) / rect.width;
     const py = (clientY - rect.top) / rect.height;
 
@@ -837,7 +853,14 @@ export class ParticlesSwarm {
     let glowInside = false;
 
     if (wantsPointer || !glowIdle) {
-      const rect = this.container.getBoundingClientRect();
+      const rect = {
+        left: 0,
+        top: 0,
+        width: this.containerWidth,
+        height: this.containerHeight,
+        right: this.containerWidth,
+        bottom: this.containerHeight,
+      };
       if (rect.width > 0 && rect.height > 0) {
         if (wantsPointer) {
           const p = this.unproject(this.pointerClientX, this.pointerClientY, rect);
@@ -918,17 +941,17 @@ export class ParticlesSwarm {
       this.glowInfluence > 0.001 ? GLOW_STRENGTH * this.glowInfluence : 0,
     );
 
-    const rect = this.container.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0) {
+    const width = this.containerWidth;
+    const height = this.containerHeight;
+    if (width > 0 && height > 0) {
+      const rect = { left: 0, top: 0, width, height };
+
       // 1. Update live Hero Center in 3D simulation coordinates (anchored to hero section)
-      const heroEl = document.querySelector<HTMLElement>(".hero");
-      if (heroEl) {
-        const heroRect = heroEl.getBoundingClientRect();
-        const heroCenterX = heroRect.left + heroRect.width * 0.5;
-        const heroCenterY = heroRect.top + heroRect.height * 0.5;
-        const h = this.unproject(heroCenterX, heroCenterY, rect);
-        u.uHeroCenter.value.set(h.x, h.y);
-      }
+      const scrollY = typeof window !== "undefined" ? window.scrollY || 0 : 0;
+      const heroCenterX = width * 0.5;
+      const heroCenterY = -scrollY + this.heroHeight * 0.5;
+      const h = this.unproject(heroCenterX, heroCenterY, rect);
+      u.uHeroCenter.value.set(h.x, h.y);
 
       // 2. Update live 3D constellation node positions for connected ~ disconnected filaments
       for (let i = 0; i < 5; i++) {

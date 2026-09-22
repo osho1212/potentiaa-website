@@ -90,8 +90,8 @@ const HeroParticles = forwardRef<HeroParticlesHandle>(function HeroParticles(_pr
        0.9 keeps a comfortable margin above it while reading as a point rather
        than a blob, and the fill it gives back pays for MAX_PIXEL_RATIO 2.0. */
     const swarm = new ParticlesSwarm(container, {
-      count: narrow ? 5200 : 7600,
-      particleSize: narrow ? 0.62 : 0.58,
+      count: narrow ? 3600 : 7600,
+      particleSize: narrow ? 0.66 : 0.58,
     });
     swarmRef.current = swarm;
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { scrollState } from "@/lib/scrollState";
-import { mixRgb, themeAt } from "@/lib/sectionTheme";
+import { measureThemeSections, mixRgb, themeAt } from "@/lib/sectionTheme";
 
 /**
  * Ambient depth behind the content - the equivalent of the reference site's
@@ -109,7 +109,9 @@ export default function DepthField() {
     let viewport = window.innerHeight;
     const onResize = () => {
       viewport = window.innerHeight;
+      measureThemeSections();
     };
+    onResize();
     window.addEventListener("resize", onResize, { passive: true });
 
     const tick = () => {
@@ -120,7 +122,7 @@ export default function DepthField() {
         const now = performance.now();
         if (now - themeReadAt >= 60) {
           themeReadAt = now;
-          const theme = themeAt(viewport * 0.5);
+          const theme = themeAt(viewport * 0.5, scrollState.distance);
           cachedAccent = mixRgb(theme.from.accent, theme.to.accent, theme.t);
         }
         const accent = cachedAccent;

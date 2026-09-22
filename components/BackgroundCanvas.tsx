@@ -28,19 +28,22 @@ export default function BackgroundCanvas() {
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
 
+    const isMobile = window.innerWidth < 768;
+    const FRAME_STEP = isMobile ? 3 : 1;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const images = imagesRef.current;
     let isDisposed = false;
 
     // Helper to find the best available frame if target is still loading
     const getBestAvailableFrame = (index: number): HTMLImageElement | null => {
-      const idx = Math.max(0, Math.min(FRAME_COUNT - 1, Math.round(index)));
-      if (images[idx]?.complete && images[idx]?.naturalWidth) return images[idx];
+      const clamped = Math.max(0, Math.min(FRAME_COUNT - 1, Math.round(index)));
+      const stepped = Math.min(FRAME_COUNT - 1, Math.round(clamped / FRAME_STEP) * FRAME_STEP);
+      if (images[stepped]?.complete && images[stepped]?.naturalWidth) return images[stepped];
 
-      // Outward search for nearest loaded frame
-      for (let offset = 1; offset < FRAME_COUNT; offset++) {
-        const left = idx - offset;
-        const right = idx + offset;
+      // Outward search for nearest loaded stepped frame
+      for (let offset = FRAME_STEP; offset < FRAME_COUNT; offset += FRAME_STEP) {
+        const left = stepped - offset;
+        const right = stepped + offset;
         if (left >= 0 && images[left]?.complete && images[left]?.naturalWidth) return images[left];
         if (right < FRAME_COUNT && images[right]?.complete && images[right]?.naturalWidth) return images[right];
       }
@@ -78,9 +81,9 @@ export default function BackgroundCanvas() {
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
-    // 1. Immediately preload the first batch of frames (0..24) for instant, seamless initial scroll
-    const INITIAL_BATCH = 24;
-    for (let i = 0; i < INITIAL_BATCH; i++) {
+    // 1. Immediately preload the first batch of frames for instant, seamless initial scroll
+    const INITIAL_BATCH = isMobile ? 12 : 24;
+    for (let i = 0; i < INITIAL_BATCH; i += FRAME_STEP) {
       const img = new Image();
       img.src = framePath(i);
       img.onload = () => {
@@ -95,10 +98,11 @@ export default function BackgroundCanvas() {
 
     // 2. Progressively stream remaining frames in the background without blocking main thread
     let nextIdx = INITIAL_BATCH;
+    const BATCH_SIZE = isMobile ? 6 : 12;
     const loadNextBatch = () => {
       if (isDisposed || nextIdx >= FRAME_COUNT) return;
-      const end = Math.min(FRAME_COUNT, nextIdx + 12);
-      for (let i = nextIdx; i < end; i++) {
+      const end = Math.min(FRAME_COUNT, nextIdx + BATCH_SIZE * FRAME_STEP);
+      for (let i = nextIdx; i < end; i += FRAME_STEP) {
         const img = new Image();
         img.src = framePath(i);
         img.onload = () => {
@@ -110,7 +114,7 @@ export default function BackgroundCanvas() {
         if ("requestIdleCallback" in window) {
           (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(loadNextBatch);
         } else {
-          setTimeout(loadNextBatch, 60);
+          setTimeout(loadNextBatch, isMobile ? 100 : 60);
         }
       }
     };
@@ -118,7 +122,7 @@ export default function BackgroundCanvas() {
     if ("requestIdleCallback" in window) {
       (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(loadNextBatch);
     } else {
-      setTimeout(loadNextBatch, 80);
+      setTimeout(loadNextBatch, isMobile ? 120 : 80);
     }
 
     if (reduced) {
@@ -128,19 +132,14 @@ export default function BackgroundCanvas() {
       };
     }
 
-    // Subscribe to Lenis scroll engine
-    const unsubscribe = onScrollFrame(() => {
-      const p = Math.max(0, Math.min(1, scrollState.progress));
-      targetFrameRef.current = p * (FRAME_COUNT - 1);
-    });
-
     let rafId = 0;
     let lastRenderedFrame = -1;
+    let isTicking = false;
 
     const tick = () => {
       const frameDiff = targetFrameRef.current - currentFrameRef.current;
 
-      // Smooth interpolation for 240 dense frames
+      // Smooth interpolation for dense frames
       if (Math.abs(frameDiff) > 0.01) {
         currentFrameRef.current += frameDiff * 0.16;
 
@@ -149,12 +148,33 @@ export default function BackgroundCanvas() {
           draw(currentFrameRef.current);
           lastRenderedFrame = rounded;
         }
+        rafId = requestAnimationFrame(tick);
+      } else {
+        currentFrameRef.current = targetFrameRef.current;
+        const rounded = Math.round(currentFrameRef.current);
+        if (rounded !== lastRenderedFrame) {
+          draw(currentFrameRef.current);
+          lastRenderedFrame = rounded;
+        }
+        isTicking = false;
       }
+    };
 
+    const startTicking = () => {
+      if (isTicking || isDisposed) return;
+      isTicking = true;
       rafId = requestAnimationFrame(tick);
     };
 
-    rafId = requestAnimationFrame(tick);
+    // Initial frame draw
+    startTicking();
+
+    // Subscribe to Lenis scroll engine - wakes up the animation loop only when scroll updates
+    const unsubscribe = onScrollFrame(() => {
+      const p = Math.max(0, Math.min(1, scrollState.progress));
+      targetFrameRef.current = p * (FRAME_COUNT - 1);
+      startTicking();
+    });
 
     return () => {
       isDisposed = true;

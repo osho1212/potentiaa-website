@@ -96,22 +96,61 @@ export function mixRgb(
  * are not equal heights, so progress would drift out of step with what is
  * actually on screen.
  */
-export function themeAt(sightline: number): { from: SectionTheme; to: SectionTheme; t: number } {
-  const sections = Array.from(
-    document.querySelectorAll<HTMLElement>("[data-theme-key]"),
-  );
+interface CachedSection {
+  key: string;
+  top: number;
+  height: number;
+  bottom: number;
+}
+
+let cachedSections: CachedSection[] = [];
+let sectionsMeasuredAt = 0;
+
+export function measureThemeSections() {
+  if (typeof document === "undefined") return;
+  const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-theme-key]"));
+  const scrollY = typeof window !== "undefined" ? window.scrollY || 0 : 0;
+  cachedSections = sections.map((el) => {
+    const box = el.getBoundingClientRect();
+    const top = box.top + scrollY;
+    const height = box.height;
+    return {
+      key: el.dataset.themeKey ?? "",
+      top,
+      height,
+      bottom: top + height,
+    };
+  });
+  sectionsMeasuredAt = performance.now();
+}
+
+/**
+ * Which theme applies right now, and how far it has blended into the next one.
+ *
+ * Resolved from section geometry against sightline and scroll distance.
+ * Caches section page offsets on resize/load to avoid forced synchronous layout
+ * recalculations on high-frequency scroll frames.
+ */
+export function themeAt(
+  sightline: number,
+  scrollDistance?: number,
+): { from: SectionTheme; to: SectionTheme; t: number } {
+  if (cachedSections.length === 0 || performance.now() - sectionsMeasuredAt > 4000) {
+    measureThemeSections();
+  }
+
+  const scrollY = scrollDistance ?? (typeof window !== "undefined" ? window.scrollY || 0 : 0);
+  const targetPageY = scrollY + sightline;
 
   let current = SECTION_THEMES[0];
   let next = SECTION_THEMES[1] ?? SECTION_THEMES[0];
   let t = 0;
 
-  for (const el of sections) {
-    const box = el.getBoundingClientRect();
-    if (box.height === 0) continue;
-    if (sightline < box.top || sightline > box.bottom) continue;
+  for (const s of cachedSections) {
+    if (s.height === 0) continue;
+    if (targetPageY < s.top || targetPageY > s.bottom) continue;
 
-    const key = el.dataset.themeKey ?? "";
-    const index = SECTION_THEMES.findIndex((s) => s.key === key);
+    const index = SECTION_THEMES.findIndex((theme) => theme.key === s.key);
     if (index < 0) continue;
 
     current = SECTION_THEMES[index];
@@ -119,7 +158,7 @@ export function themeAt(sightline: number): { from: SectionTheme; to: SectionThe
 
     // Blend across the whole section so the colour is always moving, and is
     // fully arrived exactly as the next section takes over.
-    t = Math.max(0, Math.min(1, (sightline - box.top) / box.height));
+    t = Math.max(0, Math.min(1, (targetPageY - s.top) / s.height));
     break;
   }
 

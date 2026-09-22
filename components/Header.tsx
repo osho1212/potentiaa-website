@@ -81,6 +81,7 @@ export default function Header() {
       lastCheck = performance.now();
       for (const pill of pills) {
         const box = pill.getBoundingClientRect();
+        if (box.width === 0 || box.height === 0) continue;
         const surface = isLightAt(box.left + box.width / 2, box.top + box.height / 2, header)
           ? "light"
           : "dark";
