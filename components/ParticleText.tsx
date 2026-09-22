@@ -50,6 +50,7 @@ export default function ParticleText({
     y: -1000,
     active: false,
   });
+  const wakeUpRef = useRef<() => void>(() => {});
 
   const [textDimensions, setTextDimensions] = useState<{ width: number; height: number }>({
     width: 0,
@@ -173,9 +174,11 @@ export default function ParticleText({
 
     particlesRef.current = newParticles;
 
-    // 3. Animation loop with generous unclipped boundary
+    // 3. Animation loop with idle sleep and generous unclipped boundary
     let rafId = 0;
-    let running = false;
+    let inView = false;
+    let isTicking = false;
+
     const tick = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.save();
@@ -198,6 +201,8 @@ export default function ParticleText({
         ctx.fillStyle = particles[0].color;
         ctx.globalAlpha = particles[0].alpha;
       }
+
+      let maxMotion = 0;
 
       for (let i = 0; i < len; i++) {
         const p = particles[i];
@@ -226,6 +231,9 @@ export default function ParticleText({
         p.x += p.vx;
         p.y += p.vy;
 
+        const motion = Math.abs(p.originX - p.x) + Math.abs(p.originY - p.y) + Math.abs(p.vx) + Math.abs(p.vy);
+        if (motion > maxMotion) maxMotion = motion;
+
         // Render particle
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -233,29 +241,42 @@ export default function ParticleText({
       }
 
       ctx.restore();
-      rafId = running ? requestAnimationFrame(tick) : 0;
+
+      // Only continue ticking if cursor/touch is active or particles are still returning
+      if (inView && (hasMouse || maxMotion > 0.08)) {
+        rafId = requestAnimationFrame(tick);
+      } else {
+        // Snap to exact resting positions and go to sleep
+        for (let i = 0; i < len; i++) {
+          const p = particles[i];
+          p.x = p.originX;
+          p.y = p.originY;
+          p.vx = 0;
+          p.vy = 0;
+        }
+        isTicking = false;
+        rafId = 0;
+      }
     };
 
-    // First frame is synchronous and unconditional, so the headline is never
-    // blank while waiting on the observer's first callback.
+    const wakeUp = () => {
+      if (!isTicking && inView) {
+        isTicking = true;
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+    wakeUpRef.current = wakeUp;
+
+    // First frame is synchronous and unconditional, so the headline is never blank
     tick();
 
-    /* Nothing previously paused this once the reader scrolled past the hero -
-       the spring-physics update for every particle in this text ran forever,
-       for the rest of the session. HeroEnergy/HeroLabels/HeroParticles all
-       pause the same way; this canvas is the only rendering of the headline
-       (the plain-text sibling is screen-reader-only, clipped to 1px), so
-       unlike those it also needs the unconditional first tick() above rather
-       than waiting on the observer to draw anything at all. */
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          if (!running) {
-            running = true;
-            rafId = requestAnimationFrame(tick);
-          }
+        inView = entry.isIntersecting;
+        if (inView) {
+          wakeUp();
         } else {
-          running = false;
+          isTicking = false;
           if (rafId) cancelAnimationFrame(rafId);
           rafId = 0;
         }
@@ -266,8 +287,9 @@ export default function ParticleText({
 
     return () => {
       observer.disconnect();
-      running = false;
-      cancelAnimationFrame(rafId);
+      isTicking = false;
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = 0;
     };
   }, [textDimensions, text, color, particleSize, gap, hoverRadius, hoverStrength, returnSpeed, friction]);
 
@@ -280,10 +302,25 @@ export default function ParticleText({
       y: e.clientY - rect.top,
       active: true,
     };
+    wakeUpRef.current();
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLSpanElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas || e.touches.length === 0) return;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    mouseRef.current = {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
+      active: true,
+    };
+    wakeUpRef.current();
   };
 
   const handleMouseLeave = () => {
     mouseRef.current.active = false;
+    wakeUpRef.current();
   };
 
   return (
@@ -296,6 +333,10 @@ export default function ParticleText({
       }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      onTouchStart={handleTouchMove}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleMouseLeave}
+      onTouchCancel={handleMouseLeave}
     >
       <canvas ref={canvasRef} className="particle-text-canvas" aria-label={text} />
       <span ref={sizerRef} className="particle-text-fallback" aria-hidden="true">

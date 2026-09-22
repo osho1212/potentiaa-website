@@ -89,31 +89,29 @@ function ease(x: number): number {
 
 function sampleStreamRgba(u: number, alpha: number): string {
   const a = Math.max(0, Math.min(1, alpha));
+  let r: number, g: number, b: number;
   if (u < 0.25) {
-    const t = u / 0.25;
-    const r = Math.round(45 + (129 - 45) * t);
-    const g = Math.round(107 + (140 - 107) * t);
-    const b = Math.round(255 + (248 - 255) * t);
-    return `rgba(${r}, ${g}, ${b}, ${a.toFixed(3)})`;
+    const t = u * 4;
+    r = Math.round(45 + 84 * t);
+    g = Math.round(107 + 33 * t);
+    b = Math.round(255 - 7 * t);
   } else if (u < 0.50) {
-    const t = (u - 0.25) / 0.25;
-    const r = Math.round(129 + (192 - 129) * t);
-    const g = Math.round(140 + (132 - 140) * t);
-    const b = Math.round(248 + (252 - 248) * t);
-    return `rgba(${r}, ${g}, ${b}, ${a.toFixed(3)})`;
+    const t = (u - 0.25) * 4;
+    r = Math.round(129 + 63 * t);
+    g = Math.round(140 - 8 * t);
+    b = Math.round(248 + 4 * t);
   } else if (u < 0.75) {
-    const t = (u - 0.50) / 0.25;
-    const r = Math.round(192 + (251 - 192) * t);
-    const g = Math.round(132 + (113 - 132) * t);
-    const b = Math.round(252 + (133 - 252) * t);
-    return `rgba(${r}, ${g}, ${b}, ${a.toFixed(3)})`;
+    const t = (u - 0.50) * 4;
+    r = Math.round(192 + 59 * t);
+    g = Math.round(132 - 19 * t);
+    b = Math.round(252 - 119 * t);
   } else {
-    const t = (u - 0.75) / 0.25;
-    const r = Math.round(251 + (255 - 251) * t);
-    const g = Math.round(113 + (140 - 113) * t);
-    const b = Math.round(133 + (127 - 133) * t);
-    return `rgba(${r}, ${g}, ${b}, ${a.toFixed(3)})`;
+    const t = (u - 0.75) * 4;
+    r = Math.round(251 + 4 * t);
+    g = Math.round(113 + 27 * t);
+    b = Math.round(133 - 6 * t);
   }
+  return `rgba(${r},${g},${b},${a.toFixed(2)})`;
 }
 
 interface StreamParticle {
@@ -167,15 +165,90 @@ export default function HeroFlowConstellation() {
     );
     const heroCopyEl = heroEl?.querySelector<HTMLElement>(".hero__copy") ?? null;
 
-    // 1. Initialize 1,200 particle motes for the luminous pipeline stream
-    const STREAM_COUNT = 1200;
+    // Cache layout metrics to completely eliminate forced synchronous layout thrashing (getBoundingClientRect) in tick()
+    interface LayoutMetrics {
+      winW: number;
+      winH: number;
+      boxW: number;
+      boxH: number;
+      heroPageTop: number;
+      flowPageTop: number;
+      deadZoneHalfW: number;
+      deadZoneHalfH: number;
+      copyCenterPageY: number;
+      slotSeats: Array<{ x: number; pageY: number }>;
+      isMobile: boolean;
+    }
+
+    let metrics: LayoutMetrics = {
+      winW: typeof window !== "undefined" ? window.innerWidth : 1200,
+      winH: typeof window !== "undefined" ? window.innerHeight : 800,
+      boxW: 1200,
+      boxH: 800,
+      heroPageTop: 0,
+      flowPageTop: 1000,
+      deadZoneHalfW: 0,
+      deadZoneHalfH: 0,
+      copyCenterPageY: 0,
+      slotSeats: [],
+      isMobile: typeof window !== "undefined" && window.innerWidth < 768,
+    };
+
+    const updateLayoutMetrics = () => {
+      if (typeof window === "undefined") return;
+      const winW = window.innerWidth;
+      const winH = window.innerHeight;
+      const scrollY = window.scrollY || 0;
+
+      const heroRect = heroEl?.getBoundingClientRect();
+      const boxW = heroRect?.width || winW;
+      const boxH = heroRect?.height || winH;
+      const heroPageTop = (heroRect?.top ?? 0) + scrollY;
+
+      const flowRect = flowEl?.getBoundingClientRect();
+      const flowPageTop = (flowRect?.top ?? winH * 1.5) + scrollY;
+
+      const copyBox = heroCopyEl?.getBoundingClientRect();
+      const deadZoneHalfW = copyBox ? copyBox.width * 0.24 : 0;
+      const deadZoneHalfH = copyBox ? copyBox.height * 0.28 : 0;
+      const copyCenterPageY = copyBox ? copyBox.top + scrollY + copyBox.height * 0.5 : 0;
+
+      const slotSeats = slotEls.map((slot) => {
+        const r = slot.getBoundingClientRect();
+        return {
+          x: r.left + r.width * 0.5,
+          pageY: r.top + scrollY + r.height * 0.5,
+        };
+      });
+
+      metrics = {
+        winW,
+        winH,
+        boxW,
+        boxH,
+        heroPageTop,
+        flowPageTop,
+        deadZoneHalfW,
+        deadZoneHalfH,
+        copyCenterPageY,
+        slotSeats,
+        isMobile: winW < 768,
+      };
+    };
+
+    updateLayoutMetrics();
+    window.addEventListener("resize", updateLayoutMetrics, { passive: true });
+
+    // 1. Initialize particle motes for the luminous pipeline stream (180 on mobile, 1200 on desktop)
+    const isMobileInitial = typeof window !== "undefined" && window.innerWidth < 768;
+    const STREAM_COUNT = isMobileInitial ? 180 : 1200;
     const streamParticles: StreamParticle[] = [];
     for (let i = 0; i < STREAM_COUNT; i++) {
       streamParticles.push({
         u: i / STREAM_COUNT,
         speed: 0.055 + Math.random() * 0.065,
         offset: (Math.random() * 2 - 1) * Math.pow(Math.random(), 0.6),
-        size: 0.75 + Math.random() * 1.6,
+        size: (isMobileInitial ? 0.65 : 0.75) + Math.random() * (isMobileInitial ? 1.2 : 1.6),
         phase: Math.random() * Math.PI * 2,
       });
     }
@@ -187,8 +260,20 @@ export default function HeroFlowConstellation() {
       lastTime = now;
       const elapsed = (now - started) / 1000;
 
-      const winW = window.innerWidth;
-      const winH = window.innerHeight;
+      const {
+        winW,
+        winH,
+        boxW,
+        boxH,
+        heroPageTop,
+        flowPageTop,
+        deadZoneHalfW,
+        deadZoneHalfH,
+        copyCenterPageY,
+        slotSeats,
+        isMobile,
+      } = metrics;
+      const scrollY = window.scrollY || 0;
 
       // Ensure stream canvas matches device pixel ratio
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -203,31 +288,17 @@ export default function HeroFlowConstellation() {
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, winW, winH);
 
-      // Hero box dimensions for elliptical orbit
-      const heroRect = heroEl?.getBoundingClientRect();
-      const boxW = heroRect?.width || winW;
-      const boxH = heroRect?.height || winH;
-      const heroCenterY = (heroRect?.top || 0) + boxH * 0.5;
+      // Hero box dimensions derived from cached metrics without layout recalculations
+      const heroTop = heroPageTop - scrollY;
+      const heroCenterY = heroTop + boxH * 0.5;
 
       // Transition progress t: 0 in Hero -> 1 when Flow section aligns
-      const flowRect = flowEl?.getBoundingClientRect();
-      let t = 0;
-      if (flowRect) {
-        const startY = winH * 0.85;
-        const endY = winH * 0.2;
-        t = Math.max(0, Math.min(1, (startY - flowRect.top) / (startY - endY)));
-      }
+      const flowTop = flowPageTop - scrollY;
+      const startY = winH * 0.85;
+      const endY = winH * 0.2;
+      const t = Math.max(0, Math.min(1, (startY - flowTop) / (startY - endY)));
 
-      // Station seats in FlowSection, all read before any node is written
-      const slotRects = slotEls.map((slot) => slot.getBoundingClientRect());
-      const isMobile = winW < 768;
-
-      /* Measured once per frame, not once per node (5x): the copy block's
-         box doesn't depend on which node is being placed. */
-      const copyBox = heroCopyEl?.getBoundingClientRect();
-      const deadZoneHalfW = copyBox ? copyBox.width * 0.24 : 0;
-      const deadZoneHalfH = copyBox ? copyBox.height * 0.28 : 0;
-      const copyCenterY = copyBox ? copyBox.top + copyBox.height * 0.5 : 0;
+      const copyCenterY = copyCenterPageY - scrollY;
 
       const nodeScreenCoords: Array<{ x: number; y: number }> = [];
 
@@ -249,7 +320,7 @@ export default function HeroFlowConstellation() {
         let orbitY = heroCenterY + (cfg.cy - 0.5) * boxH + cfg.ry * boxH * harmonicY;
 
         // Smooth continuous text margin deflection
-        if (copyBox) {
+        if (deadZoneHalfH > 0) {
           const dy = orbitY - copyCenterY;
           if (Math.abs(dy) < deadZoneHalfH) {
             const pushFactor = Math.cos((dy / deadZoneHalfH) * (Math.PI * 0.5));
@@ -261,20 +332,17 @@ export default function HeroFlowConstellation() {
           }
         }
 
-        // Target seat in Flow Section pipeline
+        // Target seat in Flow Section pipeline derived from cached slot offsets
         let seatX = 0;
         let seatY = 0;
 
-        const slotRect = slotRects[i];
-        if (slotRect) {
-          seatX = slotRect.left + slotRect.width * 0.5 - winW * 0.5;
-          seatY = slotRect.top + slotRect.height * 0.5;
+        const slot = slotSeats[i];
+        if (slot) {
+          seatX = slot.x - winW * 0.5;
+          seatY = slot.pageY - scrollY;
         } else {
           seatX = (-0.5 + (i + 0.5) / count) * Math.min(winW * 0.85, 1100);
-          /* Reuses the rect already read once above rather than taking a
-             fresh one per node - this branch is cold (the berths element
-             exists in practice), but it is a forced layout inside a loop. */
-          seatY = (flowRect?.top || winH * 1.5) + 320;
+          seatY = flowTop + 320;
         }
 
         // Staggered easing from orbit to seat
@@ -432,13 +500,24 @@ export default function HeroFlowConstellation() {
             const cy = pA.y + (pB.y - pA.y) * segT;
 
             // Bright head
-            ctx.fillStyle = "#ffffff";
-            ctx.shadowColor = sampleStreamRgba(cometU, 1.0);
-            ctx.shadowBlur = 18;
-            ctx.beginPath();
-            ctx.arc(cx, cy, 3.2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
+            if (isMobile) {
+              ctx.fillStyle = sampleStreamRgba(cometU, 0.45);
+              ctx.beginPath();
+              ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = "#ffffff";
+              ctx.beginPath();
+              ctx.arc(cx, cy, 2.8, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              ctx.fillStyle = "#ffffff";
+              ctx.shadowColor = sampleStreamRgba(cometU, 1.0);
+              ctx.shadowBlur = 18;
+              ctx.beginPath();
+              ctx.arc(cx, cy, 3.2, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.shadowBlur = 0;
+            }
           }
         }
       }
@@ -460,6 +539,7 @@ export default function HeroFlowConstellation() {
     const start = () => {
       if (running) return;
       running = true;
+      updateLayoutMetrics();
       /* Synchronous, so the transforms are correct BEFORE the container is
          revealed - scheduling it would show one frame of wherever the nodes
          were left when the loop last stopped. tick() arms the next frame
@@ -518,6 +598,7 @@ export default function HeroFlowConstellation() {
     if (flowEl) observer.observe(flowEl);
 
     return () => {
+      window.removeEventListener("resize", updateLayoutMetrics);
       observer.disconnect();
       cancelAnimationFrame(rafId);
     };
