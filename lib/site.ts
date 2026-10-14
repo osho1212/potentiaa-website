@@ -390,11 +390,11 @@ export const site = {
     /** As registered, e.g. "Potentiaa Technologies Private Limited". */
     entityName: "Potentiaa",
     /** Registered / principal place of business. */
-    address: "",
+    address: "Building No. 23, Shikhupur, Devpura, Haridwar, Uttarakhand 249401",
     /** City whose courts get exclusive jurisdiction, e.g. "Lucknow". */
-    jurisdictionCity: "",
+    jurisdictionCity: "Haridwar",
     /** Named person who answers privacy complaints. */
-    grievanceOfficer: "",
+    grievanceOfficer: "Vikramaditya Bharti",
     /** ISO date. Bump whenever either document changes materially - it is
         shown on both pages and feeds their sitemap entries. */
     lastUpdated: "2026-10-14",
