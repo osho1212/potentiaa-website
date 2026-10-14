@@ -143,8 +143,8 @@ export default function CtaFooter() {
           <div className="site-footer__bottom">
             <div className="site-footer__legal">
               <span>&copy; {year} Potentiaa. All Rights Reserved.</span>
-              <a href="#privacy">Privacy Policy</a>
-              <a href="#terms">Terms of Service</a>
+              <a href="/privacy">Privacy Policy</a>
+              <a href="/terms">Terms &amp; Conditions</a>
             </div>
             <div className="site-footer__right-group">
               <button

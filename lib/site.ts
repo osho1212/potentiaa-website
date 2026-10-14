@@ -12,6 +12,9 @@ const ZERO_PAPERWORK_HEADLINE = "One order. Six steps. Zero paperwork.";
 export const site = {
   name: "Potentiaa",
   tagline: "Unlock. Transform. Grow.",
+  /** Canonical address. The bare potentiaa.com redirects here, so canonical
+      links, the sitemap and share previews all point at www. */
+  url: "https://www.potentiaa.com",
 
   contact: {
     email: "contact@potentiaa.com",
@@ -375,6 +378,26 @@ export const site = {
   cta: {
     title: "Ready to run your business on autopilot?",
     body: "Book a free 15-minute call. Plain words, zero tech jargon.",
+  },
+
+  /**
+   * Details the Privacy Policy and Terms quote. Fill the empty strings in
+   * before launch: each one has a fallback in the pages, but a registered
+   * name, address and a named grievance officer are what Indian law expects
+   * (IT Rules 2011, rule 5(9); DPDP Act 2023, s.8(9) and s.13).
+   */
+  legal: {
+    /** As registered, e.g. "Potentiaa Technologies Private Limited". */
+    entityName: "Potentiaa",
+    /** Registered / principal place of business. */
+    address: "",
+    /** City whose courts get exclusive jurisdiction, e.g. "Lucknow". */
+    jurisdictionCity: "",
+    /** Named person who answers privacy complaints. */
+    grievanceOfficer: "",
+    /** ISO date. Bump whenever either document changes materially - it is
+        shown on both pages and feeds their sitemap entries. */
+    lastUpdated: "2026-10-14",
   },
 
   nav: [

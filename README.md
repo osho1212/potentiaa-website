@@ -232,6 +232,7 @@ app/
   globals.css          all component styling
   studio/page.tsx      frame generator (dev tool, not public)
   api/save-frame/      writes frames to disk (dev only)
+  privacy/, terms/     legal pages (details in lib/site.ts → legal)
 components/
   SiteShell.tsx        scroll engine + fixed layers + contact dialog
   ModuleStack.tsx      the canvas sprite player  ← the centrepiece
