@@ -89,6 +89,12 @@ const sections: LegalSection[] = [
           your consent first.
         </p>
         <p>
+          The only thing the site stores on your device is the time you last sent an enquiry,
+          kept in your browser&rsquo;s local storage so the form can stop an accidental repeat
+          submission within a minute. It never leaves your device, and you can clear it at any
+          time by clearing your browser&rsquo;s site data.
+        </p>
+        <p>
           We do not knowingly collect sensitive personal data such as passwords, financial account
           or card details, health or biometric data through this website. Please do not send such
           information in the enquiry form.
@@ -150,7 +156,11 @@ const sections: LegalSection[] = [
             <strong>EmailJS</strong> (emailjs.com), which delivers enquiry-form submissions to our
             inbox;
           </li>
-          <li>our email, website hosting and cloud infrastructure providers;</li>
+          <li>
+            <strong>Vercel</strong>, which hosts this website and processes the technical data
+            described above;
+          </li>
+          <li>our email and cloud infrastructure providers;</li>
           <li>
             <strong>WhatsApp and Instagram</strong> (Meta Platforms), when you choose to contact us
             through them. Their own privacy policies apply to data you share on those platforms;
@@ -173,7 +183,7 @@ const sections: LegalSection[] = [
     title: "Transfers outside India",
     body: (
       <p>
-        Some of our service providers, including EmailJS and our email and cloud providers, may
+        Some of our service providers, including EmailJS, Vercel and our email and cloud providers, may
         store or process data on servers outside India. Where this happens, we transfer data only
         to countries not restricted by the Central Government under Section 16 of the DPDP Act,
         and we rely on providers with recognised security practices.

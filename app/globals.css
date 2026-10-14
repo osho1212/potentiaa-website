@@ -5609,3 +5609,20 @@ textarea.input,
   .legal__layout { grid-template-columns: 1fr; }
   .legal__toc { position: static; padding-bottom: var(--space-6); border-bottom: 1px solid var(--border-on-dark); }
 }
+
+/* Privacy Policy link inside the note under the enquiry form */
+.modal__note a {
+  color: var(--text-on-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
+/* Contact form honeypot - off-screen, not display:none (see ContactModal) */
+.modal__hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}

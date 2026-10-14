@@ -9,8 +9,63 @@ import { site } from "@/lib/site";
 import { useModalDialog } from "@/lib/useModalDialog";
 
 /**
+ * Field length caps. EmailJS rejects a request over 50 KB; these keep any one
+ * enquiry far inside that, and stop the form being used to mail out an essay.
+ */
+const LIMITS = { name: 120, phone: 20, email: 254, message: 2000 } as const;
+
+/** How long after a successful send the form refuses another one. */
+const RESEND_COOLDOWN_MS = 60_000;
+const LAST_SENT_KEY = "potentiaa:enquiry-sent-at";
+
+/** What a visitor sees when sending fails, whatever the cause. Technical
+    detail goes to the console in development, never onto the page. */
+const SEND_FAILED = `We couldn't send your message just now. Please WhatsApp us on ${site.contact.whatsappDisplay} or email ${site.contact.email}.`;
+
+const PHONE_HINT = "Enter a valid phone or WhatsApp number, e.g. +91 98765 43210";
+
+/** 7 digits covers short local numbers; 15 is the E.164 maximum. */
+function isPlausiblePhone(value: string): boolean {
+  if (!/^[0-9+()\-.\s]+$/.test(value)) return false;
+  const digits = value.replace(/\D/g, "").length;
+  return digits >= 7 && digits <= 15;
+}
+
+/**
+ * A cooldown after a successful send, so a double click or an impatient
+ * second press does not land the same enquiry twice.
+ *
+ * Not EmailJS's own `limitRate` option: that records the attempt BEFORE
+ * sending, so a send that failed on a bad connection would lock the visitor
+ * out of retrying for the whole window. This records only real sends.
+ * Storage can be unavailable (private browsing, blocked site data); then
+ * there is simply no cooldown.
+ */
+function sentRecently(): boolean {
+  try {
+    const at = Number(window.localStorage.getItem(LAST_SENT_KEY));
+    return Date.now() - at < RESEND_COOLDOWN_MS;
+  } catch {
+    return false;
+  }
+}
+
+function rememberSent() {
+  try {
+    window.localStorage.setItem(LAST_SENT_KEY, String(Date.now()));
+  } catch {
+    // No storage, no cooldown - see sentRecently.
+  }
+}
+
+/**
  * Contact dialog, opened from the header, hero, and work sections.
  * Sends directly to contact@potentiaa.com via EmailJS with graceful fallback.
+ *
+ * EmailJS runs in the browser, so everything here is a convenience a
+ * determined sender can skip by calling the EmailJS API directly. The real
+ * protection lives in the EmailJS dashboard: a template whose recipient is
+ * fixed to contact@potentiaa.com rather than read from `to_email`.
  */
 export default function ContactModal() {
   const { isOpen, close } = useContact();
@@ -20,6 +75,9 @@ export default function ContactModal() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  /* Honeypot. People never see this field, so anything in it was typed by a
+     bot that fills in every input it finds. */
+  const [website, setWebsite] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -32,6 +90,7 @@ export default function ContactModal() {
     setPhone("");
     setEmail("");
     setMessage("");
+    setWebsite("");
     setStatus("idle");
     setErrorMessage("");
   };
@@ -41,46 +100,82 @@ export default function ContactModal() {
     close();
   };
 
+  const fail = (text: string) => {
+    setStatus("error");
+    setErrorMessage(text);
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setStatus("sending");
     setErrorMessage("");
+
+    // A bot gets the success screen and nothing is sent, so it learns nothing.
+    if (website) {
+      setStatus("success");
+      return;
+    }
+
+    const enquiry = {
+      name: name.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+      message: message.trim(),
+    };
+
+    // `required` lets whitespace through, and the phone check normally runs as
+    // the visitor types - these are the backstop.
+    if (!enquiry.name || !enquiry.message) {
+      fail("Please add your name and a short message.");
+      return;
+    }
+    if (!isPlausiblePhone(enquiry.phone)) {
+      fail(PHONE_HINT);
+      return;
+    }
+    if (sentRecently()) {
+      fail("You've just sent us a message. Please wait a minute before sending another, or WhatsApp us.");
+      return;
+    }
 
     const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
     const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
     const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
 
     if (!serviceId || !templateId || !publicKey) {
-      setStatus("error");
-      setErrorMessage(
-        "EmailJS credentials missing. Please set NEXT_PUBLIC_EMAILJS_SERVICE_ID, NEXT_PUBLIC_EMAILJS_TEMPLATE_ID, and NEXT_PUBLIC_EMAILJS_PUBLIC_KEY in .env.local."
+      // The variable names are for whoever is running the site locally. A
+      // production build drops this branch, and visitors get the plain message.
+      fail(
+        process.env.NODE_ENV === "development"
+          ? "EmailJS is not configured. Set NEXT_PUBLIC_EMAILJS_SERVICE_ID, NEXT_PUBLIC_EMAILJS_TEMPLATE_ID and NEXT_PUBLIC_EMAILJS_PUBLIC_KEY in .env.local (see .env.example)."
+          : SEND_FAILED,
       );
       return;
     }
 
+    setStatus("sending");
     try {
       await emailjs.send(
         serviceId,
         templateId,
         {
           to_email: site.contact.email,
-          name: name,
-          phone: phone,
-          email: email || "Not provided",
-          title: `Project enquiry from ${name || "a business owner"}`,
-          message: message,
+          name: enquiry.name,
+          phone: enquiry.phone,
+          email: enquiry.email || "Not provided",
+          title: `Project enquiry from ${enquiry.name}`,
+          message: enquiry.message,
           time: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
         },
-        publicKey
+        // blockHeadless refuses to send from automated browsers.
+        { publicKey, blockHeadless: true }
       );
+      rememberSent();
       setStatus("success");
     } catch (err: unknown) {
-      console.error("EmailJS delivery failed:", err);
-      const errObj = err as { text?: string; message?: string };
-      setStatus("error");
-      setErrorMessage(
-        errObj?.text || errObj?.message || "Failed to automatically send email. Please check your EmailJS service & template settings."
-      );
+      if (process.env.NODE_ENV === "development") {
+        console.error("EmailJS delivery failed:", err);
+      }
+      fail(SEND_FAILED);
     }
   };
 
@@ -181,6 +276,7 @@ export default function ContactModal() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Rajesh Sharma (Sharma Hardware)"
                   required
+                  maxLength={LIMITS.name}
                   autoComplete="name"
                   autoCapitalize="words"
                 />
@@ -195,9 +291,18 @@ export default function ContactModal() {
                   inputMode="tel"
                   autoComplete="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setPhone(value);
+                    // Native validation, so the browser holds the form and
+                    // points at this field the same way it does for `required`.
+                    e.target.setCustomValidity(
+                      value.trim() && !isPlausiblePhone(value.trim()) ? PHONE_HINT : ""
+                    );
+                  }}
                   placeholder="+91 98765 43210"
                   required
+                  maxLength={LIMITS.phone}
                 />
               </div>
 
@@ -212,6 +317,7 @@ export default function ContactModal() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@yourbusiness.com"
+                  maxLength={LIMITS.email}
                 />
               </div>
 
@@ -224,7 +330,24 @@ export default function ContactModal() {
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="e.g. Billing takes 2 hours every evening, warehouse stock never matches our sales records..."
                   required
+                  maxLength={LIMITS.message}
                   rows={3}
+                />
+              </div>
+
+              {/* The honeypot (see `website` above). Off-screen rather than
+                  display:none, which some bots check for; aria-hidden and
+                  tabIndex -1 keep it away from screen readers and the keyboard. */}
+              <div className="modal__hp" aria-hidden="true">
+                <label htmlFor="contact-website">Leave this field empty</label>
+                <input
+                  id="contact-website"
+                  name="website"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
                 />
               </div>
 
@@ -259,8 +382,13 @@ export default function ContactModal() {
                 </a>
               </div>
 
+              {/* The collection notice the DPDP Act expects: what the details are
+                  for, and where the full policy is. One line with the reply
+                  promise rather than a paragraph of its own - the panel is
+                  already at its max height on a laptop. */}
               <p className="modal__note">
-                We respond within 24 hours on WhatsApp or email.
+                We respond within 24 hours on WhatsApp or email, and use these details only to
+                reply to you. <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>
               </p>
             </form>
           )}

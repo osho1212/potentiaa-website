@@ -15,9 +15,46 @@ export const runtime = "nodejs";
 
 const OUT_DIR = path.join(process.cwd(), "public", ...FRAME_DIR.split("/").filter(Boolean));
 
+const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/**
+ * WHETHER THE REQUEST CAME FROM THE STUDIO PAGE ON THIS MACHINE.
+ *
+ * The NODE_ENV check keeps this off a deployed site, but `next dev` has no CSRF
+ * protection of its own: while it runs, any website open in the same browser
+ * can POST to localhost. request.json() parses a text/plain body as happily as
+ * a JSON one, and text/plain is exactly what a cross-site request can send
+ * without a CORS preflight - so a malicious page could overwrite the frames.
+ *
+ * Browsers attach Origin to every POST, so require it to be this dev server's
+ * own origin. Requiring a localhost Host as well shuts out DNS rebinding, where
+ * an attacker's domain is pointed at 127.0.0.1 and Origin and Host would match.
+ */
+function isFromLocalStudio(request: Request): boolean {
+  const host = request.headers.get("host") ?? "";
+  const origin = request.headers.get("origin");
+  if (!origin) return false;
+
+  let originHost: string;
+  try {
+    originHost = new URL(origin).host;
+  } catch {
+    return false;
+  }
+
+  const hostname = host.replace(/:\d+$/, "");
+  return LOCAL_HOSTNAMES.has(hostname) && originHost === host;
+}
+
 export async function POST(request: Request) {
   if (process.env.NODE_ENV !== "development") {
     return NextResponse.json({ error: "Not available outside development" }, { status: 403 });
+  }
+  if (!isFromLocalStudio(request)) {
+    return NextResponse.json({ error: "Only the local /studio page can save frames" }, { status: 403 });
+  }
+  if (!request.headers.get("content-type")?.startsWith("application/json")) {
+    return NextResponse.json({ error: "Expected application/json" }, { status: 415 });
   }
 
   let body: { index?: unknown; dataUrl?: unknown };
