@@ -36,13 +36,45 @@ html, body {
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
-html::-webkit-scrollbar,
 body::-webkit-scrollbar,
 *::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
 }
+
+/* THE PAGE'S OWN SCROLLBAR STAYS.
+   It is how a reader sees how long the page is and where they are in it, and
+   for a mouse user on Windows it is the only visible way to scroll. Thin and
+   tinted to the ground so it does not compete with the work. Inner scroll
+   areas (carousels, the option wheel) keep theirs hidden, as designed - this
+   is the root scroller only.
+
+   scrollbar-gutter keeps its width reserved even while a dialog locks scroll
+   (data-scroll-locked sets overflow: hidden), so the page does not jump
+   sideways when the contact form opens. Overlay scrollbars (macOS, phones)
+   take no space either way. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  scrollbar-gutter: stable;
+}
+
+/* Safari before 18.2 ignores the two properties above and reads these. */
+html::-webkit-scrollbar {
+  display: block;
+  width: 10px;
+  height: 0;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+html::-webkit-scrollbar-track { background: transparent; }
 
 /* Lenis owns the scroll; never let the browser fight it */
 html.lenis, html.lenis body { height: auto; }
@@ -5456,3 +5488,244 @@ textarea.input,
   }
 }
 
+
+/* ---------------------------------------------------------------
+   Fallback pages - 404 and the route error boundary
+
+   Shared by app/not-found.tsx and app/error.tsx. Deliberately spare: these
+   render when something has already gone wrong, so they lean on the page
+   ground and the type scale and add nothing that could itself fail. No
+   canvas, no glass, no gradient, no image request.
+
+   app/global-error.tsx does NOT use these classes - it replaces the document
+   after the root layout failed, so this stylesheet may never have been
+   applied. It carries its own inline styles for that reason.
+   --------------------------------------------------------------- */
+.fallback-page {
+  position: relative;
+  z-index: var(--z-content);
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-16) var(--space-6);
+  text-align: center;
+}
+
+.fallback-page__inner {
+  max-width: 34rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.fallback-page__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-on-dark-muted);
+  margin: 0;
+}
+
+.fallback-page__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-on-dark);
+  text-wrap: balance;
+  margin: var(--space-4) 0 0;
+}
+
+.fallback-page__body {
+  font-size: var(--fs-md);
+  color: var(--text-on-dark-secondary);
+  margin: var(--space-4) 0 0;
+}
+
+.fallback-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+}
+
+.fallback-page__digest {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-on-dark-muted);
+  margin: var(--space-8) 0 0;
+}
+
+/* ===============================================================
+   Legal pages (/privacy, /terms) - see components/LegalPage
+   Plain reading layout: no scroll engine, no canvases.
+   =============================================================== */
+.legal {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+.legal__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) clamp(var(--space-4), 5vw, 100px);
+  border-bottom: 1px solid var(--border-on-dark);
+}
+
+.legal__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+}
+
+.legal__mark { width: 32px; height: 32px; object-fit: contain; }
+
+.legal__back {
+  font-size: var(--fs-sm);
+  color: var(--text-on-dark-secondary);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-on-dark-strong);
+  border-radius: var(--radius-full);
+}
+.legal__back:hover { color: var(--white); border-color: var(--white); }
+
+.legal__main {
+  flex: 1;
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+  padding: clamp(var(--space-12), 8vw, var(--space-20)) clamp(var(--space-4), 5vw, var(--space-10));
+}
+
+.legal__head { max-width: 72ch; margin-bottom: clamp(var(--space-10), 6vw, var(--space-16)); }
+.legal__title { font-size: var(--fs-3xl); }
+.legal__updated {
+  margin-top: var(--space-3);
+  font-size: var(--fs-sm);
+  color: var(--text-on-dark-muted);
+}
+.legal__intro { margin-top: var(--space-6); }
+.legal__intro p { color: var(--text-on-dark-strong); font-size: var(--fs-md); }
+
+.legal__layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: clamp(var(--space-8), 5vw, var(--space-16));
+  align-items: start;
+}
+
+.legal__toc {
+  position: sticky;
+  top: var(--space-8);
+  font-size: var(--fs-sm);
+}
+.legal__toc-label {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-on-dark-muted);
+  margin-bottom: var(--space-3);
+}
+.legal__toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.legal__toc a { color: var(--text-on-dark-secondary); line-height: var(--lh-snug); }
+.legal__toc a:hover { color: var(--white); }
+
+.legal__body { max-width: 72ch; }
+
+.legal__section {
+  padding-bottom: var(--space-10);
+  margin-bottom: var(--space-10);
+  border-bottom: 1px solid var(--border-on-dark);
+  scroll-margin-top: var(--space-8);
+}
+.legal__section:last-child { border-bottom: 0; margin-bottom: 0; }
+
+.legal__section h2 {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  font-size: var(--fs-xl);
+  margin-bottom: var(--space-4);
+}
+.legal__num {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-regular);
+  color: var(--blue-400);
+}
+.legal__section h3 {
+  font-size: var(--fs-base);
+  margin: var(--space-6) 0 var(--space-2);
+}
+.legal__section p,
+.legal__section li { color: var(--text-on-dark-strong); }
+.legal__section p + p { margin-top: var(--space-4); }
+.legal__section ul {
+  margin: var(--space-3) 0 var(--space-4);
+  padding-left: var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+  line-height: var(--lh-relaxed);
+}
+.legal__section strong { color: var(--white); font-weight: var(--fw-semibold); }
+.legal__section a,
+.legal__card a { color: var(--blue-300); text-decoration: underline; text-underline-offset: 3px; }
+
+.legal__card {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-4) 0;
+  padding: var(--space-5) var(--space-6);
+  font-style: normal;
+  background: var(--veil-subtle);
+  border: 1px solid var(--border-on-dark);
+  border-radius: var(--radius-md);
+  color: var(--text-on-dark-strong);
+}
+
+.legal__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-6) clamp(var(--space-4), 5vw, 100px);
+  border-top: 1px solid var(--border-on-dark);
+  font-size: var(--fs-sm);
+  color: var(--text-on-dark-muted);
+}
+.legal__foot nav { display: flex; flex-wrap: wrap; gap: var(--space-6); }
+.legal__foot a { color: var(--text-on-dark-secondary); }
+.legal__foot a:hover { color: var(--white); }
+
+@media (max-width: 860px) {
+  .legal__layout { grid-template-columns: 1fr; }
+  .legal__toc { position: static; padding-bottom: var(--space-6); border-bottom: 1px solid var(--border-on-dark); }
+}
+
+/* Privacy Policy link inside the note under the enquiry form */
+.modal__note a {
+  color: var(--text-on-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
+/* Contact form honeypot - off-screen, not display:none (see ContactModal) */
+.modal__hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}

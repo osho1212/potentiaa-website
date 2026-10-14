@@ -8,6 +8,13 @@ import OurWork from "@/components/sections/OurWork";
 import Faq from "@/components/sections/Faq";
 import Testimonials from "@/components/sections/Testimonials";
 import CtaFooter from "@/components/sections/CtaFooter";
+import type { Metadata } from "next";
+
+// Per page, not in the layout: a canonical set there would be inherited by
+// every route and point /privacy and /terms at the homepage.
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default function HomePage() {
   return (

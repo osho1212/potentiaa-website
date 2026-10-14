@@ -11,4 +11,15 @@ next-env.d.ts
 
 # Raw Higgsfield output. The optimised .webp beside it is what ships;
 # these are 4 MB+ each and only needed to re-run scripts/prepare-mascot.mjs.
-public/assets/mascot/generated/*.png
+# The whole folder, not just *.png at its top level: the old pattern missed
+# generated/props/ and generated/scenes/, and ~40 MB of them got committed
+# and served publicly.
+public/assets/mascot/generated/
+
+# Everything in public/ is downloadable by anyone. Source renders, drafts and
+# reference screenshots that the site does not use were moved here, out of
+# public/, during the security cleanup. Delete the folder once nothing in it
+# is needed.
+unused-assets/
+
+.DS_Store

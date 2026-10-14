@@ -116,7 +116,10 @@ It spins the stack through one revolution and POSTs each frame to
 15 seconds and produces roughly 1.1 MB total.
 
 `/api/save-frame` refuses to run when `NODE_ENV !== "development"`, so it cannot
-write to disk on a deployed site.
+write to disk on a deployed site. Even in development it only accepts requests
+from the `/studio` page on a localhost origin, so another website open in the
+same browser cannot write frames through it. `/studio` itself answers 404 in a
+production build.
 
 If the frames are missing, the homepage falls back to the flat vector mark and
 shows a link to `/studio` rather than rendering an empty box.
@@ -140,7 +143,7 @@ replacement. No code changes needed.
 
 - `FRAME_COUNT` / `FRAME_SIZE` — change either and **re-render**, or the player
   will request frames that do not exist.
-- `FRUSTUM` (in `app/studio/page.tsx`) — how much of the frame the artwork
+- `FRUSTUM` (in `app/studio/Studio.tsx`) — how much of the frame the artwork
   fills, and therefore how big the hero looks on the page. It pairs with
   `--stack-size` in `globals.css`, which sets the element the sprite is drawn
   into; the on-screen size is the product of the two.
@@ -230,8 +233,10 @@ app/
   layout.tsx           fonts (Sora + Manrope), metadata, OG tags
   page.tsx             section order
   globals.css          all component styling
-  studio/page.tsx      frame generator (dev tool, not public)
-  api/save-frame/      writes frames to disk (dev only)
+  studio/Studio.tsx    frame generator (dev tool; page.tsx 404s in production)
+  api/save-frame/      writes frames to disk (dev only, localhost only)
+  privacy/, terms/     legal pages (details in lib/site.ts → legal)
+  robots.ts, sitemap.ts, manifest.ts, icon/OG image files   SEO and app icons
 components/
   SiteShell.tsx        scroll engine + fixed layers + contact dialog
   ModuleStack.tsx      the canvas sprite player  ← the centrepiece
