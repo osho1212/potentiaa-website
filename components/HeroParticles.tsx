@@ -89,10 +89,22 @@ const HeroParticles = forwardRef<HeroParticlesHandle>(function HeroParticles(_pr
        per-point cost dominates and dots start dropping out and twinkling.
        0.9 keeps a comfortable margin above it while reading as a point rather
        than a blob, and the fill it gives back pays for MAX_PIXEL_RATIO 2.0. */
-    const swarm = new ParticlesSwarm(container, {
-      count: narrow ? 5200 : 7600,
-      particleSize: narrow ? 0.62 : 0.58,
-    });
+    /* NO WEBGL, NO PARTICLES - BUT STILL A HERO.
+       The renderer throws when the browser cannot create a WebGL context:
+       hardware acceleration switched off, a blocklisted GPU, or too many
+       contexts already open. Thrown from an effect, that unwinds to the route
+       error boundary and replaces the whole homepage with app/error.tsx. The
+       field is decoration and the hero copy stands on its own, so skip it. */
+    let swarm: ParticlesSwarm;
+    try {
+      swarm = new ParticlesSwarm(container, {
+        count: narrow ? 5200 : 7600,
+        particleSize: narrow ? 0.62 : 0.58,
+      });
+    } catch (error) {
+      console.warn("Hero particles disabled - WebGL is unavailable:", error);
+      return;
+    }
     swarmRef.current = swarm;
 
     const sizeObserver = new ResizeObserver((entries) => {
