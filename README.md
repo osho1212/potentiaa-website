@@ -236,6 +236,7 @@ app/
   studio/Studio.tsx    frame generator (dev tool; page.tsx 404s in production)
   api/save-frame/      writes frames to disk (dev only, localhost only)
   privacy/, terms/     legal pages (details in lib/site.ts → legal)
+  robots.ts, sitemap.ts, manifest.ts, icon/OG image files   SEO and app icons
 components/
   SiteShell.tsx        scroll engine + fixed layers + contact dialog
   ModuleStack.tsx      the canvas sprite player  ← the centrepiece

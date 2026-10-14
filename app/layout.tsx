@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Sora, Manrope } from "next/font/google";
+import { site } from "@/lib/site";
 import "./globals.css";
 /* After globals.css: Tailwind utilities for components/ui. See the file's header. */
 import "./tailwind.css";
@@ -23,7 +24,9 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://potentiaa.com"),
+  // www, not the bare domain: potentiaa.com redirects, and canonical links and
+  // share-preview URLs should not point at a redirect.
+  metadataBase: new URL(site.url),
   title: {
     default: "Potentiaa - billing, inventory and management software for small businesses",
     template: "%s | Potentiaa",
@@ -39,6 +42,8 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     type: "website",
+    url: "/",
+    locale: "en_IN",
     siteName: "Potentiaa",
     title: "Stop losing time and money to manual systems",
     description:
