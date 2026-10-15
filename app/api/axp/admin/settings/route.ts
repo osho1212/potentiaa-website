@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEventSettings, updateEventSettings } from '@/lib/axp/storage-adapter';
+import { verifyAdminAuth } from '@/lib/axp/admin-auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    if (!verifyAdminAuth(request)) {
+      return NextResponse.json({ error: 'Organiser authentication required.' }, { status: 401 });
+    }
     const data = await getEventSettings();
     return NextResponse.json(data);
   } catch (error: any) {
@@ -12,6 +16,9 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
+    if (!verifyAdminAuth(request)) {
+      return NextResponse.json({ error: 'Organiser authentication required.' }, { status: 401 });
+    }
     const body = await request.json();
     const updated = await updateEventSettings(body.settings || body);
     return NextResponse.json(updated);
@@ -22,6 +29,9 @@ export async function PUT(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyAdminAuth(request)) {
+      return NextResponse.json({ error: 'Organiser authentication required.' }, { status: 401 });
+    }
     const body = await request.json();
     const updated = await updateEventSettings(body.settings || body);
     return NextResponse.json(updated);

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkInAttendee, findBookingById, listAllBookings, saveBooking } from '@/lib/axp/storage-adapter';
+import { verifyAdminAuth } from '@/lib/axp/admin-auth';
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyAdminAuth(request)) {
+      return NextResponse.json({ error: 'Organiser authentication required.' }, { status: 401 });
+    }
     const { code, mode = 'live', confirm = false, attendeeIds = [] } = await request.json();
 
     if (!code || typeof code !== 'string') {

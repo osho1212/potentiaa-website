@@ -1,6 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAdminAuth } from '@/lib/axp/admin-auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  if (!verifyAdminAuth(request)) {
+    return NextResponse.json({ error: 'Organiser authentication required.' }, { status: 401 });
+  }
   const now = new Date().toISOString();
   return NextResponse.json({
     currentUser: {

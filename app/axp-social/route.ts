@@ -11,7 +11,7 @@ export function GET() {
     .replace('width=device-width, initial-scale=1', 'width=device-width, initial-scale=1, viewport-fit=cover')
     .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/axp-preview.css"><link rel="preload" as="image" href="/axp/ivory-plum-gathering.png"></head>')
     .replace('<body>', '<body class="axp-edition"><a class="axp-skip" href="#passes">Skip to booking form</a>')
-    .replace(/<header>[\s\S]*?<\/header>/, `<header class="axp-header"><a class="brand" href="/axp-social" aria-label="AxP Social — Aagaz"><img src="/axp/emblem.png" alt="" width="56" height="56"><span class="axp-wordmark">AxP <span>SOCIAL</span></span></a><nav aria-label="Main navigation"><a href="#event-details">The gathering</a><a href="#passes">Find your pass <span aria-hidden="true">↗</span></a><a class="axp-original" href="/axp-social/admin">Admin ↗</a><a class="axp-original" href="/axp-social/dashboard">Check-in ↗</a></nav></header>`)
+    .replace(/<header>[\s\S]*?<\/header>/, `<header class="axp-header"><a class="brand" href="/axp-social" aria-label="AxP Social — Aagaz"><img src="/axp/emblem.png" alt="" width="56" height="56"><span class="axp-wordmark">AxP <span>SOCIAL</span></span></a><nav aria-label="Main navigation"><a href="#event-details">The gathering</a><a href="#passes">Find your pass <span aria-hidden="true">↗</span></a></nav></header>`)
     .replace('<section class="hero"', '<section id="event-details" class="hero"')
     .replace('<div id="event-kicker"', '<p class="axp-presenter">AxP Social presents</p><div id="event-kicker"')
     .replace('It starts with us.', 'A new circle. A beautiful beginning.')
@@ -27,10 +27,8 @@ export function GET() {
     .replace('<input id="buyer-email"', '<input placeholder="you@example.com" id="buyer-email"')
     .replace('<span class="eyebrow">YOUR EVENING</span>', `${lotus}<span class="eyebrow">YOUR EVENING</span>`)
     .replace('<h2 id="summary-title">Booking summary</h2>', '<h2 id="summary-title">Your invitation</h2>')
-    .replace('<footer><span>AXP SOCIAL · AAGAZ / 01</span>', '<footer><span>AxP SOCIAL · AAGAZ / THE FIRST CHAPTER</span>')
-    .replace('href="Aagaz-booking-tracker.xlsx"', 'href="/axp/Aagaz-booking-tracker.xlsx"')
-    .replaceAll('href="/policies/', 'href="/axp-social/policies/')
-    .replace('href="/admin"', 'href="/axp-social/admin"');
+    .replace(/<footer>[\s\S]*?<\/footer>/, '<footer><span>AxP SOCIAL · AAGAZ / THE FIRST CHAPTER</span></footer>')
+    .replaceAll('href="/policies/', 'href="/axp-social/policies/');
 
   return new Response(html, {
     headers: {

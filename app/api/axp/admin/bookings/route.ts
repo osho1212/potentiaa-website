@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listAllBookings } from '@/lib/axp/storage-adapter';
+import { verifyAdminAuth } from '@/lib/axp/admin-auth';
 
 function spreadsheetCell(value: any) {
   const text = String(value ?? '');
@@ -8,6 +9,9 @@ function spreadsheetCell(value: any) {
 
 export async function GET(request: NextRequest) {
   try {
+    if (!verifyAdminAuth(request)) {
+      return NextResponse.json({ error: 'Organiser authentication required.' }, { status: 401 });
+    }
     const url = new URL(request.url);
     const mode = url.searchParams.get('mode') === 'test' ? 'test' : 'live';
     const allBookings = await listAllBookings();
