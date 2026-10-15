@@ -23,3 +23,5 @@ public/assets/mascot/generated/
 unused-assets/
 
 .DS_Store
+.data/
+

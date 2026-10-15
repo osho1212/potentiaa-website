@@ -1,0 +1,65 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { findBookingById, saveBooking } from '@/lib/axp/storage-adapter';
+import { verifyRazorpaySignature } from '@/lib/axp/payment-core';
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const booking = await findBookingById(id);
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
+    }
+
+    const body = await request.json();
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
+
+    const isValid = verifyRazorpaySignature({
+      orderId: razorpay_order_id || booking.orderId || '',
+      paymentId: razorpay_payment_id || 'mock_pay_id',
+      signature: razorpay_signature || '',
+      mode: booking.mode,
+    });
+
+    if (!isValid) {
+      booking.status = 'paid_review';
+      await saveBooking(booking);
+      return NextResponse.json(
+        { error: 'Payment signature could not be verified. Contact event support.' },
+        { status: 400 }
+      );
+    }
+
+    booking.status = 'confirmed';
+    booking.paymentId = razorpay_payment_id;
+    await saveBooking(booking);
+
+    const settings = booking.snapshot?.settings || {};
+
+    return NextResponse.json({
+      id: booking.id,
+      mode: booking.mode,
+      status: booking.status,
+      expiresAt: booking.expiresAt,
+      people: booking.guestCount,
+      total: booking.amountPaise / 100,
+      currency: booking.currency,
+      buyer: booking.buyer,
+      attendees: booking.attendees,
+      pricing: {
+        normalPrice: settings.normalPrice,
+        alcoholPrice: settings.alcoholPrice,
+        subtotal: booking.amountPaise / 100,
+        extraCharges: 0,
+      },
+    });
+  } catch (error: any) {
+    console.error('Payment verification error:', error);
+    return NextResponse.json(
+      { error: error?.message || 'Could not verify payment.' },
+      { status: 500 }
+    );
+  }
+}
