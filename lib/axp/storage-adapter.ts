@@ -1,7 +1,16 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { EventSettings, DEFAULT_SETTINGS, validateSettings } from './event-settings';
 import { AttendeeInput, BuyerInput } from './payment-core';
+import {
+  saveBookingFirestore,
+  getBookingFirestore,
+  getAllBookingsFirestore,
+  updateCheckInFirestore,
+  saveSettingsFirestore,
+  getSettingsFirestore,
+} from './firebase-client';
 
 export interface BookingRecord {
   id: string;
@@ -10,7 +19,7 @@ export interface BookingRecord {
   accessHash: string;
   requestHash: string;
   buyer: BuyerInput;
-  attendees: (AttendeeInput & { id: string; checkedIn?: boolean })[];
+  attendees: (AttendeeInput & { id: string; checkedIn?: boolean; checkedInAt?: string })[];
   guestCount: number;
   amountPaise: number;
   currency: string;
@@ -23,8 +32,6 @@ export interface BookingRecord {
   checkedInAttendees?: string[];
 }
 
-import os from 'os';
-
 export interface StorageData {
   settings: EventSettings;
   revision: number;
@@ -32,7 +39,7 @@ export interface StorageData {
   bookings: Record<string, BookingRecord>;
 }
 
-// In-memory cache fallback for serverless functions
+// In-memory cache fallback for instant serverless execution
 let memoryStorage: StorageData = {
   settings: { ...DEFAULT_SETTINGS },
   revision: 1,
@@ -85,6 +92,18 @@ function saveLocalData(data: StorageData) {
 }
 
 export async function getEventSettings(): Promise<{ settings: EventSettings; revision: number; updatedAt: string }> {
+  try {
+    const cloudSettings = await getSettingsFirestore();
+    if (cloudSettings) {
+      memoryStorage.settings = cloudSettings;
+      return {
+        settings: cloudSettings,
+        revision: memoryStorage.revision || 1,
+        updatedAt: memoryStorage.updatedAt || new Date().toISOString(),
+      };
+    }
+  } catch {}
+
   const data = initLocalData();
   return {
     settings: data.settings || { ...DEFAULT_SETTINGS },
@@ -100,10 +119,26 @@ export async function updateEventSettings(newSettings: any): Promise<{ settings:
   data.revision = (data.revision || 0) + 1;
   data.updatedAt = new Date().toISOString();
   saveLocalData(data);
+
+  // Sync to Firestore in background
+  saveSettingsFirestore(validated).catch(err => {
+    console.error('[Storage] Background settings sync to Firestore failed:', err);
+  });
+
   return { settings: data.settings, revision: data.revision };
 }
 
 export async function findBookingById(id: string): Promise<BookingRecord | null> {
+  // Check Cloud Firestore first for live real-time status updates across terminals
+  try {
+    const cloudBooking = await getBookingFirestore(id);
+    if (cloudBooking) {
+      const data = initLocalData();
+      data.bookings[id] = cloudBooking;
+      return cloudBooking;
+    }
+  } catch {}
+
   const data = initLocalData();
   return data.bookings[id] || null;
 }
@@ -113,6 +148,18 @@ export async function findBookingByIdempotency(key: string): Promise<BookingReco
   for (const booking of Object.values(data.bookings)) {
     if (booking.idempotencyKey === key) return booking;
   }
+
+  // Check cloud bookings
+  try {
+    const cloudBookings = await getAllBookingsFirestore();
+    for (const booking of Object.values(cloudBookings)) {
+      if (booking.idempotencyKey === key) {
+        data.bookings[booking.id] = booking;
+        return booking;
+      }
+    }
+  } catch {}
+
   return null;
 }
 
@@ -120,19 +167,40 @@ export async function saveBooking(booking: BookingRecord): Promise<BookingRecord
   const data = initLocalData();
   data.bookings[booking.id] = booking;
   saveLocalData(data);
+
+  // Persist to Cloud Firestore
+  try {
+    await saveBookingFirestore(booking);
+  } catch (err) {
+    console.error(`[Storage] Failed to persist booking ${booking.id} to Firestore:`, err);
+  }
+
   return booking;
 }
 
 export async function listAllBookings(): Promise<BookingRecord[]> {
   const data = initLocalData();
-  return Object.values(data.bookings).sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  let merged: Record<string, BookingRecord> = { ...data.bookings };
+
+  try {
+    const cloudBookings = await getAllBookingsFirestore();
+    merged = { ...merged, ...cloudBookings };
+    // Update local cache
+    data.bookings = merged;
+  } catch (err) {
+    console.error('[Storage] Error listing bookings from Firestore:', err);
+  }
+
+  return Object.values(merged).sort(
+    (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
   );
 }
 
-export async function checkInAttendee(bookingId: string, attendeeIdOrPosition: string): Promise<{ success: boolean; message: string; booking?: BookingRecord }> {
-  const data = initLocalData();
-  const booking = data.bookings[bookingId];
+export async function checkInAttendee(
+  bookingId: string,
+  attendeeIdOrPosition: string
+): Promise<{ success: boolean; message: string; booking?: BookingRecord }> {
+  let booking = await findBookingById(bookingId);
   if (!booking) {
     return { success: false, message: 'Booking not found.' };
   }
@@ -153,12 +221,22 @@ export async function checkInAttendee(bookingId: string, attendeeIdOrPosition: s
     return { success: false, message: `${attendee.name} is already checked in.` };
   }
 
+  const now = new Date().toISOString();
   attendee.checkedIn = true;
+  attendee.checkedInAt = now;
   if (!booking.checkedInAttendees.includes(attendee.id)) {
     booking.checkedInAttendees.push(attendee.id);
   }
+
+  // Update local memory and file
+  const data = initLocalData();
   data.bookings[bookingId] = booking;
   saveLocalData(data);
+
+  // Sync to Firestore atomically
+  updateCheckInFirestore(bookingId, attendee.id, now).catch(err => {
+    console.error(`[Storage] Check-in update to Firestore failed for ${attendee.id}:`, err);
+  });
 
   return { success: true, message: `Checked in ${attendee.name}.`, booking };
 }
