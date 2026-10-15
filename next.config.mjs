@@ -74,6 +74,7 @@ export default function nextConfig(phase) {
       return [
         { source: "/api/public-settings", destination: "/api/axp/public-settings" },
         { source: "/api/payment-config", destination: "/api/axp/payment-config" },
+        { source: "/api/payments/:path*", destination: "/api/axp/payments/:path*" },
         { source: "/api/bookings/:path*", destination: "/api/axp/bookings/:path*" },
         { source: "/api/admin/:path*", destination: "/api/axp/admin/:path*" },
       ];
