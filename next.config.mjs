@@ -23,18 +23,18 @@ import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
 function contentSecurityPolicy(isDev) {
   const directives = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : [])],
+    "script-src": ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", ...(isDev ? ["'unsafe-eval'"] : [])],
     "style-src": ["'self'", "'unsafe-inline'"],
-    "img-src": ["'self'", "data:", "blob:"],
+    "img-src": ["'self'", "data:", "blob:", "https://*.razorpay.com"],
     "font-src": ["'self'", "data:"],
     "media-src": ["'self'", "blob:"],
-    "connect-src": ["'self'", "https://api.emailjs.com", ...(isDev ? ["ws:"] : [])],
+    "connect-src": ["'self'", "https://api.emailjs.com", "https://*.razorpay.com", "https://api.razorpay.com", ...(isDev ? ["ws:"] : [])],
     "worker-src": ["'self'", "blob:"],
     "manifest-src": ["'self'"],
-    "frame-src": ["'none'"],
+    "frame-src": ["'self'", "https://*.razorpay.com", "https://api.razorpay.com"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
-    "form-action": ["'self'"],
+    "form-action": ["'self'", "https://api.razorpay.com"],
     "frame-ancestors": ["'none'"],
   };
   return Object.entries(directives)
@@ -44,23 +44,16 @@ function contentSecurityPolicy(isDev) {
 
 /**
  * The security headers every response carries.
- *
- * Permissions-Policy switches off device features the site never uses. It
- * deliberately leaves the motion sensors alone: the hero tilts with the phone's
- * gyroscope (lib/heroParticles), and blocking gyroscope or accelerometer here
- * would silently kill that.
  */
 function securityHeaders(isDev) {
   const headers = [
     { key: "Content-Security-Policy", value: contentSecurityPolicy(isDev) },
-    { key: "X-Frame-Options", value: "DENY" },
+    { key: "X-Frame-Options", value: "SAMEORIGIN" },
     { key: "X-Content-Type-Options", value: "nosniff" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-    { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
-    { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+    { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(), payment=(self), usb=()" },
+    { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
   ];
-  // Browsers ignore HSTS over plain http, so it only means anything on the
-  // deployed site. Two years is the value Vercel itself defaults to.
   if (!isDev) {
     headers.push({ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" });
   }
@@ -73,10 +66,18 @@ export default function nextConfig(phase) {
 
   return {
     reactStrictMode: true,
-    // Drops "X-Powered-By: Next.js" - no reason to tell anyone what to probe.
     poweredByHeader: false,
     async headers() {
       return [{ source: "/:path*", headers: securityHeaders(isDev) }];
     },
+    async rewrites() {
+      return [
+        { source: "/api/public-settings", destination: "/api/axp/public-settings" },
+        { source: "/api/payment-config", destination: "/api/axp/payment-config" },
+        { source: "/api/bookings/:path*", destination: "/api/axp/bookings/:path*" },
+        { source: "/api/admin/:path*", destination: "/api/axp/admin/:path*" },
+      ];
+    },
   };
 }
+
