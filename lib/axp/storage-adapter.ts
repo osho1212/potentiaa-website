@@ -23,6 +23,8 @@ export interface BookingRecord {
   checkedInAttendees?: string[];
 }
 
+import os from 'os';
+
 export interface StorageData {
   settings: EventSettings;
   revision: number;
@@ -30,41 +32,56 @@ export interface StorageData {
   bookings: Record<string, BookingRecord>;
 }
 
-const DATA_DIR = path.join(process.cwd(), '.data');
-const DATA_FILE = path.join(DATA_DIR, 'axp_storage.json');
+// In-memory cache fallback for serverless functions
+let memoryStorage: StorageData = {
+  settings: { ...DEFAULT_SETTINGS },
+  revision: 1,
+  updatedAt: new Date().toISOString(),
+  bookings: {},
+};
 
-function initLocalData(): StorageData {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(DATA_FILE)) {
-    const initial: StorageData = {
-      settings: { ...DEFAULT_SETTINGS },
-      revision: 1,
-      updatedAt: new Date().toISOString(),
-      bookings: {},
-    };
-    fs.writeFileSync(DATA_FILE, JSON.stringify(initial, null, 2), 'utf-8');
-    return initial;
-  }
+function getDataFilePath(): string {
   try {
-    const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-    return JSON.parse(raw);
+    const baseDir = (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
+      ? path.join(os.tmpdir(), 'axp_data')
+      : path.join(process.cwd(), '.data');
+    if (!fs.existsSync(baseDir)) {
+      fs.mkdirSync(baseDir, { recursive: true });
+    }
+    return path.join(baseDir, 'axp_storage.json');
   } catch {
-    return {
-      settings: { ...DEFAULT_SETTINGS },
-      revision: 1,
-      updatedAt: new Date().toISOString(),
-      bookings: {},
-    };
+    return '';
   }
 }
 
-function saveLocalData(data: StorageData) {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+function initLocalData(): StorageData {
+  try {
+    const file = getDataFilePath();
+    if (file && fs.existsSync(file)) {
+      const raw = fs.readFileSync(file, 'utf-8');
+      const parsed = JSON.parse(raw);
+      memoryStorage = { ...memoryStorage, ...parsed };
+      return memoryStorage;
+    }
+    if (file) {
+      fs.writeFileSync(file, JSON.stringify(memoryStorage, null, 2), 'utf-8');
+    }
+  } catch {
+    // Graceful fallback to memoryStorage on read-only environments
   }
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  return memoryStorage;
+}
+
+function saveLocalData(data: StorageData) {
+  memoryStorage = data;
+  try {
+    const file = getDataFilePath();
+    if (file) {
+      fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf-8');
+    }
+  } catch {
+    // Keep in-memory if disk is unavailable
+  }
 }
 
 export async function getEventSettings(): Promise<{ settings: EventSettings; revision: number; updatedAt: string }> {
