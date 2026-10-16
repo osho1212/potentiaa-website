@@ -100,8 +100,13 @@ function saveLocalData(data: StorageData) {
 
 export async function getEventSettings(): Promise<{ settings: EventSettings; revision: number; updatedAt: string }> {
   try {
-    const cloudSettings = await getSettingsFirestore();
-    if (cloudSettings) {
+    const stored = await getSettingsFirestore();
+    if (stored) {
+      // The stored document predates settings added later, and a key it lacks
+      // is shown on the site as its default. Hand that default to every
+      // reader, the organiser form included: the form fills a missing key with
+      // a blank, and saving it would write the blank over what guests saw.
+      const cloudSettings = { ...DEFAULT_SETTINGS, ...stored } as EventSettings;
       memoryStorage.settings = cloudSettings;
       return {
         settings: cloudSettings,
@@ -113,7 +118,7 @@ export async function getEventSettings(): Promise<{ settings: EventSettings; rev
 
   const data = initLocalData();
   return {
-    settings: data.settings || { ...DEFAULT_SETTINGS },
+    settings: { ...DEFAULT_SETTINGS, ...(data.settings || {}) } as EventSettings,
     revision: data.revision || 1,
     updatedAt: data.updatedAt || new Date().toISOString(),
   };
