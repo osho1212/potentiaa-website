@@ -1,16 +1,19 @@
 const el=id=>document.getElementById(id);
 const testMode=new URLSearchParams(location.search).get('mode')==='test';
-let paymentReady=false,checkoutScript=null,attempt=null,polling=false,savedBooking=null,ticketFileUrl=null;
+let paymentReady=false,checkoutScript=null,attempt=null,polling=false,savedBooking=null,ticketFileUrl=null,emailjsConfig=null,emailDispatched=false;
 const button=el('payment-button');
 const card=document.createElement('section');card.className='panel booking-confirmation';card.hidden=true;card.setAttribute('aria-label','Booking status');el('booking-form').after(card);
 const heading=document.createElement('h2');heading.textContent='Your booking';const message=document.createElement('p');message.setAttribute('role','status');const tickets=document.createElement('div');tickets.className='ticket-list';
 const savedDetails=document.createElement('div');
+const emailStatus=document.createElement('p');emailStatus.className='email-confirmation-status';emailStatus.hidden=true;emailStatus.style.cssText='font-size:13px;color:#402347;background:#f2e8f5;border:1px solid #dcc4e4;padding:12px 16px;border-radius:8px;margin:16px 0;line-height:1.5;font-weight:500;';
 const refresh=document.createElement('button');refresh.type='button';refresh.className='secondary';refresh.textContent='Check payment status';refresh.addEventListener('click',poll);
 const download=document.createElement('button');download.type='button';download.className='secondary';download.textContent='Download tickets';download.hidden=true;download.addEventListener('click',downloadTickets);
+const resendEmailBtn=document.createElement('button');resendEmailBtn.type='button';resendEmailBtn.className='secondary';resendEmailBtn.textContent='Resend passes to email';resendEmailBtn.hidden=true;
+resendEmailBtn.addEventListener('click',async()=>{if(!savedBooking)return;resendEmailBtn.disabled=true;resendEmailBtn.textContent='Sending passes…';await sendConfirmationEmail(savedBooking,true);resendEmailBtn.disabled=false;resendEmailBtn.textContent='Resend passes to email';});
 const resume=document.createElement('button');resume.type='button';resume.className='secondary';resume.textContent='Resume this checkout';resume.hidden=true;resume.addEventListener('click',async()=>{try{await loadCheckout();openGateway(await request('/api/bookings/'+attempt.id+'/checkout'));}catch(error){message.textContent=error.message;}});
 const another=document.createElement('button');another.type='button';another.className='secondary';another.textContent='Start another booking';another.hidden=true;another.addEventListener('click',()=>{sessionStorage.removeItem('axp-last-booking');location.reload();});
-card.append(heading,message,savedDetails,tickets,refresh,resume,download,another);
-const confirmationDownload=document.createElement('button');confirmationDownload.type='button';confirmationDownload.className='secondary';confirmationDownload.textContent='Save WhatsApp confirmation image';confirmationDownload.hidden=true;card.append(confirmationDownload);
+const confirmationDownload=document.createElement('button');confirmationDownload.type='button';confirmationDownload.className='secondary';confirmationDownload.textContent='Save WhatsApp confirmation image';confirmationDownload.hidden=true;
+card.append(heading,message,savedDetails,emailStatus,tickets,refresh,resume,download,resendEmailBtn,confirmationDownload,another);
 confirmationDownload.addEventListener('click',async()=>{
  confirmationDownload.disabled=true;
  try{
@@ -37,11 +40,56 @@ async function request(path,{body,auth=true}={}){
 async function loadConfig(){
  try{
   const config=await request(testMode?'/api/admin/payment-setup':'/api/payment-config',{auth:false});paymentReady=testMode?config.testReady:config.salesOpen;
+  if(config.emailjs)emailjsConfig=config.emailjs;
   if(testMode){document.querySelector('.preview').textContent='ORGANISER TEST MODE — no real money. Only test credentials are used.';el('payment-status-title').textContent=paymentReady?'Test checkout ready':'Test checkout needs setup';el('payment-status-description').textContent=paymentReady?'A successful test does not reserve a place at the live event.':'Add Test Mode API keys and confirm the event’s additional charges in organiser settings.';document.querySelector('.privacy').textContent='Organiser test mode saves test buyer and attendee details and payment references for verification. Use fictional details. No real money is taken.';}
   else if(paymentReady){document.querySelector('.preview').textContent='BOOKINGS OPEN · Named passes · Secure payment by Razorpay';el('payment-status-title').textContent='Secure payments enabled';el('payment-status-description').textContent='Your amount is calculated and checked on our server. Tickets are issued after payment is verified.';document.querySelector('.privacy').textContent='Your details are used for booking, tickets and entry checks. Payment details are entered in Razorpay checkout. Booking does not subscribe you to marketing.';}
   updateButton();
  }catch{paymentReady=false;updateButton();}
  try{const previous=JSON.parse(sessionStorage.getItem('axp-last-booking'));if(previous?.idempotencyKey&&previous.accessToken){attempt=previous;card.hidden=false;freezeForm();await poll();updateButton();}}catch{}
+}
+async function sendConfirmationEmail(booking,isResend=false){
+ if(!booking||(!isResend&&emailDispatched))return;
+ const buyerName=booking.buyer?.name||el('buyer-name')?.value?.trim()||'Guest';
+ const buyerEmail=booking.buyer?.email||el('buyer-email')?.value?.trim();
+ if(!buyerEmail)return;
+ const cfg=emailjsConfig||{serviceId:'service_59d1ylv',templateId:'template_x1xmkvu',publicKey:'wUJPfRnz1y09Ms68T'};
+ if(!cfg.serviceId||!cfg.templateId||!cfg.publicKey)return;
+ const attendeesList=(booking.attendees&&booking.attendees.length>0)
+  ? booking.attendees.map((a,i)=>`${i+1}. ${a.name} — ${a.pass==='alcohol'?'Alcohol-inclusive Pass · 21+':'Classic Pass · Non-alcoholic'}${a.instagram?' ('+a.instagram+')':''}`).join('\n')
+  : `1. ${buyerName} — Classic Pass · Non-alcoholic`;
+ const amount=typeof booking.total==='number'?`₹${booking.total.toLocaleString('en-IN')}`:(booking.amountPaise?`₹${(booking.amountPaise/100).toLocaleString('en-IN')}`:'₹1.00');
+ const passLink=window.location.origin+'/axp-social#passes';
+ try{
+  const res=await fetch('https://api.emailjs.com/api/v1.0/email/send',{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({
+    service_id:cfg.serviceId,
+    template_id:cfg.templateId,
+    user_id:cfg.publicKey,
+    template_params:{
+     to_name:buyerName,
+     to_email:buyerEmail,
+     booking_id:booking.id,
+     booking_id_short:booking.id?booking.id.slice(0,8):'AAGAZ',
+     guest_count:String(booking.people||(booking.attendees?booking.attendees.length:1)),
+     amount_paid:amount,
+     attendees_list:attendeesList,
+     pass_link:passLink,
+    }
+   })
+  });
+  if(res.ok){
+   emailDispatched=true;
+   emailStatus.textContent=`✉️ Passes and order confirmation email sent to ${buyerEmail}. Check your inbox or spam folder.`;
+   emailStatus.hidden=false;
+   resendEmailBtn.hidden=false;
+  }else{
+   console.warn('EmailJS response status:',res.status,await res.text());
+  }
+ }catch(err){
+  console.warn('EmailJS error:',err);
+ }
 }
 function loadCheckout(){
  if(window.Razorpay)return Promise.resolve();if(checkoutScript)return checkoutScript;
@@ -77,6 +125,9 @@ function showBooking(booking){
  heading.textContent=(booking.mode==='test'?'TEST · ':'')+'Booking '+booking.id;
  const labels={confirmed:'Payment verified. Your named tickets are ready to download.',pending:'Awaiting verified payment. Do not make another payment if money was deducted.',creating:'Payment order is still being prepared.',order_uncertain:'Payment order needs a support check. Contact the organiser before retrying.',paid_review:'Payment needs organiser review. No valid ticket has been issued. Contact event support.',refunded:'This payment was refunded. Its tickets are invalid.'};
  message.textContent=labels[booking.status]||'Contact event support to check this booking.';download.hidden=booking.status!=='confirmed';resume.hidden=booking.status!=='pending'||booking.expiresAt<=new Date().toISOString();another.hidden=!['confirmed','refunded'].includes(booking.status);
+ if(booking.status==='confirmed'){
+  sendConfirmationEmail(booking);
+ }
  if(booking.status==='pending'&&resume.hidden)message.textContent='This checkout hold has expired. Check payment status or contact event support before making another payment. No ticket has been issued.';
  if(booking.status==='confirmed'||booking.status==='refunded'||booking.status==='paid_review')polling=false;
 }

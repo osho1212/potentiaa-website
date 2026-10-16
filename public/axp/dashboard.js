@@ -28,6 +28,13 @@ function rows(){
         if(!response.ok){const data=await response.json();throw new Error(data.error||'Could not prepare confirmation image.');}
         saveFile(await response.blob(),'aagaz-'+item.id+'.png');
       }catch(error){el('dashboard-message').textContent=error.message;}finally{button.disabled=false;}});row.children[1].append(button);
+
+      const emailBtn=document.createElement('button');emailBtn.type='button';emailBtn.className='secondary confirmation-download';emailBtn.style.marginTop='6px';emailBtn.textContent='Email passes to buyer';
+      emailBtn.addEventListener('click',async()=>{emailBtn.disabled=true;emailBtn.textContent='Sending email…';try{
+        const res=await fetch('https://api.emailjs.com/api/v1.0/email/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service_id:'service_59d1ylv',template_id:'template_x1xmkvu',user_id:'wUJPfRnz1y09Ms68T',template_params:{to_name:item.buyer_name,to_email:item.buyer_email,booking_id:item.id,booking_id_short:item.id.slice(0,8),guest_count:'1',amount_paid:`₹${item.total.toLocaleString('en-IN')}`,attendees_list:`1. ${item.name} — ${passName(item.pass_type)}`,pass_link:window.location.origin+'/axp-social#passes'}})});
+        if(!res.ok)throw new Error(await res.text());
+        el('dashboard-message').textContent=`✉️ Passes email sent to ${item.buyer_email}.`;
+      }catch(err){el('dashboard-message').textContent='Email error: '+err.message;}finally{emailBtn.disabled=false;emailBtn.textContent='Email passes to buyer';}});row.children[1].append(emailBtn);
     }
     el('booking-rows').append(row);
   }
