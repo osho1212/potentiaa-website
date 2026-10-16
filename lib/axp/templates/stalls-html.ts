@@ -64,10 +64,12 @@ export const rawStallsHtml = `<!doctype html>
     </div>
   </div>
 
-  <nav class="policy-nav" aria-label="Event information and policies">
-    <a href="/axp-social/policies/about">About us</a> &middot; <a href="/axp-social/policies/contact">Contact us</a> &middot; <a href="/axp-social/policies/terms">Terms and conditions</a> &middot; <a href="/axp-social/policies/privacy">Privacy policy</a>
-  </nav>
-  <footer><span>AxP SOCIAL &middot; AAGAZ / THE FIRST CHAPTER</span><span id="footer-copyright" class="footer-copyright"></span></footer>
+  <footer class="axp-footer">
+    <nav class="policy-nav" aria-label="Event information and policies">
+      <a href="/axp-social/policies/about">About us</a> &middot; <a href="/axp-social/policies/contact">Contact us</a> &middot; <a href="/axp-social/policies/terms">Terms and conditions</a> &middot; <a href="/axp-social/policies/privacy">Privacy policy</a>
+    </nav>
+    <div class="footer-meta"><span>AxP SOCIAL &middot; AAGAZ / THE FIRST CHAPTER</span><span id="footer-copyright" class="footer-copyright"></span></div>
+  </footer>
 </main>
 </body></html>
 `;

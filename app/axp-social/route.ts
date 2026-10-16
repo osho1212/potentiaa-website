@@ -35,7 +35,8 @@ export function GET() {
     .replace('<input id="buyer-email"', '<input placeholder="you@example.com" id="buyer-email"')
     .replace('<span class="eyebrow">YOUR EVENING</span>', `${lotus}<span class="eyebrow">YOUR EVENING</span>`)
     .replace('<h2 id="summary-title">Booking summary</h2>', '<h2 id="summary-title">Your invitation</h2>')
-    .replace(/<footer>[\s\S]*?<\/footer>/, '<footer><span>AxP SOCIAL · AAGAZ / THE FIRST CHAPTER</span><span id="footer-copyright" class="footer-copyright"></span></footer>')
+    // The policy links move into the footer, above the copyright line.
+    .replace(/(<nav class="policy-nav"[^>]*>[\s\S]*?<\/nav>)\s*<footer>[\s\S]*?<\/footer>/, '<footer class="axp-footer">$1<div class="footer-meta"><span>AxP SOCIAL · AAGAZ / THE FIRST CHAPTER</span><span id="footer-copyright" class="footer-copyright"></span></div></footer>')
     .replaceAll('href="/policies/', 'href="/axp-social/policies/');
 
   return new Response(html, {
