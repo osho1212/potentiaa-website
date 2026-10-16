@@ -59,6 +59,15 @@ export async function saveBookingFirestore(booking: BookingRecord): Promise<void
 }
 
 /**
+ * Merge only the given top-level fields into a booking, leaving every other
+ * field (attendees, check-ins) exactly as Firestore has it.
+ */
+export async function saveBookingFieldsFirestore(id: string, fields: Record<string, unknown>): Promise<void> {
+  const db = getFirebaseDb();
+  await setDoc(doc(db, 'axp_bookings', id), JSON.parse(JSON.stringify(fields)), { merge: true });
+}
+
+/**
  * Fetch a single booking by ID from Firestore
  */
 export async function getBookingFirestore(id: string): Promise<BookingRecord | null> {

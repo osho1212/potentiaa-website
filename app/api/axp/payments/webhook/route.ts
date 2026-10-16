@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hmac, safeEqual } from '@/lib/axp/payment-core';
 import { findBookingById, saveBooking } from '@/lib/axp/storage-adapter';
+import { deliverPasses } from '@/lib/axp/pass-delivery';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,6 +31,14 @@ export async function POST(request: NextRequest) {
           booking.paymentId = payment.id;
           await saveBooking(booking);
           console.log(`[Webhook] Confirmed booking ${bookingId} via payment ${payment.id}`);
+          // The guest's browser may never come back to confirm this booking, so
+          // the webhook sends the passes itself. Delivery is once per booking,
+          // so the verify route arriving as well does not send them twice.
+          try {
+            await deliverPasses(bookingId);
+          } catch (deliveryErr) {
+            console.error(`[Webhook] Pass delivery failed for ${bookingId}:`, deliveryErr);
+          }
         }
       }
     }

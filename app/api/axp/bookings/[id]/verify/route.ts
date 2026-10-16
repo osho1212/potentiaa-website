@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findBookingById, saveBooking } from '@/lib/axp/storage-adapter';
 import { verifyRazorpaySignature } from '@/lib/axp/payment-core';
-import { sendBookingConfirmationEmails } from '@/lib/axp/email-service';
-import { sendBookingPassesOnWhatsApp, WhatsAppDeliveryResult } from '@/lib/axp/whatsapp-service';
 import { DEFAULT_SETTINGS } from '@/lib/axp/event-settings';
+import { deliverPasses, PassDeliveryOutcome } from '@/lib/axp/pass-delivery';
 
 export async function POST(
   request: NextRequest,
@@ -37,31 +36,20 @@ export async function POST(
 
     booking.status = 'confirmed';
     booking.paymentId = razorpay_payment_id;
+    // Saved before delivery, which reads the booking fresh and must see it as
+    // confirmed.
+    await saveBooking(booking);
 
     const settings = { ...DEFAULT_SETTINGS, ...(booking.snapshot?.settings || {}) };
 
-    // Send confirmation emails from server immediately
-    let emailDelivery = { success: false, recipients: [] as string[] };
+    // Passes go out once per booking, whichever of this route or the Razorpay
+    // webhook confirms it first.
+    let delivery: PassDeliveryOutcome | null = null;
     try {
-      emailDelivery = await sendBookingConfirmationEmails(booking);
-      (booking as any).emailDelivery = emailDelivery;
-    } catch (emailErr) {
-      console.error('Failed to send confirmation emails from server:', emailErr);
+      delivery = await deliverPasses(booking.id);
+    } catch (deliveryErr) {
+      console.error('Pass delivery failed after verification:', deliveryErr);
     }
-
-    // Each attendee gets their own pass over WhatsApp, when the organiser has
-    // switched it on and the deployment carries Meta credentials.
-    let whatsappDelivery: WhatsAppDeliveryResult | null = null;
-    if (settings.whatsappEnabled) {
-      try {
-        whatsappDelivery = await sendBookingPassesOnWhatsApp(booking, settings);
-        (booking as any).whatsappDelivery = whatsappDelivery;
-      } catch (whatsappErr) {
-        console.error('Failed to send WhatsApp passes:', whatsappErr);
-      }
-    }
-
-    await saveBooking(booking);
 
     return NextResponse.json({
       id: booking.id,
@@ -79,8 +67,8 @@ export async function POST(
         subtotal: booking.amountPaise / 100,
         extraCharges: 0,
       },
-      emailDelivery,
-      whatsappDelivery,
+      emailDelivery: delivery?.emailDelivery ?? null,
+      whatsappDelivery: delivery?.whatsappDelivery ?? null,
     });
   } catch (error: any) {
     console.error('Payment verification error:', error);

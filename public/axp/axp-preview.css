@@ -1008,3 +1008,6 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 /* The delivery note in the payment step. */
 .axp-edition .delivery-note { margin: 0 0 18px; padding: 12px 14px; border-radius: 8px; background: #f6f0f7; border: 1px solid #e3d3e6; color: #4f3a55; font-size: 12.5px; line-height: 1.55; }
 .axp-edition #your-details .required-note { margin: -6px 0 18px; font-size: 12px; color: var(--muted); }
+
+/* Email status on the confirmed screen, when a send did not go through. */
+.axp-edition .email-confirmation-status.is-error { background: #fbf3e6; border-color: #ecd3a8; color: #7a5317; }
