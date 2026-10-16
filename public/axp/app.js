@@ -282,7 +282,7 @@ if(typeof document!=='undefined'){
       el('event-date').textContent=new Intl.DateTimeFormat('en-IN',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'}).format(new Date(settings.eventDate+'T00:00:00Z'));
       const time=t=>new Intl.DateTimeFormat('en-IN',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'UTC'}).format(new Date('2000-01-01T'+t+':00Z'));
       el('event-times').textContent=`${time(settings.startTime)}–${settings.endTime==='00:00'?'midnight':time(settings.endTime)} · IST`;
-      el('event-venue').textContent=settings.venueName;el('event-location').textContent=settings.venueLocation;
+      el('event-venue').textContent=settings.venueName;
       const mapQuery=(settings.venueMapQuery||'').trim();
       const directions=settings.venueMapsUrl||(mapQuery?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`:'');
       el('venue-directions').href=directions||'#';el('venue-directions').hidden=!directions;
@@ -301,11 +301,10 @@ if(typeof document!=='undefined'){
       if(handle){el('instagram-link').textContent='@'+handle+' \u2197';el('instagram-link').href='https://instagram.com/'+encodeURIComponent(handle);}
       document.documentElement.dataset.mapEmbed=mapQuery?`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&hl=en&output=embed`:'';
       window.dispatchEvent(new Event('axp-settings-loaded'));
-      el('footer-copyright').textContent=`© ${new Date().getFullYear()} ${settings.merchantName}. All rights reserved.`;
+      el('footer-copyright').textContent=`© ${new Date().getFullYear()} Potentiaa. All rights reserved.`;
       applyBrand('potentiaa',settings.potentiaaLogo,settings.potentiaaPhone);
       applyBrand('avyanta',settings.avyantaLogo,settings.avyantaPhone);
-      el('event-rules').textContent=`Entry 20+ · Gold passes 21+ · Last service ${time(settings.barCloseTime)} · Maximum ${settings.maxPerBooking} passes per booking`;
-      el('pass-limit-hint').textContent=`Choose up to ${settings.maxPerBooking} passes. Mixing pass types is welcome.`;
+      el('pass-limit-hint').textContent=`Entry is for guests aged 20 and over. Choose up to ${settings.maxPerBooking} passes per booking; mixing pass types is welcome.`;
       el('normal-benefits').textContent=settings.normalDescription;el('alcohol-benefits').textContent=settings.alcoholDescription;
       el('normal-price').textContent=money(settings.normalPrice);el('alcohol-price').textContent=money(settings.alcoholPrice);
       el('summary-name').textContent=settings.eventName;el('summary-date').textContent=`${dateLabel()} · ${time(settings.startTime)}`;el('summary-venue').textContent=settings.venueName;

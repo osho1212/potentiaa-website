@@ -6,7 +6,7 @@ export function GET() {
   const html = rawBookingHtml
     .replace('<title>Aagaz · AXP Social</title>', '<title>AAGAZ · AxP Social · Invitation edition</title>')
     .replace('href="style.css"', 'href="/axp/style.css"')
-    .replace('src="app.js"', 'src="/axp/app.js?v=2"')
+    .replace('src="app.js"', 'src="/axp/app.js?v=3"')
     .replace('src="payment.js"', 'src="/axp/payment.js?v=2"')
     .replace('width=device-width, initial-scale=1', 'width=device-width, initial-scale=1, viewport-fit=cover')
     .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/axp-preview.css"><link rel="preload" as="image" href="/axp/ivory-plum-gathering.png"><script type="module" src="/axp/reveal.js"></script></head>')
@@ -14,10 +14,19 @@ export function GET() {
     .replace(/<header>[\s\S]*?<\/header>/, '')
     .replace('<section class="hero"', '<section id="event-details" class="hero"')
     .replace('<div id="event-rules"', '<div class="hero-actions"><a id="hero-cta" class="hero-cta" href="#your-details">Book your passes <span aria-hidden="true">→</span></a><div id="event-countdown" class="event-countdown" hidden><span class="cd-label">Doors open in</span><span id="event-countdown-units" class="cd-units"></span></div></div><div id="event-rules"')
-    .replace('<div id="event-kicker"', '<a class="hero-brand" href="/axp-social" aria-label="AxP Social — Aagaz"><img src="/axp/emblem.png" alt="" width="56" height="56"><span class="axp-wordmark">AxP <span>SOCIAL</span></span></a><p class="axp-presenter">AxP Social presents</p><div id="event-kicker"')
+    .replace('<div id="event-kicker"', '<p class="axp-presenter"><img src="/axp/emblem.png" alt="" width="34" height="34"><span>AxP Social presents</span></p><div id="event-kicker"')
     .replace('It starts with us.', 'A new circle. A beautiful beginning.')
     .replace('The first gathering of AXP Social. A new circle, a beautiful haveli, and an afternoon that turns into a night to remember.', 'An afternoon that becomes an evening to remember. Join us for the first gathering of AxP Social.')
     .replace(/(<div id="event-rules"[^>]*>[\s\S]*?<\/div>)(<\/section>)/, '$1<div class="axp-hero-art" aria-hidden="true"></div>$2')
+    // The rules strip leaves the hero. Its one rule stated nowhere else, the
+    // entry age, moves into the passes hint in the event step.
+    .replace(/<div id="event-rules"[^>]*>[\s\S]*?<\/div>/, '')
+    // The Where box shows the venue and the map link only.
+    .replace(/<span id="event-location">[^<]*<\/span>/, '')
+    .replace('<strong id="merchant-name">Avyanta Hotels</strong>', '<strong id="merchant-name">Potentiaa</strong>')
+    // Keeps the arrow with "Maps" when the link wraps in a narrow box.
+    .replaceAll('Open in Google Maps ↗', 'Open in Google Maps ↗')
+    .replace('Choose up to five passes. Mixing pass types is welcome.', 'Entry is for guests aged 20 and over. Choose up to 5 passes per booking; mixing pass types is welcome.')
     .replace('<div class="layout">', '<nav class="axp-steps" aria-label="Booking steps"><a href="#event-info-step"><span>01</span> The event</a><i aria-hidden="true"></i><a href="#your-details"><span>02</span> Your details</a><i aria-hidden="true"></i><a href="#your-guests"><span>03</span> Attendees</a><i aria-hidden="true"></i><a href="#booking-review"><span>04</span> Review</a><i aria-hidden="true"></i><a href="#payment-step"><span>05</span> Payment</a></nav><div class="layout">')
     .replace('<section class="panel"><div class="section-top"><span class="step">02', '<section id="your-details" class="panel step-panel"><div class="section-top"><span class="step">02')
     .replace('<section class="panel"><div class="section-top"><span class="step">03', '<section id="your-guests" class="panel step-panel"><div class="section-top"><span class="step">03')

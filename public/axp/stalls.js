@@ -3,7 +3,7 @@ const form = el('stall-form');
 const message = el('stall-message');
 const submit = el('stall-submit');
 
-el('footer-copyright').textContent = `\u00a9 ${new Date().getFullYear()} Avyanta Hotels. All rights reserved.`;
+el('footer-copyright').textContent = `\u00a9 ${new Date().getFullYear()} Potentiaa. All rights reserved.`;
 
 const phoneOk = v => /^\+?[0-9 ()-]{8,20}$/.test(v.trim())
   && v.replace(/\D/g, '').length >= 8 && v.replace(/\D/g, '').length <= 15;
