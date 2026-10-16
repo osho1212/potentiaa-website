@@ -4,7 +4,11 @@ export interface EventSettings {
   startTime: string;
   endTime: string;
   barCloseTime: string;
+  eventSubtitle: string;
+  eventTagline: string;
   eventDescription: string;
+  eventHighlights: string;
+  instagramHandle: string;
   venueName: string;
   venueLocation: string;
   venueMapQuery: string;
@@ -41,6 +45,11 @@ export const DEFAULT_SETTINGS: Readonly<EventSettings> = Object.freeze({
   startTime: '15:00',
   endTime: '00:00',
   barCloseTime: '22:00',
+  eventSubtitle: 'A private Diwali sundowner',
+  eventTagline: 'Where connections become celebrations.',
+  eventHighlights:
+    'Networking, Curated business pop-ups, Poker & chess, Open stage, DJ & music, Food & drinks, Fireworks finale',
+  instagramHandle: '@axpsocial',
   eventDescription:
     'Aagaz is the first gathering of AxP Social: an afternoon at a restored Himalayan haveli that unfolds into an evening. A small and considered guest list, food and drink through the day, music as the light goes, and the kind of conversation that only happens when a room is the right size. Every pass is named, and the number of them is limited.',
   venueName: 'Sukh Saklana Haveli: Royalty',
@@ -79,7 +88,11 @@ export const DEFAULT_SETTINGS: Readonly<EventSettings> = Object.freeze({
  * validation and locking the organiser out of the settings form.
  */
 const OPTIONAL_WITH_DEFAULTS = [
+  'eventSubtitle',
+  'eventTagline',
   'eventDescription',
+  'eventHighlights',
+  'instagramHandle',
   'merchantLegalName',
   'merchantAddress',
   'merchantEmail',
@@ -113,7 +126,11 @@ export function validateSettings(input: any): EventSettings {
     startTime: 5,
     endTime: 5,
     barCloseTime: 5,
+    eventSubtitle: 120,
+    eventTagline: 160,
     eventDescription: 900,
+    eventHighlights: 400,
+    instagramHandle: 40,
     venueName: 160,
     venueLocation: 160,
     supportPhone: 30,

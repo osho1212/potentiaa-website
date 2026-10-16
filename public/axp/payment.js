@@ -147,7 +147,7 @@ function loadCheckout(){
 }
 function bookingInput(){
  const buyer={name:el('buyer-name').value,instagram:el('buyer-instagram').value,phone:el('buyer-phone').value,email:el('buyer-email').value};
- const attendees=[...document.querySelectorAll('.attendee')].map((_,i)=>Object.fromEntries(['name','email','instagram','phone','age','pass'].map(key=>[key,el(`guest-${i}-${key}`).value])));
+ const attendees=[...document.querySelectorAll('.attendee')].map((_,i)=>Object.fromEntries(['name','email','instagram','phone','dob','pass'].map(key=>[key,el(`guest-${i}-${key}`).value])));
  return {buyer,attendees,terms:el('booking-terms').checked,mode:testMode?'test':'live',accessToken:attempt.accessToken,idempotencyKey:attempt.idempotencyKey};
 }
 button.addEventListener('click',async()=>{

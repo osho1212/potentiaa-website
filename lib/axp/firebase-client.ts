@@ -96,6 +96,30 @@ export async function getAllBookingsFirestore(): Promise<Record<string, BookingR
 }
 
 /**
+ * Business stall applications, under `axp_stall_enquiries`
+ */
+export async function saveStallEnquiryFirestore(enquiry: any): Promise<void> {
+  const db = getFirebaseDb();
+  const docRef = doc(db, 'axp_stall_enquiries', enquiry.id);
+  await setDoc(docRef, JSON.parse(JSON.stringify(enquiry)), { merge: true });
+}
+
+export async function getAllStallEnquiriesFirestore(): Promise<Record<string, any>> {
+  try {
+    const db = getFirebaseDb();
+    const snap = await getDocs(query(collection(db, 'axp_stall_enquiries')));
+    const result: Record<string, any> = {};
+    snap.forEach((d) => {
+      result[d.id] = d.data();
+    });
+    return result;
+  } catch (error) {
+    console.error('[Firebase] Failed to fetch stall enquiries:', error);
+    return {};
+  }
+}
+
+/**
  * Mark an attendee as checked in atomically in Firestore
  */
 export async function updateCheckInFirestore(

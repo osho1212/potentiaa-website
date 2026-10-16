@@ -103,16 +103,50 @@ function clean(value: any, label: string, max: number): string {
   return value.trim();
 }
 
-function person(value: any, label: string) {
+/** Like clean, but an absent or empty value is allowed and comes back as ''. */
+function cleanOptional(value: any, label: string, max: number): string {
+  if (value === undefined || value === null || value === '') return '';
+  return clean(value, label, max);
+}
+
+/**
+ * The age bracket as it will stand on the night, worked out from a date of
+ * birth. Entry is 20+, so anything younger returns null and the caller refuses
+ * the booking. Only the bracket is stored: the booking record never keeps the
+ * date of birth itself, which is more personal data than the door needs.
+ */
+export function ageBracketFromDob(dob: string, eventDate: string): '20' | '21plus' | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dob) || !/^\d{4}-\d{2}-\d{2}$/.test(eventDate || '')) return null;
+  const born = new Date(`${dob}T00:00:00Z`);
+  const eventDay = new Date(`${eventDate}T00:00:00Z`);
+  if (Number.isNaN(born.getTime()) || Number.isNaN(eventDay.getTime())) return null;
+
+  let years = eventDay.getUTCFullYear() - born.getUTCFullYear();
+  const months = eventDay.getUTCMonth() - born.getUTCMonth();
+  if (months < 0 || (months === 0 && eventDay.getUTCDate() < born.getUTCDate())) years -= 1;
+
+  if (years < 20 || years > 120) return null;
+  return years >= 21 ? '21plus' : '20';
+}
+
+/**
+ * Instagram is optional for everyone, and a phone number is optional for
+ * attendees: the booking contact is the one we must be able to reach. An
+ * attendee without a number simply gets no WhatsApp pass.
+ */
+function person(value: any, label: string, options: { requirePhone?: boolean } = {}) {
   if (!value || typeof value !== 'object') throw new Error(`Enter ${label}.`);
   const name = clean(value.name, `${label} full name`, 100);
-  const instagram = clean(value.instagram, `${label} Instagram username`, 31);
-  const phone = clean(value.phone, `${label} phone number`, 20);
+  const instagram = cleanOptional(value.instagram, `${label} Instagram username`, 31);
+  const phone = cleanOptional(value.phone, `${label} phone number`, 20);
 
-  if (!/^@?[A-Za-z0-9._]{1,30}$/.test(instagram)) {
+  if (instagram && !/^@?[A-Za-z0-9._]{1,30}$/.test(instagram)) {
     throw new Error(`Check ${label} Instagram username.`);
   }
-  if (!/^\+?[0-9 ()-]{8,20}$/.test(phone) || phone.replace(/\D/g, '').length < 8 || phone.replace(/\D/g, '').length > 15) {
+  if (options.requirePhone !== false && !phone) {
+    throw new Error(`Enter ${label} phone number.`);
+  }
+  if (phone && (!/^\+?[0-9 ()-]{8,20}$/.test(phone) || phone.replace(/\D/g, '').length < 8 || phone.replace(/\D/g, '').length > 15)) {
     throw new Error(`Check ${label} phone number.`);
   }
   return { name, instagram, phone };
@@ -142,22 +176,32 @@ export function validateBookingInput(input: any, settings: EventSettings) {
   }
 
   const attendees: AttendeeInput[] = input.attendees.map((guest: any, i: number) => {
-    const p = person(guest, `attendee ${i + 1}`);
-    if (!['20', '21plus'].includes(guest.age)) {
-      throw new Error(`Choose attendee ${i + 1}'s age group.`);
+    const p = person(guest, `attendee ${i + 1}`, { requirePhone: false });
+
+    // A date of birth is what the form now asks for; the older age bracket is
+    // still accepted so a booking in flight during a deploy does not fail.
+    const age =
+      typeof guest.dob === 'string' && guest.dob
+        ? ageBracketFromDob(guest.dob, settings.eventDate)
+        : ['20', '21plus'].includes(guest.age)
+          ? (guest.age as '20' | '21plus')
+          : null;
+    if (!age) {
+      throw new Error(
+        `Attendee ${i + 1} must be 20 or older on the event date. Check their date of birth.`
+      );
     }
-    if (
-      !['normal', 'alcohol'].includes(guest.pass) ||
-      (guest.pass === 'alcohol' && guest.age !== '21plus')
-    ) {
-      throw new Error(`Check attendee ${i + 1}'s pass and age.`);
+    if (!['normal', 'alcohol'].includes(guest.pass) || (guest.pass === 'alcohol' && age !== '21plus')) {
+      throw new Error(
+        `Attendee ${i + 1} must be 21 or older on the event date for an alcohol-inclusive pass.`
+      );
     }
     const guestEmail = typeof guest.email === 'string' ? guest.email.trim().toLowerCase() : '';
     if (guestEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) {
       throw new Error(`Check attendee ${i + 1}'s email address.`);
     }
     const finalEmail = guestEmail || (i === 0 && buyer?.email ? buyer.email : undefined);
-    return { ...p, email: finalEmail, age: guest.age, pass: guest.pass };
+    return { ...p, email: finalEmail, age, pass: guest.pass };
   });
 
   if (!settings.chargesConfirmed) {

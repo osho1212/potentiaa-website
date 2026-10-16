@@ -351,3 +351,55 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
   .axp-edition input, .axp-edition select { min-height: 48px; font-size: 16px; }
   .axp-edition .confirmation-map .venue-link { display: flex; justify-content: center; min-height: 44px; }
 }
+
+/* ---------- Hero subtitle and tagline ---------- */
+.axp-edition .event-subtitle { width: 59%; margin: 0 auto 6px; text-align: center; font: 500 13px/1.4 'DM Sans', sans-serif; letter-spacing: 3.2px; text-transform: uppercase; color: #6f5a63; }
+.axp-edition .event-tagline { margin: 0 0 14px; font: 400 clamp(19px, 2.4vw, 26px)/1.4 var(--display); color: #4a3b44; }
+
+/* ---------- Types of passes, now event information ---------- */
+.axp-edition .pass-types { max-width: 860px; margin: 40px 0 10px; }
+.axp-edition .pass-types .eyebrow { font-size: 9px; letter-spacing: 2.4px; color: var(--gold); }
+.axp-edition .pass-types h2 { font: 400 clamp(26px, 3.4vw, 38px)/1.1 var(--display); margin: 10px 0 6px; letter-spacing: -.6px; color: #3c3033; }
+.axp-edition .pass-types .helper { margin: 0 0 20px; }
+.axp-edition .pass-types .pass-options { gap: 16px; }
+
+/* ---------- What's on ---------- */
+.axp-edition .event-highlights { max-width: 860px; margin: 40px 0 10px; }
+.axp-edition .event-highlights .eyebrow { font-size: 9px; letter-spacing: 2.4px; color: var(--gold); }
+.axp-edition .event-highlights h2 { font: 400 clamp(26px, 3.4vw, 38px)/1.1 var(--display); margin: 10px 0 18px; letter-spacing: -.6px; color: #3c3033; }
+.axp-edition .highlight-grid { display: flex; flex-wrap: wrap; gap: 10px; list-style: none; margin: 0; padding: 0; }
+.axp-edition .highlight-grid li { padding: 9px 16px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255, 253, 249, .7); font-size: 12px; color: #4f434b; }
+.axp-edition .highlight-note { margin: 18px 0 0; font-size: 11px; color: var(--muted); }
+.axp-edition .highlight-note a { color: #6c5a66; text-underline-offset: 3px; }
+.axp-edition .instagram-link { display: inline-block; margin-top: 10px; font-size: 12px; color: #6c5a66; text-underline-offset: 3px; }
+
+/* ---------- Step navigation ---------- */
+.axp-edition .step-nav { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line); }
+.axp-edition .step-nav .secondary { background: none; border: 1px solid var(--line); border-radius: 5px; padding: 12px 20px; min-height: 44px; font-size: 12px; color: var(--ink); }
+.axp-edition .step-nav .secondary:hover { border-color: #b79a77; }
+.axp-edition .step-nav .primary { width: auto; display: inline-flex; justify-content: center; gap: 10px; padding: 12px 26px; min-height: 44px; }
+.axp-edition .optional-marker { color: var(--muted); font-weight: 400; font-size: 10px; letter-spacing: .3px; }
+
+@media (max-width: 760px) {
+  .axp-edition .event-subtitle { width: auto; font-size: 11px; letter-spacing: 2.4px; }
+  .axp-edition .pass-types, .axp-edition .event-highlights { margin: 28px 0 6px; }
+  .axp-edition .pass-types .pass-options { grid-template-columns: 1fr; }
+  .axp-edition .highlight-grid li { font-size: 11.5px; padding: 8px 14px; }
+  .axp-edition .step-nav { margin-top: 20px; padding-top: 16px; }
+  .axp-edition .step-nav .primary, .axp-edition .step-nav .secondary { flex: 1 1 auto; min-height: 48px; }
+}
+
+/* ---------- Business stall application ---------- */
+.axp-edition .stall-hero { min-height: 0; background: none; padding: 40px 54px 30px; }
+.axp-edition .stall-hero h1 { width: auto; font-size: clamp(52px, 6vw, 92px); text-align: left; }
+.axp-edition .stall-hero h1 > span { display: block; text-align: left; }
+.axp-edition .stall-hero .axp-presenter { width: auto; text-align: left; }
+.axp-edition .stall-hero .intro { width: auto; max-width: 620px; text-align: left; padding: 0; }
+.axp-edition .stall-layout { grid-template-columns: minmax(0, 1fr); max-width: 760px; }
+.axp-edition .stall-wide { margin-top: 18px; }
+.axp-edition .stall-wide textarea { width: 100%; min-width: 0; border: 1px solid #d5d9ce; background: #fff; border-radius: 4px; padding: 11px; font: inherit; font-size: 13px; color: var(--ink); }
+.axp-edition #stall-submit { width: auto; display: inline-flex; gap: 10px; justify-content: center; margin-top: 22px; padding: 13px 26px; min-height: 46px; }
+@media (max-width: 760px) {
+  .axp-edition .stall-hero { padding: 26px 20px 20px; }
+  .axp-edition #stall-submit { width: 100%; min-height: 48px; }
+}
