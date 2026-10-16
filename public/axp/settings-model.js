@@ -11,8 +11,8 @@ export const DEFAULT_SETTINGS=Object.freeze({
   merchantName:'Avyanta Hotels',paymentUrl:'https://razorpay.me/@avyantahotels',
   merchantLegalName:'KGS GLOBAL PRIVATE LIMITED',merchantAddress:'B-3, Ganga Nagri, Shivalik Nagar, Haridwar-249402, Uttarakhand',
   merchantEmail:'kgsglobalpvtltd@gmail.com',merchantGstin:'05AAMCK1954E1ZL',
-  normalPrice:2999,alcoholPrice:3999,normalDescription:'Entry + unlimited non-alcoholic drinks.',
-  alcoholDescription:'Entry + unlimited non-alcoholic drinks + 8 alcoholic drink coupons. Exact menu and measures to be confirmed.',
+  normalPrice:2999,alcoholPrice:3999,normalDescription:'Entry, with soft drinks and mocktails through the evening.',
+  alcoholDescription:'Entry, soft drinks and mocktails through the evening, plus 8 drink coupons. Exact menu and measures to be confirmed.',
   capacity:200,warningAt:150,maxPerBooking:5,
   extraPerPerson:null,extraPerBooking:null,chargesConfirmed:false,
 });

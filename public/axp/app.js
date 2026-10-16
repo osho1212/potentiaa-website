@@ -210,7 +210,7 @@ if(typeof document!=='undefined'){
       el('footer-copyright').textContent=`© ${new Date().getFullYear()} ${settings.merchantName}. All rights reserved.`;
       applyBrand('potentiaa',settings.potentiaaLogo,settings.potentiaaPhone);
       applyBrand('avyanta',settings.avyantaLogo,settings.avyantaPhone);
-      el('event-rules').textContent=`Entry 20+ · Gold passes 21+ · Bar closes at ${time(settings.barCloseTime)} · Maximum ${settings.maxPerBooking} passes per booking`;
+      el('event-rules').textContent=`Entry 20+ · Gold passes 21+ · Last service ${time(settings.barCloseTime)} · Maximum ${settings.maxPerBooking} passes per booking`;
       el('pass-limit-hint').textContent=`Choose up to ${settings.maxPerBooking} passes. Mixing pass types is welcome.`;
       el('normal-benefits').textContent=settings.normalDescription;el('alcohol-benefits').textContent=settings.alcoholDescription;
       el('normal-price').textContent=money(settings.normalPrice);el('alcohol-price').textContent=money(settings.alcoholPrice);
@@ -218,7 +218,7 @@ if(typeof document!=='undefined'){
       el('support-phone').textContent=settings.supportPhone;el('support-phone').href='tel:'+settings.supportPhone.replace(/[^+\d]/g,'');
       el('support-email').hidden=!settings.supportEmail;if(settings.supportEmail){el('support-email').textContent=settings.supportEmail;el('support-email').href='mailto:'+settings.supportEmail;}
       el('merchant-name').textContent=settings.merchantName;
-      el('bar-rule').textContent=`Gold passes are for attendees aged 21 or over. The bar closes at ${time(settings.barCloseTime)}.`;
+      el('bar-rule').textContent=`Gold passes are for attendees aged 21 or over. Last service is at ${time(settings.barCloseTime)}.`;
       settingsLoaded=true;el('settings-load-state').hidden=true;render();
     }catch{settingsLoaded=false;el('settings-load-state').textContent='Event settings could not be loaded. Please reload before reviewing a booking.';refreshReadiness();}
   }
