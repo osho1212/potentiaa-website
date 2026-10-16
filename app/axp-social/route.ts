@@ -6,8 +6,8 @@ export function GET() {
   const html = rawBookingHtml
     .replace('<title>Aagaz · AXP Social</title>', '<title>AAGAZ · AxP Social · Invitation edition</title>')
     .replace('href="style.css"', 'href="/axp/style.css"')
-    .replace('src="app.js"', 'src="/axp/app.js"')
-    .replace('src="payment.js"', 'src="/axp/payment.js"')
+    .replace('src="app.js"', 'src="/axp/app.js?v=2"')
+    .replace('src="payment.js"', 'src="/axp/payment.js?v=2"')
     .replace('width=device-width, initial-scale=1', 'width=device-width, initial-scale=1, viewport-fit=cover')
     .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/axp-preview.css"><link rel="preload" as="image" href="/axp/ivory-plum-gathering.png"></head>')
     .replace('<body>', '<body class="axp-edition"><a class="axp-skip" href="#passes">Skip to booking form</a>')

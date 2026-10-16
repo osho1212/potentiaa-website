@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
         {
           id: crypto.randomUUID(),
           name,
+          email,
           instagram: instagram || '@test',
           phone,
           age: '21plus' as const,

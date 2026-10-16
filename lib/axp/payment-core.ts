@@ -6,6 +6,7 @@ export interface AttendeeInput {
   name: string;
   instagram: string;
   phone: string;
+  email?: string;
   age: '20' | '21plus';
   pass: 'normal' | 'alcohol';
 }
@@ -151,7 +152,12 @@ export function validateBookingInput(input: any, settings: EventSettings) {
     ) {
       throw new Error(`Check attendee ${i + 1}'s pass and age.`);
     }
-    return { ...p, age: guest.age, pass: guest.pass };
+    const guestEmail = typeof guest.email === 'string' ? guest.email.trim().toLowerCase() : '';
+    if (guestEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) {
+      throw new Error(`Check attendee ${i + 1}'s email address.`);
+    }
+    const finalEmail = guestEmail || (i === 0 && buyer?.email ? buyer.email : undefined);
+    return { ...p, email: finalEmail, age: guest.age, pass: guest.pass };
   });
 
   if (!settings.chargesConfirmed) {

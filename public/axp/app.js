@@ -12,7 +12,7 @@ export function calculateBooking(attendees,settings=DEFAULT_SETTINGS) {
   return {normal,alcohol,people:attendees.length,subtotal:subtotalPaise/100,extraCharges:extrasPaise===null?null:extrasPaise/100,total:extrasPaise===null?null:(subtotalPaise+extrasPaise)/100};
 }
 if(typeof document!=='undefined'){
-  const state=[{name:'',instagram:'',phone:'',age:'',pass:'normal'}];
+  const state=[{name:'',email:'',instagram:'',phone:'',age:'',pass:'normal'}];
   let settings={...DEFAULT_SETTINGS};
   let settingsLoaded=false,showAllErrors=false;
   const touched=new Set();
@@ -85,7 +85,12 @@ if(typeof document!=='undefined'){
       const section=document.createElement('section');section.className='attendee';section.setAttribute('aria-labelledby',`guest-${index}-title`);
       const title=document.createElement('h3');title.id=`guest-${index}-title`;title.textContent=`Attendee ${index+1}`;section.append(title);
       const grid=document.createElement('div');grid.className='field-grid';
-      grid.append(input('Full name','name',index),input('Instagram username','instagram',index,{placeholder:'@username',maxLength:31}),input('Phone number','phone',index,{type:'tel',placeholder:'+91',maxLength:20}));
+      grid.append(
+        input('Full name','name',index,{placeholder:'Aarav Sharma'}),
+        input('Email address','email',index,{type:'email',placeholder:'aarav@example.com',maxLength:100}),
+        input('Instagram username','instagram',index,{placeholder:'@username',maxLength:31}),
+        input('Phone number','phone',index,{type:'tel',placeholder:'+91',maxLength:20})
+      );
       const ageLabel=requiredLabel(`Age on ${dateLabel()}`);
       const age=document.createElement('select');age.id=`guest-${index}-age`;age.name=`attendees[${index}][age]`;age.required=true;
       for(const [value,text] of [['','Select age group'],['20','20 years'],['21plus','21 years or older']]){const option=new Option(text,value);age.append(option);}age.value=guest.age;
@@ -96,14 +101,14 @@ if(typeof document!=='undefined'){
       pass.addEventListener('change',()=>{guest.pass=pass.value;summary();});passLabel.append(pass,describeField(pass,`Attendee ${index+1}: pass type`));grid.append(passLabel);section.append(grid);el('attendees').append(section);
     });summary();refreshReadiness();
   }
-  el('plus').addEventListener('click',()=>{if(state.length<settings.maxPerBooking){state.push({name:'',instagram:'',phone:'',age:'',pass:'normal'});render();}});
+  el('plus').addEventListener('click',()=>{if(state.length<settings.maxPerBooking){state.push({name:'',email:'',instagram:'',phone:'',age:'',pass:'normal'});render();}});
   el('minus').addEventListener('click',()=>{if(state.length>1){state.pop();render();}});
-  el('copy-buyer').addEventListener('click',()=>{state[0].name=el('buyer-name').value;state[0].instagram=el('buyer-instagram').value;state[0].phone=el('buyer-phone').value;render();});
+  el('copy-buyer').addEventListener('click',()=>{state[0].name=el('buyer-name').value;state[0].email=el('buyer-email').value;state[0].instagram=el('buyer-instagram').value;state[0].phone=el('buyer-phone').value;render();});
   el('booking-form').addEventListener('submit',event=>{
     event.preventDefault();el('form-message').textContent='';
     if(!showMissingFields())return;
     const total=calculateBooking(state,settings);el('review-buyer').textContent=`Booking contact: ${el('buyer-name').value.trim()} · ${el('buyer-email').value.trim()}`;
-    el('review-guests').replaceChildren();state.forEach((guest,i)=>{const row=document.createElement('div');row.className='review-person';row.textContent=`${i+1}. ${guest.name.trim()}`;const pass=document.createElement('span');pass.textContent=guest.pass==='normal'?`Non-alcoholic pass · ${money(settings.normalPrice)} base`:`Alcohol-inclusive pass · ${money(settings.alcoholPrice)} base · 21+`;row.append(pass);el('review-guests').append(row);});
+    el('review-guests').replaceChildren();state.forEach((guest,i)=>{const row=document.createElement('div');row.className='review-person';row.textContent=`${i+1}. ${guest.name.trim()}${guest.email?' · '+guest.email.trim():''}`;const pass=document.createElement('span');pass.textContent=guest.pass==='normal'?`Non-alcoholic pass · ${money(settings.normalPrice)} base`:`Alcohol-inclusive pass · ${money(settings.alcoholPrice)} base · 21+`;row.append(pass);el('review-guests').append(row);});
     el('review-total').textContent=money(total.subtotal);el('review').showModal();
     el('review-notice').textContent=(total.total===null?'Final charges are pending.':`Additional charges: ${money(total.extraCharges)}. Total payable: ${money(total.total)}.`)+' No booking has been saved, no places have been reserved, and no payment has been taken.';
   });

@@ -14,11 +14,11 @@ async function request(url,body){
 }
 function rows(){
   const query=el('booking-search').value.toLowerCase();el('booking-rows').replaceChildren();
-  const filtered=entries.filter(e=>[e.name,e.instagram,e.buyer_name,e.buyer_email,e.id,e.gateway_payment].join(' ').toLowerCase().includes(query));
+  const filtered=entries.filter(e=>[e.name,e.email,e.instagram,e.buyer_name,e.buyer_email,e.id,e.gateway_payment].join(' ').toLowerCase().includes(query));
   const imageBookings=new Set();
   for(const item of filtered){
     const row=document.createElement('tr');
-    for(const lines of [[item.name,passName(item.pass_type)],[item.id,item.status,`₹${item.total.toLocaleString('en-IN')}`,item.gateway_payment||'No captured payment'],[item.buyer_name,item.buyer_email,item.buyer_phone],[item.instagram,item.phone,item.age_group==='20'?'20 years':'21+'],[time(item.checked_in_at)]]){
+    for(const lines of [[item.name,passName(item.pass_type)],[item.id,item.status,`₹${item.total.toLocaleString('en-IN')}`,item.gateway_payment||'No captured payment'],[item.buyer_name,item.buyer_email,item.buyer_phone],[item.email||'No email',item.instagram,item.phone,item.age_group==='20'?'20 years':'21+'],[time(item.checked_in_at)]]){
       const cell=document.createElement('td');for(const line of lines){const div=document.createElement('div');div.textContent=line;cell.append(div);}row.append(cell);
     }
     if(item.status==='confirmed'&&!imageBookings.has(item.id)){
@@ -29,12 +29,22 @@ function rows(){
         saveFile(await response.blob(),'aagaz-'+item.id+'.png');
       }catch(error){el('dashboard-message').textContent=error.message;}finally{button.disabled=false;}});row.children[1].append(button);
 
-      const emailBtn=document.createElement('button');emailBtn.type='button';emailBtn.className='secondary confirmation-download';emailBtn.style.marginTop='6px';emailBtn.textContent='Email passes to buyer';
+      const emailBtn=document.createElement('button');emailBtn.type='button';emailBtn.className='secondary confirmation-download';emailBtn.style.marginTop='6px';emailBtn.textContent='Email passes';
       emailBtn.addEventListener('click',async()=>{emailBtn.disabled=true;emailBtn.textContent='Sending email…';try{
-        const res=await fetch('https://api.emailjs.com/api/v1.0/email/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service_id:'service_59d1ylv',template_id:'template_x1xmkvu',user_id:'wUJPfRnz1y09Ms68T',template_params:{to_name:item.buyer_name,to_email:item.buyer_email,booking_id:item.id,booking_id_short:item.id.slice(0,8),guest_count:'1',amount_paid:`₹${item.total.toLocaleString('en-IN')}`,attendees_list:`1. ${item.name} — ${passName(item.pass_type)}`,pass_link:window.location.origin+'/axp-social#passes'}})});
-        if(!res.ok)throw new Error(await res.text());
-        el('dashboard-message').textContent=`✉️ Passes email sent to ${item.buyer_email}.`;
-      }catch(err){el('dashboard-message').textContent='Email error: '+err.message;}finally{emailBtn.disabled=false;emailBtn.textContent='Email passes to buyer';}});row.children[1].append(emailBtn);
+        const bookingAttendees=entries.filter(e=>e.id===item.id);
+        const distinctEmails=new Map();
+        distinctEmails.set(item.buyer_email.toLowerCase(),{name:item.buyer_name,email:item.buyer_email,isBuyer:true});
+        for(const att of bookingAttendees){
+          if(att.email&&!distinctEmails.has(att.email.toLowerCase())){
+            distinctEmails.set(att.email.toLowerCase(),{name:att.name,email:att.email,isBuyer:false});
+          }
+        }
+        const listText=bookingAttendees.map((a,i)=>`${i+1}. ${a.name} — ${passName(a.pass_type)}`).join('\n');
+        for(const target of distinctEmails.values()){
+          await fetch('https://api.emailjs.com/api/v1.0/email/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service_id:'service_59d1ylv',template_id:'template_x1xmkvu',user_id:'wUJPfRnz1y09Ms68T',template_params:{to_name:target.name,to_email:target.email,booking_id:item.id,booking_id_short:item.id.slice(0,8),guest_count:target.isBuyer?String(bookingAttendees.length):'1 (Personal Pass)',amount_paid:target.isBuyer?`₹${item.total.toLocaleString('en-IN')}`:'Paid by '+item.buyer_name,attendees_list:listText,pass_link:window.location.origin+'/axp-social#passes'}})});
+        }
+        el('dashboard-message').textContent=`✉️ Passes emailed to: ${[...distinctEmails.keys()].join(', ')}.`;
+      }catch(err){el('dashboard-message').textContent='Email error: '+err.message;}finally{emailBtn.disabled=false;emailBtn.textContent='Email passes';}});row.children[1].append(emailBtn);
     }
     el('booking-rows').append(row);
   }

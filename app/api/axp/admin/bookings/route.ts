@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
           buyer_email: booking.buyer?.email || '',
           attendee_id: attendee.id,
           name: attendee.name,
+          email: attendee.email || '',
           instagram: attendee.instagram,
           phone: attendee.phone,
           age_group: attendee.age,
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
     if (url.searchParams.get('export') === 'csv') {
       const fields = [
         'id', 'mode', 'status', 'guest_count', 'total', 'gateway_order', 'gateway_payment',
-        'buyer_name', 'buyer_instagram', 'buyer_phone', 'buyer_email', 'name', 'instagram',
+        'buyer_name', 'buyer_instagram', 'buyer_phone', 'buyer_email', 'name', 'email', 'instagram',
         'phone', 'age_group', 'pass_type', 'created_at', 'confirmed_at', 'checked_in_at'
       ];
       const csv = '\uFEFF' + [

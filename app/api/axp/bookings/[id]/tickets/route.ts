@@ -39,6 +39,7 @@ export async function GET(
           id: attendee.id,
           position: idx + 1,
           name: attendee.name,
+          email: attendee.email || '',
           instagram: attendee.instagram,
           phone: attendee.phone,
           pass: attendee.pass,
