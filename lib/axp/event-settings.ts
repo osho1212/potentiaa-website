@@ -133,9 +133,18 @@ export function validateSettings(input: any): EventSettings {
     instagramHandle: 40,
     venueName: 160,
     venueLocation: 160,
+    // The organiser form has had the map and brand fields below since they
+    // were added, but they were never copied into the saved settings, so any
+    // edit to them was silently dropped on save.
+    venueMapQuery: 200,
+    venueMapsUrl: 500,
     supportPhone: 30,
     supportEmail: 180,
     alertEmail: 180,
+    potentiaaPhone: 30,
+    potentiaaLogo: 300,
+    avyantaPhone: 30,
+    avyantaLogo: 300,
     merchantName: 120,
     merchantLegalName: 160,
     merchantAddress: 500,
