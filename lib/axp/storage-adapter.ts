@@ -3,7 +3,6 @@ import path from 'path';
 import os from 'os';
 import { EventSettings, DEFAULT_SETTINGS, validateSettings } from './event-settings';
 import { AttendeeInput, BuyerInput } from './payment-core';
-import type { WhatsAppDeliveryResult } from './whatsapp-service';
 import {
   saveBookingFirestore,
   getBookingFirestore,
@@ -31,8 +30,6 @@ export interface BookingRecord {
   createdAt: string;
   snapshot: any;
   checkedInAttendees?: string[];
-  /** Written by the verify route when WhatsApp pass delivery was switched on. */
-  whatsappDelivery?: WhatsAppDeliveryResult;
 }
 
 export interface StorageData {

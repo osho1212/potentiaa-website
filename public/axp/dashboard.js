@@ -4,14 +4,6 @@ const el=id=>document.getElementById(id);
 let entries=[],inspected=null,stream=null,scanning=false,inspectionVersion=0,cameraVersion=0,loading=null;
 const time=value=>value?new Date(value).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})+' IST':'Not checked in';
 const passName=value=>value==='alcohol'?'Alcohol-inclusive · 21+':'Non-alcoholic';
-// whatsapp_status is per attendee: 'sent' when their number is in the delivery
-// receipt, 'failed' when it is not, 'not_applicable' when the booking carries no
-// receipt at all — delivery was off (or the booking never got paid).
-function whatsappCell(item){
-  if(item.whatsapp_status==='sent')return{cls:'wa-sent',lines:['Pass sent',item.whatsapp_detail?'+'+item.whatsapp_detail:'']};
-  if(item.whatsapp_status==='failed')return{cls:'wa-failed',lines:['Not delivered',item.whatsapp_detail||'']};
-  return{cls:'wa-off',lines:['Not applicable',item.status==='confirmed'?'WhatsApp delivery was off':'Booking not confirmed']};
-}
 function stop(){cameraVersion++;scanning=false;stream?.getTracks().forEach(track=>track.stop());stream=null;el('scanner-video').hidden=true;el('stop-camera').hidden=true;}
 function clearInspection(){inspectionVersion++;inspected=null;el('checkin-roster').replaceChildren();el('confirm-checkin').hidden=true;el('checkin-result').textContent='';}
 async function request(url,body){
@@ -25,11 +17,10 @@ function rows(){
   const filtered=entries.filter(e=>[e.name,e.email,e.instagram,e.buyer_name,e.buyer_email,e.id,e.gateway_payment].join(' ').toLowerCase().includes(query));
   const imageBookings=new Set();
   for(const item of filtered){
-    const row=document.createElement('tr'),whatsapp=whatsappCell(item);
-    for(const lines of [[item.name,passName(item.pass_type)],[item.id,item.status,`₹${item.total.toLocaleString('en-IN')}`,item.gateway_payment||'No captured payment'],[item.buyer_name,item.buyer_email,item.buyer_phone],[item.email||'No email',item.instagram,item.phone,item.age_group==='20'?'20 years':'21+'],whatsapp.lines,[time(item.checked_in_at)]]){
-      const cell=document.createElement('td');for(const line of lines.filter(Boolean)){const div=document.createElement('div');div.textContent=line;cell.append(div);}row.append(cell);
+    const row=document.createElement('tr');
+    for(const lines of [[item.name,passName(item.pass_type)],[item.id,item.status,`₹${item.total.toLocaleString('en-IN')}`,item.gateway_payment||'No captured payment'],[item.buyer_name,item.buyer_email,item.buyer_phone],[item.email||'No email',item.instagram,item.phone,item.age_group==='20'?'20 years':'21+'],[time(item.checked_in_at)]]){
+      const cell=document.createElement('td');for(const line of lines){const div=document.createElement('div');div.textContent=line;cell.append(div);}row.append(cell);
     }
-    row.children[4].className=whatsapp.cls;
     if(item.status==='confirmed'&&!imageBookings.has(item.id)){
       imageBookings.add(item.id);
       const emailBtn=document.createElement('button');emailBtn.type='button';emailBtn.className='secondary confirmation-download';emailBtn.textContent='Email passes';
