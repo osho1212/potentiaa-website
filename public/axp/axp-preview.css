@@ -809,3 +809,202 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
   .axp-edition .cd-num.cd-tick { animation: none; }
   .axp-edition .brand-card:hover img, .axp-edition .hero-cta:hover, .axp-edition .hero-cta:hover > span { transform: none; }
 }
+
+/* ======================= Round 8 ======================= */
+
+/* Hero: the subtitle and intro centre in the same column as the title.
+   margin: auto had centred the subtitle across the whole hero instead. */
+.axp-edition .event-subtitle { margin: 0 0 8px; }
+@media (min-width: 761px) {
+  .axp-edition .intro { width: 59%; max-width: none; padding: 0 56px; box-sizing: border-box; }
+}
+
+/* Stall enquiry form fills the content column, level with the text above. */
+.axp-edition .layout.stall-layout { max-width: none; margin-left: 0; margin-right: 0; }
+
+/* ---------- Organiser strip: logos of equal weight, about half the height ---------- */
+.axp-edition .brand-strip { margin-top: 32px; padding-top: 22px; }
+.axp-edition .brand-row { display: grid; grid-template-columns: repeat(2, minmax(0, 230px)); justify-content: center; gap: 0; margin-top: 16px; }
+.axp-edition .brand-card { display: grid; grid-template-rows: 64px auto; justify-items: center; align-items: center; row-gap: 6px; min-width: 0; padding: 2px 22px; }
+.axp-edition .brand-card + .brand-card { border-left: 1px solid var(--line); }
+/* AVYANTA's logo carries its wordmark; POTENTIAA's mark sits over a separate
+   label. Giving each the same 64px band lines the two wordmarks up and puts
+   both phone numbers on one baseline. */
+.axp-edition .brand-card img { grid-row: 1; height: 64px; width: auto; max-width: 170px; object-fit: contain; }
+.axp-edition .brand-card #potentiaa-logo { height: 40px; align-self: start; margin-top: 1px; }
+.axp-edition .brand-card .brand-name { grid-row: 1; align-self: end; margin: 0; line-height: 1; }
+.axp-edition .brand-card .brand-phone { grid-row: 2; }
+
+/* ---------- Passes as real tickets ---------- */
+.axp-edition .pass-types .pass-options { gap: 22px; perspective: 1400px; }
+.axp-edition .pass-types .pass-options article.ticket,
+.axp-edition .pass-types .pass-options article.ticket:last-child {
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 82px;
+  padding: 0; border: 1px solid rgba(180, 154, 125, .38); border-radius: 14px;
+  background: #fffdf8; overflow: hidden;
+  box-shadow: 0 1px 0 rgba(64, 35, 71, .05), 0 22px 40px -26px rgba(64, 35, 71, .45);
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform .4s cubic-bezier(.22, .61, .36, 1), box-shadow .4s ease;
+  will-change: transform;
+}
+.axp-edition .pass-types .pass-options article.ticket:hover {
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-4px);
+  box-shadow: 0 1px 0 rgba(64, 35, 71, .05), 0 30px 50px -26px rgba(64, 35, 71, .5);
+}
+
+/* Holographic foil band along the top, drifting slowly. */
+.axp-edition .pass-types .pass-options article.ticket::before {
+  content: ""; position: absolute; inset: 0 0 auto; height: 6px; z-index: 2;
+  background: linear-gradient(100deg, #c9c9d3 0%, #f4f4f8 18%, #a9a9b9 36%, #e9e9f0 54%, #b4b4c4 72%, #f6f6f9 90%, #c9c9d3 100%);
+  background-size: 220% 100%; animation: axp-foil 6s linear infinite;
+}
+.axp-edition .pass-types .pass-options article.ticket-gold::before {
+  background-image: linear-gradient(100deg, #e9c877 0%, #fbedc0 18%, #c4933a 36%, #f6dd98 54%, #b6852d 72%, #fdf0c6 90%, #e9c877 100%);
+}
+
+/* A light sweep crossing each ticket in turn. */
+.axp-edition .pass-types .pass-options article.ticket::after,
+.axp-edition .pass-types .pass-options article.ticket:last-child::after {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, .55) 50%, transparent 62%);
+  transform: translateX(-120%); animation: axp-sheen 7s ease-in-out 2.4s infinite;
+}
+.axp-edition .pass-types .pass-options article.ticket-gold::after {
+  background: linear-gradient(115deg, transparent 38%, rgba(255, 233, 170, .6) 50%, transparent 62%);
+  animation-delay: 5.6s;
+}
+
+/* Glare that follows the pointer (position set by reveal.js). */
+.axp-edition .ticket-glare {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; transition: opacity .3s ease;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, .42), rgba(255, 255, 255, 0) 44%);
+}
+.axp-edition .ticket:hover .ticket-glare { opacity: 1; }
+
+.axp-edition .ticket-main { display: flex; flex-direction: column; min-width: 0; padding: 28px 24px 22px; }
+.axp-edition .ticket-silver .pass-tag { background: rgba(110, 110, 135, .12); color: #55556a; }
+.axp-edition .ticket-gold .pass-tag { background: rgba(176, 137, 60, .16); color: #7d5f24; }
+
+/* The stub: perforated edge, semicircle bites, ADMIT ONE and a barcode. */
+.axp-edition .ticket-stub {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  padding: 24px 0 20px; border-left: 2px dashed rgba(180, 154, 125, .6);
+  background: linear-gradient(180deg, #f4f3f7, #e9e8ef);
+}
+.axp-edition .ticket-gold .ticket-stub { background: linear-gradient(180deg, #fbf2d9, #f1deae); }
+.axp-edition .ticket-stub::before,
+.axp-edition .ticket-stub::after {
+  content: ""; position: absolute; left: -12px; width: 22px; height: 22px; border-radius: 50%;
+  background: #fcf9f3; box-shadow: inset 0 0 0 1px rgba(180, 154, 125, .38);
+}
+.axp-edition .ticket-stub::before { top: -12px; }
+.axp-edition .ticket-stub::after { bottom: -12px; }
+.axp-edition .stub-admit,
+.axp-edition .stub-code { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; }
+.axp-edition .stub-admit { font: 600 11px/1 'DM Sans', sans-serif; letter-spacing: 3.2px; text-transform: uppercase; color: #625c70; }
+.axp-edition .ticket-gold .stub-admit { color: #86672a; }
+.axp-edition .stub-code { font: 500 11px/1 'DM Sans', sans-serif; letter-spacing: 1px; color: var(--muted); }
+.axp-edition .stub-bars {
+  width: 36px; height: 40px; opacity: .55;
+  background: repeating-linear-gradient(90deg, #3c3036 0 2px, transparent 2px 4px, #3c3036 4px 5px, transparent 5px 8px, #3c3036 8px 11px, transparent 11px 12px);
+}
+
+/* Tickets are dealt onto the table as they scroll in. */
+.reveal-ready .ticket.reveal-item.is-visible { animation: axp-deal-left .85s cubic-bezier(.22, .61, .36, 1) backwards; }
+.reveal-ready .ticket-gold.reveal-item.is-visible { animation: axp-deal-right .85s cubic-bezier(.22, .61, .36, 1) .12s backwards; }
+
+/* ---------- What's on: icons, and a few fireworks for the finale ---------- */
+.axp-edition .highlight-grid li { display: inline-flex; align-items: center; gap: 8px; }
+.axp-edition .highlight-icon {
+  width: 18px; height: 18px; flex: 0 0 18px; fill: none; stroke: var(--gold);
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s ease;
+}
+.axp-edition .highlight-grid li:hover .highlight-icon { transform: rotate(-10deg) scale(1.15); }
+
+.axp-edition #what-is-on { position: relative; }
+.axp-edition #what-is-on > :not(.fireworks) { position: relative; z-index: 1; }
+.axp-edition .fireworks { position: absolute; top: -12px; right: 0; width: 280px; height: 160px; pointer-events: none; z-index: 0; }
+.fireworks .burst { position: absolute; width: 0; height: 0; }
+.fireworks .burst:nth-child(1) { left: 68%; top: 42%; --c: #c99a3b; }
+.fireworks .burst:nth-child(2) { left: 28%; top: 64%; --c: #8b5f97; }
+.fireworks .burst:nth-child(3) { left: 90%; top: 76%; --c: #d47a68; }
+.fireworks .burst i {
+  position: absolute; left: -1.5px; top: -5px; width: 3px; height: 10px; border-radius: 2px;
+  background: var(--c); opacity: 0; transform: rotate(var(--a)) translateY(0);
+  animation: axp-burst 4.8s cubic-bezier(.2, .7, .3, 1) infinite;
+}
+.fireworks .burst:nth-child(2) i { animation-delay: 1.6s; }
+.fireworks .burst:nth-child(3) i { animation-delay: 3.2s; }
+.fireworks .burst i:nth-child(1)  { --a: 0deg; }
+.fireworks .burst i:nth-child(2)  { --a: 30deg; }
+.fireworks .burst i:nth-child(3)  { --a: 60deg; }
+.fireworks .burst i:nth-child(4)  { --a: 90deg; }
+.fireworks .burst i:nth-child(5)  { --a: 120deg; }
+.fireworks .burst i:nth-child(6)  { --a: 150deg; }
+.fireworks .burst i:nth-child(7)  { --a: 180deg; }
+.fireworks .burst i:nth-child(8)  { --a: 210deg; }
+.fireworks .burst i:nth-child(9)  { --a: 240deg; }
+.fireworks .burst i:nth-child(10) { --a: 270deg; }
+.fireworks .burst i:nth-child(11) { --a: 300deg; }
+.fireworks .burst i:nth-child(12) { --a: 330deg; }
+
+/* ---------- Step bar: the current step breathes ---------- */
+.axp-edition .axp-steps a > span { position: relative; }
+.axp-edition .axp-steps a.is-current > span::after {
+  content: ""; position: absolute; inset: -5px; border-radius: 50%;
+  border: 2px solid var(--green); opacity: 0; animation: axp-ring 2.4s ease-out infinite;
+}
+
+/* ---------- Section headings: an accent line draws in on arrival ---------- */
+.reveal-ready .event-info-body > section h2::after {
+  content: ""; display: block; width: 46px; height: 2px; margin-top: 12px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--gold), rgba(150, 116, 78, 0));
+  transform: scaleX(0); transform-origin: left; transition: transform .9s .25s cubic-bezier(.22, .61, .36, 1);
+}
+.reveal-ready .event-info-body > section.is-visible h2::after { transform: scaleX(1); }
+
+@keyframes axp-foil { from { background-position: 0% 0; } to { background-position: 220% 0; } }
+@keyframes axp-deal-left { from { opacity: 0; transform: translateY(28px) rotate(-3deg) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes axp-deal-right { from { opacity: 0; transform: translateY(28px) rotate(3deg) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes axp-burst {
+  0%   { opacity: 0;  transform: rotate(var(--a)) translateY(0) scaleY(.3); }
+  6%   { opacity: 1; }
+  30%  { opacity: .9; transform: rotate(var(--a)) translateY(-34px) scaleY(1); }
+  48%  { opacity: 0;  transform: rotate(var(--a)) translateY(-42px) scaleY(.4); }
+  100% { opacity: 0;  transform: rotate(var(--a)) translateY(-42px) scaleY(.4); }
+}
+@keyframes axp-ring { 0% { opacity: .55; transform: scale(.85); } 100% { opacity: 0; transform: scale(1.35); } }
+
+@media (max-width: 760px) {
+  .axp-edition .brand-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .axp-edition .brand-card { grid-template-rows: 54px auto; padding: 2px 12px; }
+  .axp-edition .brand-card img { height: 54px; max-width: 140px; }
+  .axp-edition .brand-card #potentiaa-logo { height: 34px; }
+  .axp-edition .pass-types .pass-options article.ticket,
+  .axp-edition .pass-types .pass-options article.ticket:last-child { grid-template-columns: minmax(0, 1fr) 64px; }
+  .axp-edition .ticket-main { padding: 26px 18px 20px; }
+  .axp-edition .stub-bars { width: 28px; }
+  .axp-edition .fireworks { width: 180px; height: 120px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .axp-edition .pass-types .pass-options article.ticket::before { animation: none; }
+  .axp-edition .pass-types .pass-options article.ticket::after { display: none; }
+  .axp-edition .pass-types .pass-options article.ticket,
+  .axp-edition .pass-types .pass-options article.ticket:hover { transform: none; transition: none; }
+  .axp-edition .ticket-glare, .fireworks { display: none; }
+  .axp-edition .axp-steps a.is-current > span::after { animation: none; opacity: 0; }
+  .reveal-ready .ticket.reveal-item.is-visible,
+  .reveal-ready .ticket-gold.reveal-item.is-visible { animation: none; }
+  .axp-edition .highlight-grid li:hover .highlight-icon { transform: none; }
+  .reveal-ready .event-info-body > section h2::after { transform: none; transition: none; }
+}
+
+/* The stub sits above the foil band, so both tear-off bites show. */
+.axp-edition .ticket-stub { z-index: 3; }
+/* Mark and label share one cell; without a column the grid opens a second. */
+.axp-edition .brand-card > * { grid-column: 1; }
+
+/* The delivery note in the payment step. */
+.axp-edition .delivery-note { margin: 0 0 18px; padding: 12px 14px; border-radius: 8px; background: #f6f0f7; border: 1px solid #e3d3e6; color: #4f3a55; font-size: 12.5px; line-height: 1.55; }
+.axp-edition #your-details .required-note { margin: -6px 0 18px; font-size: 12px; color: var(--muted); }
