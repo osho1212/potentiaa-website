@@ -281,39 +281,3 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
   color: rgba(255, 255, 255, 0.65);
   letter-spacing: 0.3px;
 }
-
-/* ---------- Getting there: venue map ---------- */
-.axp-edition .map-panel { margin: 42px 0 10px; }
-.axp-edition .map-head { margin-bottom: 18px; }
-.axp-edition .map-head .eyebrow { font-size: 9px; letter-spacing: 2.4px; color: var(--gold); }
-.axp-edition .map-head h2 { font: 400 clamp(30px, 4vw, 46px)/1.05 var(--display); margin: 10px 0; letter-spacing: -1px; color: #3c3033; }
-.axp-edition .map-address { display: flex; flex-direction: column; gap: 3px; margin: 0; }
-.axp-edition .map-address strong { font-size: 13px; font-weight: 500; }
-.axp-edition .map-address span { font-size: 12px; color: var(--muted); }
-.axp-edition .map-frame { position: relative; margin-top: 20px; aspect-ratio: 21 / 9; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #ece4d8; }
-.axp-edition .map-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
-.axp-edition .map-panel .venue-link { display: inline-block; text-align: left; margin-top: 16px; font-size: 11px; color: #766670; }
-
-/* ---------- Brought to you by ---------- */
-.axp-edition .brand-strip { margin-top: 46px; padding-top: 30px; border-top: 1px solid var(--line); text-align: center; }
-.axp-edition .brand-strip .eyebrow { font-size: 9px; letter-spacing: 2.4px; color: var(--gold); }
-.axp-edition .brand-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: clamp(32px, 8vw, 96px); margin-top: 22px; }
-.axp-edition .brand-card { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 128px; }
-.axp-edition .brand-card img { height: 58px; width: auto; max-width: 150px; object-fit: contain; display: block; }
-.axp-edition .brand-name { font: 500 10px/1 'DM Sans', sans-serif; letter-spacing: 3px; color: #6c6069; }
-.axp-edition .brand-phone { font-size: 12px; color: #766670; text-decoration: none; text-underline-offset: 3px; }
-.axp-edition .brand-phone:hover { text-decoration: underline; }
-
-@media (max-width: 760px) {
-  .axp-edition .map-panel { margin: 30px 0 6px; }
-  .axp-edition .map-frame { aspect-ratio: 4 / 3; margin-top: 16px; }
-  .axp-edition .map-panel .venue-link { display: flex; align-items: center; justify-content: center; min-height: 44px; }
-  .axp-edition .brand-strip { margin-top: 34px; padding-top: 24px; }
-  .axp-edition .brand-row { gap: 30px 44px; }
-  .axp-edition .brand-card img { height: 48px; }
-  .axp-edition .brand-phone { display: flex; align-items: center; min-height: 44px; }
-}
-@media (max-width: 480px) {
-  .axp-edition .brand-card { min-width: 108px; }
-  .axp-edition .brand-card img { height: 42px; }
-}

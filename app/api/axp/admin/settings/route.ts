@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEventSettings, updateEventSettings } from '@/lib/axp/storage-adapter';
 import { verifyAdminAuth } from '@/lib/axp/admin-auth';
-import { isWhatsAppConfigured } from '@/lib/axp/whatsapp-service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,7 +8,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Organiser authentication required.' }, { status: 401 });
     }
     const data = await getEventSettings();
-    return NextResponse.json({ ...data, whatsappConfigured: isWhatsAppConfigured() });
+    return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || 'Failed to read settings.' }, { status: 500 });
   }

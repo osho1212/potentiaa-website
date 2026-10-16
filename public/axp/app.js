@@ -116,11 +116,6 @@ if(typeof document!=='undefined'){
   el('booking-form').addEventListener('focusout',event=>{if(event.target.matches('[required]')){touched.add(event.target.id);refreshReadiness();}});
   el('check-required-fields').addEventListener('click',showMissingFields);
   for(const id of ['close-review','back-to-form'])el(id).addEventListener('click',()=>el('review').close());
-  function applyBrand(key,logo,phone){
-    const img=el(key+'-logo'),link=el(key+'-phone');
-    if(img){img.hidden=!logo;if(logo)img.src=logo;}
-    if(link){link.hidden=!phone;if(phone){link.textContent=phone;link.href='tel:'+phone.replace(/[^+\d]/g,'');}}
-  }
   async function loadSettings(){
     try{
       const response=await fetch('/api/public-settings',{cache:'no-store'});if(!response.ok)throw new Error('Could not load event settings.');
@@ -131,13 +126,6 @@ if(typeof document!=='undefined'){
       const time=t=>new Intl.DateTimeFormat('en-IN',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'UTC'}).format(new Date('2000-01-01T'+t+':00Z'));
       el('event-times').textContent=`${time(settings.startTime)}–${settings.endTime==='00:00'?'midnight':time(settings.endTime)} · IST`;
       el('event-venue').textContent=settings.venueName;el('event-location').textContent=settings.venueLocation;
-      el('map-venue-name').textContent=settings.venueName;el('map-venue-location').textContent=settings.venueLocation;
-      const mapQuery=(settings.venueMapQuery||'').trim();
-      el('venue-map').src=mapQuery?`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&hl=en&output=embed`:'about:blank';
-      el('venue-directions').href=settings.venueMapsUrl||(mapQuery?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`:'#');
-      el('getting-there').hidden=!mapQuery&&!settings.venueMapsUrl;
-      applyBrand('potentiaa',settings.potentiaaLogo,settings.potentiaaPhone);
-      applyBrand('avyanta',settings.avyantaLogo,settings.avyantaPhone);
       el('event-rules').textContent=`Entry 20+ · Alcohol-inclusive passes 21+ · Bar closes at ${time(settings.barCloseTime)} · Maximum ${settings.maxPerBooking} passes per booking`;
       el('pass-limit-hint').textContent=`Choose up to ${settings.maxPerBooking} passes. Mixing pass types is welcome.`;
       el('normal-benefits').textContent=settings.normalDescription;el('alcohol-benefits').textContent=settings.alcoholDescription;
