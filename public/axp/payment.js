@@ -5,15 +5,34 @@ const button=el('payment-button');
 const card=document.createElement('section');card.className='panel booking-confirmation';card.hidden=true;card.setAttribute('aria-label','Booking status');el('booking-form').after(card);
 const heading=document.createElement('h2');heading.textContent='Your booking';const message=document.createElement('p');message.setAttribute('role','status');const tickets=document.createElement('div');tickets.className='ticket-list';
 const savedDetails=document.createElement('div');
-const emailStatus=document.createElement('div');emailStatus.className='email-confirmation-status';emailStatus.hidden=true;emailStatus.style.cssText='font-size:13px;color:#2e1533;background:#f3e8f7;border:1px solid #d4bee0;padding:14px 18px;border-radius:10px;margin:18px 0;line-height:1.6;font-weight:500;box-shadow:0 2px 8px rgba(64,35,71,0.08);';
+const emailStatus=document.createElement('div');emailStatus.className='email-confirmation-status';emailStatus.hidden=true;
 const refresh=document.createElement('button');refresh.type='button';refresh.className='secondary';refresh.textContent='Check payment status';refresh.addEventListener('click',poll);
 const download=document.createElement('button');download.type='button';download.className='primary';download.textContent='Download passes (.html)';download.hidden=true;download.addEventListener('click',()=>renderTickets(true));
 const resendEmailBtn=document.createElement('button');resendEmailBtn.type='button';resendEmailBtn.className='secondary';resendEmailBtn.textContent='Resend passes to email';resendEmailBtn.hidden=true;
 resendEmailBtn.addEventListener('click',async()=>{if(!savedBooking)return;resendEmailBtn.disabled=true;resendEmailBtn.textContent='Sending passes…';await sendConfirmationEmail(savedBooking,true);resendEmailBtn.disabled=false;resendEmailBtn.textContent='Resend passes to email';});
 const resume=document.createElement('button');resume.type='button';resume.className='secondary';resume.textContent='Resume this checkout';resume.hidden=true;resume.addEventListener('click',async()=>{try{await loadCheckout();openGateway(await request('/api/bookings/'+attempt.id+'/checkout'));}catch(error){message.textContent=error.message;}});
 const another=document.createElement('button');another.type='button';another.className='secondary';another.textContent='Start another booking';another.hidden=true;another.addEventListener('click',()=>{sessionStorage.removeItem('axp-last-booking');location.reload();});
-card.append(heading,message,savedDetails,emailStatus,tickets,refresh,resume,download,resendEmailBtn,another);
-function freezeForm(){el('booking-form').inert=true;document.querySelector('.passes').inert=true;el('plus').disabled=true;el('minus').disabled=true;}
+const confirmationMap=document.createElement('section');confirmationMap.className='confirmation-map';confirmationMap.hidden=true;
+const confirmationMapTitle=document.createElement('p');confirmationMapTitle.className='confirmation-map-title';confirmationMapTitle.textContent='Getting there';
+const confirmationMapFrame=document.createElement('div');confirmationMapFrame.className='map-frame map-frame-small';
+const confirmationMapIframe=document.createElement('iframe');confirmationMapIframe.title='Map showing the venue location';confirmationMapIframe.loading='lazy';confirmationMapIframe.referrerPolicy='no-referrer-when-downgrade';
+const confirmationMapLink=document.createElement('a');confirmationMapLink.className='venue-link';confirmationMapLink.target='_blank';confirmationMapLink.rel='noopener noreferrer';confirmationMapLink.textContent='Open in Google Maps ↗';
+confirmationMapFrame.append(confirmationMapIframe);confirmationMap.append(confirmationMapTitle,confirmationMapFrame,confirmationMapLink);
+// The venue map belongs after the pass, not before it: it matters on the day,
+// not when the booking lands. app.js owns the settings fetch and publishes the
+// embed url, which can arrive after a saved booking has already rendered.
+function syncConfirmationMap(){
+ const embed=document.documentElement.dataset.mapEmbed||'';
+ const link=document.getElementById('venue-directions');
+ const href=link&&!link.hidden?link.href:'';
+ if(embed&&confirmationMapIframe.getAttribute('src')!==embed)confirmationMapIframe.src=embed;
+ confirmationMapFrame.hidden=!embed;
+ confirmationMapLink.href=href||'#';confirmationMapLink.hidden=!href;
+ confirmationMap.hidden=!embed&&!href;
+}
+window.addEventListener('axp-settings-loaded',()=>{if(savedBooking&&savedBooking.status==='confirmed')syncConfirmationMap();});
+card.append(heading,message,savedDetails,emailStatus,tickets,refresh,resume,download,resendEmailBtn,another,confirmationMap);
+function freezeForm(){el('booking-form').inert=true;const nav=document.querySelector('.axp-steps');if(nav)nav.inert=true;el('plus').disabled=true;el('minus').disabled=true;}
 function updateButton(){
  button.disabled=!paymentReady||el('review-booking-button').disabled||!!attempt;
  button.classList.toggle('primary',!button.disabled);button.textContent=paymentReady?(testMode?'Start test payment':'Pay with Razorpay'):'Razorpay payment unavailable';
@@ -53,8 +72,8 @@ async function sendConfirmationEmail(booking,isResend=false){
  const cfg=emailjsConfig||{serviceId:'service_59d1ylv',templateId:'template_x1xmkvu',publicKey:'wUJPfRnz1y09Ms68T'};
  if(!cfg.serviceId||!cfg.templateId||!cfg.publicKey)return;
  const attendeesList=(booking.attendees&&booking.attendees.length>0)
-  ? booking.attendees.map((a,i)=>`${i+1}. ${a.name} — ${a.pass==='alcohol'?'Alcohol-inclusive Pass · 21+':'Classic Pass · Non-alcoholic'}${a.instagram?' ('+a.instagram+')':''}`).join('\n')
-  : `1. ${buyerName} — Classic Pass · Non-alcoholic`;
+  ? booking.attendees.map((a,i)=>`${i+1}. ${a.name} — ${a.pass==='alcohol'?'Gold Pass · 21+':'Silver Pass'}${a.instagram?' ('+a.instagram+')':''}`).join('\n')
+  : `1. ${buyerName} — Silver Pass`;
  const amount=typeof booking.total==='number'?`₹${booking.total.toLocaleString('en-IN')}`:(booking.amountPaise?`₹${(booking.amountPaise/100).toLocaleString('en-IN')}`:'₹1.00');
  const passLink=window.location.origin+'/axp-social?booking='+encodeURIComponent(booking.id||'')+'#passes';
 
@@ -77,7 +96,7 @@ async function sendConfirmationEmail(booking,isResend=false){
      isBuyer:false,
      count:'1 (Personal Pass)',
      amount:'Paid by '+buyerName,
-     list:`• ${guest.name} — ${guest.pass==='alcohol'?'Alcohol-inclusive Pass · 21+':'Classic Pass · Non-alcoholic'}${guest.instagram?' ('+guest.instagram+')':''}\n(Booked in group order by ${buyerName})`
+     list:`• ${guest.name} — ${guest.pass==='alcohol'?'Gold Pass · 21+':'Silver Pass'}${guest.instagram?' ('+guest.instagram+')':''}\n(Booked in group order by ${buyerName})`
     });
    }
   }
@@ -128,7 +147,7 @@ function loadCheckout(){
 }
 function bookingInput(){
  const buyer={name:el('buyer-name').value,instagram:el('buyer-instagram').value,phone:el('buyer-phone').value,email:el('buyer-email').value};
- const attendees=[...document.querySelectorAll('.attendee')].map((_,i)=>Object.fromEntries(['name','email','instagram','phone','age','pass'].map(key=>[key,el(`guest-${i}-${key}`).value])));
+ const attendees=[...document.querySelectorAll('.attendee')].map((_,i)=>Object.fromEntries(['name','email','instagram','phone','dob','pass'].map(key=>[key,el(`guest-${i}-${key}`).value])));
  return {buyer,attendees,terms:el('booking-terms').checked,mode:testMode?'test':'live',accessToken:attempt.accessToken,idempotencyKey:attempt.idempotencyKey};
 }
 button.addEventListener('click',async()=>{
@@ -154,7 +173,7 @@ function showBooking(booking){
  savedBooking=booking;renderSavedSummary(booking);
  heading.textContent=(booking.mode==='test'?'TEST · ':'')+'Booking '+booking.id;
  const labels={confirmed:'Payment verified. Your named passes are ready below.',pending:'Awaiting verified payment. Do not make another payment if money was deducted.',creating:'Payment order is still being prepared.',order_uncertain:'Payment order needs a support check. Contact the organiser before retrying.',paid_review:'Payment needs organiser review. No valid ticket has been issued. Contact event support.',refunded:'This payment was refunded. Its tickets are invalid.'};
- message.textContent=labels[booking.status]||'Contact event support to check this booking.';download.hidden=booking.status!=='confirmed';resume.hidden=booking.status!=='pending'||booking.expiresAt<=new Date().toISOString();another.hidden=!['confirmed','refunded'].includes(booking.status);
+ message.textContent=labels[booking.status]||'Contact event support to check this booking.';refresh.hidden=['confirmed','refunded'].includes(booking.status);confirmationMap.hidden=booking.status!=='confirmed';download.hidden=booking.status!=='confirmed';resume.hidden=booking.status!=='pending'||booking.expiresAt<=new Date().toISOString();another.hidden=!['confirmed','refunded'].includes(booking.status);
  if(booking.status==='confirmed'){
   const emails=[];
   if(booking.buyer?.email)emails.push(booking.buyer.email.toLowerCase());
@@ -170,6 +189,8 @@ function showBooking(booking){
   emailStatus.hidden=false;
   resendEmailBtn.hidden=false;
   renderTickets(false);
+  syncConfirmationMap();
+  try{sessionStorage.removeItem('axp-booking-draft');}catch{}
   sendConfirmationEmail(booking);
  }
  if(booking.status==='pending'&&resume.hidden)message.textContent='This checkout hold has expired. Check payment status or contact event support before making another payment. No ticket has been issued.';
@@ -181,12 +202,24 @@ function renderSavedSummary(booking){
  const normal=booking.attendees.filter(guest=>guest.pass==='normal').length,alcohol=booking.attendees.length-normal;
  el('normal-line').textContent=`${normal} × ${money(booking.pricing.normalPrice)}`;el('alcohol-line').textContent=`${alcohol} × ${money(booking.pricing.alcoholPrice)}`;
  el('people-line').textContent=String(booking.people);el('subtotal').textContent=money(booking.pricing.subtotal);el('extra-charge-total').textContent=money(booking.pricing.extraCharges);el('final-total').textContent=money(booking.total);
- el('confirmed-charges').hidden=false;el('charges-pending').hidden=true;button.hidden=true;el('booking-form').hidden=true;document.querySelector('.passes').hidden=true;
+ el('confirmed-charges').hidden=false;el('charges-pending').hidden=true;button.hidden=true;el('booking-form').hidden=true;const stepsNav=document.querySelector('.axp-steps');if(stepsNav)stepsNav.hidden=true;
  const testBox=document.querySelector('.axp-test-payment-box');if(testBox)testBox.hidden=true;
  const summary=document.createElement('p');summary.textContent=`${booking.people} named ${booking.people===1?'pass':'passes'} · Total payable: ${money(booking.total)}`;
- const list=document.createElement('ul');for(const guest of booking.attendees){const row=document.createElement('li');row.textContent=guest.name+(guest.email?` (${guest.email})`:'')+' · '+(guest.pass==='alcohol'?'Alcohol-inclusive · 21+':'Non-alcoholic');list.append(row);}savedDetails.replaceChildren(summary,list);
+ const list=document.createElement('ul');for(const guest of booking.attendees){const row=document.createElement('li');row.textContent=guest.name+(guest.email?` (${guest.email})`:'')+' · '+(guest.pass==='alcohol'?'Gold · 21+':'Silver');list.append(row);}savedDetails.replaceChildren(summary,list);
 }
-async function poll(){if(!attempt)return;try{let booking;if(attempt.id)booking=await request('/api/bookings/'+attempt.id);else{booking=await request('/api/bookings/recover',{body:{mode:attempt.mode,idempotencyKey:attempt.idempotencyKey}});attempt.id=booking.id;saveAttempt();}showBooking(booking);}catch(error){message.textContent=error.message;}}
+// A saved attempt the server no longer knows (expired, purged, or a bad
+// ?booking= link) must not strand the guest behind a dead card and a frozen
+// form: forget it and hand the form back.
+function releaseStaleAttempt(){
+ attempt=null;polling=false;
+ try{sessionStorage.removeItem('axp-last-booking');}catch{}
+ card.hidden=true;
+ el('booking-form').inert=false;
+ const nav=document.querySelector('.axp-steps');if(nav)nav.inert=false;
+ el('plus').disabled=false;el('minus').disabled=document.querySelectorAll('.attendee').length<=1;
+ updateButton();
+}
+async function poll(){if(!attempt)return;try{let booking;if(attempt.id)booking=await request('/api/bookings/'+attempt.id);else{booking=await request('/api/bookings/recover',{body:{mode:attempt.mode,idempotencyKey:attempt.idempotencyKey}});attempt.id=booking.id;saveAttempt();}showBooking(booking);}catch(error){if(error.status===404){releaseStaleAttempt();return;}message.textContent=error.message;}}
 async function startPolling(){if(polling)return;polling=true;for(let i=0;i<12&&polling;i++){await new Promise(resolve=>setTimeout(resolve,5000));await poll();}polling=false;}
 async function renderTickets(triggerDownload=false){
  if(!attempt?.id)return;
@@ -235,14 +268,14 @@ async function renderTickets(triggerDownload=false){
   container.append(header);
 
   const previewTitle=document.createElement('p');
-  previewTitle.style.cssText='font-size:15px;font-weight:600;margin:18px 0 10px;color:var(--text, inherit);';
+  previewTitle.className='ticket-list-title';
   previewTitle.textContent=`Official Entry Passes (${data.tickets.length})`;
   tickets.append(previewTitle);
 
   for(const ticket of data.tickets){
     const article=doc.createElement('article');article.className='pass-card';
     const tag=doc.createElement('span');tag.className='pass-type';
-    tag.textContent=ticket.pass==='alcohol'?'Alcohol-inclusive Pass · 21+':'Classic Pass · Non-alcoholic';
+    tag.textContent=ticket.pass==='alcohol'?'Gold Pass · 21+':'Silver Pass';
     const name=doc.createElement('h2');name.className='guest-name';name.textContent=ticket.name;
     const qrWrap=doc.createElement('div');qrWrap.className='qr-wrap';
     const image=doc.createElement('img');
@@ -275,7 +308,7 @@ async function renderTickets(triggerDownload=false){
   link.download=`axp-pass-${data.bookingId}.html`;
   link.textContent='Save passes file (.html)';
   link.className='secondary';
-  link.style.cssText='display:inline-block;margin:12px 0;';
+  link.className='ticket-download-link';
   tickets.append(link);
 
   if(triggerDownload){
@@ -287,157 +320,5 @@ async function renderTickets(triggerDownload=false){
  }
 }
 
-function initTest1RsButton(){
- const testBtn=el('test-1rs-button');
- const testState=el('test-1rs-state');
- if(!testBtn)return;
-
- function updateTestButton(){
-  const name=el('buyer-name')?.value.trim();
-  const phone=el('buyer-phone')?.value.trim();
-  const email=el('buyer-email')?.value.trim();
-  const hasName=name&&name.length>=2;
-  const hasPhone=phone&&phone.replace(/\D/g,'').length>=8;
-  const hasEmail=email&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-  if(attempt){
-   testBtn.disabled=true;
-   if(testState)testState.textContent='An existing booking is being processed below.';
-  }else if(hasName&&hasPhone&&hasEmail){
-   testBtn.disabled=false;
-   if(testState)testState.textContent='Ready! Click to test ₹1.00 payment with live Razorpay.';
-  }else{
-   testBtn.disabled=true;
-   const missing=[];
-   if(!hasName)missing.push('name');
-   if(!hasPhone)missing.push('phone');
-   if(!hasEmail)missing.push('email');
-   if(testState)testState.textContent='Enter your '+missing.join(', ')+' in Section 02 to enable ₹1 test.';
-  }
- }
-
- window.addEventListener('booking-readiness-updated',updateTestButton);
- for(const id of ['buyer-name','buyer-phone','buyer-email']){
-  const input=el(id);
-  if(input){
-   input.addEventListener('input',updateTestButton);
-   input.addEventListener('change',updateTestButton);
-  }
- }
- updateTestButton();
-
- testBtn.addEventListener('click',async()=>{
-  const name=el('buyer-name')?.value.trim();
-  const phone=el('buyer-phone')?.value.trim();
-  const email=el('buyer-email')?.value.trim();
-  const instagram=el('buyer-instagram')?.value.trim()||'@test';
-
-  if(!name||!phone||!email){
-   updateTestButton();
-   el('buyer-name')?.focus();
-   return;
-  }
-
-  testBtn.disabled=true;
-  if(testState)testState.textContent='Creating live ₹1.00 Razorpay order…';
-  card.hidden=false;
-  message.textContent='Creating your ₹1.00 live payment order…';
-  card.scrollIntoView({behavior:'smooth',block:'start'});
-
-  try{
-   const attendees=[...document.querySelectorAll('.attendee')].map((_,i)=>{
-     return {
-       name: el(`guest-${i}-name`)?.value?.trim() || (i === 0 ? name : `Guest ${i+1}`),
-       email: el(`guest-${i}-email`)?.value?.trim() || (i === 0 ? email : ''),
-       instagram: el(`guest-${i}-instagram`)?.value?.trim() || instagram,
-       phone: el(`guest-${i}-phone`)?.value?.trim() || phone,
-       age: el(`guest-${i}-age`)?.value || '21plus',
-       pass: el(`guest-${i}-pass`)?.value || 'normal'
-     };
-   });
-   if(attendees.length === 0){
-     attendees.push({name,email,instagram,phone,age:'21plus',pass:'normal'});
-   }
-
-   await loadCheckout();
-   const res=await fetch('/api/payments/test-order',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({buyer:{name,phone,email,instagram},attendees})
-   });
-   const data=await res.json();
-   if(!res.ok){
-    throw new Error(data.error||'Could not create ₹1 test order.');
-   }
-
-   attempt={
-    id:data.id,
-    accessToken:data.id,
-    idempotencyKey:'live:test-1rs-'+data.id,
-    mode:'live'
-   };
-   saveAttempt();
-   freezeForm();
-
-   const options=data.checkout;
-   resume.hidden=false;
-   message.textContent=`₹1.00 Live Test Order created. Total payable: ₹1.00. Opening Razorpay…`;
-
-   const checkout=new window.Razorpay({
-    key:options.key,
-    amount:options.amount,
-    currency:options.currency,
-    name:options.name,
-    description:options.description,
-    order_id:options.orderId,
-    prefill:{
-     name:options.prefill.name,
-     email:options.prefill.email,
-     contact:options.prefill.phone
-    },
-    theme:{color:'#294f3c'},
-    handler:async response=>{
-     message.textContent='Verifying your ₹1.00 payment with Razorpay…';
-     try{
-      const verifyRes=await fetch('/api/bookings/'+data.id+'/verify',{
-       method:'POST',
-       headers:{'Content-Type':'application/json'},
-       body:JSON.stringify(response)
-      });
-      const verifiedData=await verifyRes.json();
-      if(!verifyRes.ok){
-       throw new Error(verifiedData.error||'Payment signature could not be verified.');
-      }
-      showBooking(verifiedData);
-      message.textContent=`✅ Live payment of ₹1.00 verified! Payment ID: ${response.razorpay_payment_id}. Live Razorpay payments are working!`;
-     }catch(err){
-      message.textContent=err.message+' Payment was received by Razorpay.';
-     }
-    },
-    modal:{
-     ondismiss:()=>{
-      message.textContent='Checkout closed. Click "Check payment status" or retry ₹1 test.';
-      testBtn.disabled=false;
-      updateTestButton();
-     }
-    }
-   });
-
-   checkout.on('payment.failed',()=>{
-    message.textContent='The payment was not completed in Razorpay.';
-    testBtn.disabled=false;
-    updateTestButton();
-   });
-
-   checkout.open();
-  }catch(err){
-   message.textContent=err.message;
-   if(testState)testState.textContent=err.message;
-   testBtn.disabled=false;
-   updateTestButton();
-  }
- });
-}
 
 loadConfig();
-initTest1RsButton();

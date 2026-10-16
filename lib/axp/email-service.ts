@@ -1,3 +1,6 @@
+import { bookingEntryCode } from '@/lib/axp/payment-core';
+import { passQrUrl } from '@/lib/axp/whatsapp-service';
+
 export interface EmailDeliveryResult {
   success: boolean;
   recipients: string[];
@@ -28,6 +31,8 @@ export async function sendBookingConfirmationEmails(booking: any): Promise<Email
     count: string;
     amount: string;
     list: string;
+    entryCode: string;
+    qrUrl: string;
   }[] = [];
 
   const attendees: any[] = Array.isArray(booking.attendees) ? booking.attendees : [];
@@ -37,11 +42,11 @@ export async function sendBookingConfirmationEmails(booking: any): Promise<Email
           .map(
             (a, i) =>
               `${i + 1}. ${a.name} — ${
-                a.pass === 'alcohol' ? 'Alcohol-inclusive Pass · 21+' : 'Classic Pass · Non-alcoholic'
+                a.pass === 'alcohol' ? 'Gold Pass · 21+' : 'Silver Pass'
               }${a.instagram ? ' (' + a.instagram + ')' : ''}`
           )
           .join('\n')
-      : `1. ${buyerName} — Classic Pass · Non-alcoholic`;
+      : `1. ${buyerName} — Silver Pass`;
 
   const amountPaise = booking.amountPaise || (typeof booking.total === 'number' ? booking.total * 100 : 100);
   const formattedAmount = `₹${(amountPaise / 100).toLocaleString('en-IN', {
@@ -52,7 +57,12 @@ export async function sendBookingConfirmationEmails(booking: any): Promise<Email
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://potentiaa.com').replace(/\/+$/, '');
   const passLink = `${siteUrl}/axp-social?booking=${encodeURIComponent(booking.id || '')}#passes`;
 
+  // The buyer gets the booking-wide code, which the gate accepts for the whole
+  // group; each attendee gets the code for their own pass.
+  const secret = process.env.TICKET_SIGNING_SECRET || 'axp-secret-key-2026';
+
   if (buyerEmail) {
+    const groupCode = await bookingEntryCode(secret, booking.id);
     recipients.push({
       name: buyerName,
       email: buyerEmail,
@@ -60,12 +70,15 @@ export async function sendBookingConfirmationEmails(booking: any): Promise<Email
       count: String(booking.guestCount || booking.people || attendees.length || 1),
       amount: formattedAmount,
       list: attendeesList,
+      entryCode: groupCode,
+      qrUrl: passQrUrl(groupCode),
     });
   }
 
   for (const guest of attendees) {
     const guestEmail = (guest.email || '').trim().toLowerCase();
     if (guestEmail && !recipients.some((r) => r.email === guestEmail)) {
+      const guestCode = await bookingEntryCode(secret, `${booking.id}:${guest.id}`);
       recipients.push({
         name: guest.name || 'Guest',
         email: guest.email.trim(),
@@ -73,8 +86,10 @@ export async function sendBookingConfirmationEmails(booking: any): Promise<Email
         count: '1 (Personal Pass)',
         amount: 'Paid by ' + buyerName,
         list: `• ${guest.name} — ${
-          guest.pass === 'alcohol' ? 'Alcohol-inclusive Pass · 21+' : 'Classic Pass · Non-alcoholic'
+          guest.pass === 'alcohol' ? 'Gold Pass · 21+' : 'Silver Pass'
         }${guest.instagram ? ' (' + guest.instagram + ')' : ''}\n(Booked in group order by ${buyerName})`,
+        entryCode: guestCode,
+        qrUrl: passQrUrl(guestCode),
       });
     }
   }
@@ -103,6 +118,11 @@ export async function sendBookingConfirmationEmails(booking: any): Promise<Email
             amount_paid: r.amount,
             attendees_list: r.list,
             pass_link: passLink,
+            // The EmailJS template needs <img src="{{qr_url}}"> for this to
+            // show; entry_code is the same pass as text, for clients that
+            // block remote images.
+            qr_url: r.qrUrl,
+            entry_code: r.entryCode,
           },
         }),
       });

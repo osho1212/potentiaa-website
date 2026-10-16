@@ -3,7 +3,7 @@ import jsQR from '/axp/jsqr.js';
 const el=id=>document.getElementById(id);
 let entries=[],inspected=null,stream=null,scanning=false,inspectionVersion=0,cameraVersion=0,loading=null;
 const time=value=>value?new Date(value).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})+' IST':'Not checked in';
-const passName=value=>value==='alcohol'?'Alcohol-inclusive · 21+':'Non-alcoholic';
+const passName=value=>value==='alcohol'?'Gold · 21+':'Silver';
 // whatsapp_status is per attendee: 'sent' when their number is in the delivery
 // receipt, 'failed' when it is not, 'not_applicable' when the booking carries no
 // receipt at all — delivery was off (or the booking never got paid).
@@ -93,7 +93,30 @@ async function inspect(){
     }
   }catch(error){if(version===inspectionVersion)el('checkin-result').textContent=error.message;}finally{el('inspect-ticket').disabled=false;}
 }
-el('refresh-dashboard').addEventListener('click',load);
+// Stall applications are enquiries rather than bookings, so they load on their
+// own and a failure here must not take the guest list down with it.
+async function loadStalls(){
+  try{
+    const response=await fetch('/api/admin/stalls',{cache:'no-store'});
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Stall enquiries could not be loaded.');
+    const rows=Array.isArray(data.enquiries)?data.enquiries:[];
+    el('stall-state').textContent=rows.length?`${rows.length} stall ${rows.length===1?'enquiry':'enquiries'}.`:'No stall enquiries yet.';
+    el('stall-rows').replaceChildren(...rows.map(item=>{
+      const row=document.createElement('tr');
+      for(const lines of [[item.businessName],[item.contactName,item.phone,item.email||'No email'],[item.offering,item.notes||''],[time(item.createdAt)]]){
+        const cell=document.createElement('td');
+        for(const line of lines.filter(Boolean)){const div=document.createElement('div');div.textContent=line;cell.append(div);}
+        row.append(cell);
+      }
+      return row;
+    }));
+  }catch(error){el('stall-state').textContent=error.message||'Stall enquiries could not be loaded.';}
+}
+el('refresh-dashboard').addEventListener('click',()=>{load();loadStalls();});
+// Signing out lives here rather than in an onclick attribute: the page sets
+// script-src 'self', so an inline handler never runs.
+el('lock-signout')?.addEventListener('click',async()=>{el('lock-signout').disabled=true;try{await fetch('/api/axp/admin/auth',{method:'DELETE'});}finally{location.reload();}});
 el('dashboard-mode').addEventListener('change',async()=>{stop();clearInspection();if(loading)await loading;await load();});
 el('booking-search').addEventListener('input',rows);
 el('inspect-ticket').addEventListener('click',inspect);el('ticket-code').addEventListener('input',clearInspection);
@@ -140,4 +163,4 @@ el('qr-image').addEventListener('change',async event=>{
   }catch(error){el('checkin-result').textContent=error.message;}finally{event.target.value='';}
 });
 setInterval(()=>{if(!document.hidden&&!el('dashboard-content').hidden)load();},15000);
-load();
+load();loadStalls();

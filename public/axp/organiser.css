@@ -1,0 +1,119 @@
+/*
+ * Organiser pages (settings and check-in) in the same palette and type as the
+ * guest pages, without the guest photography. It sits over style.css and works
+ * mostly by re-pointing that file's own variables, so every existing rule picks
+ * up the theme; the rest is panels, tables, controls and a little motion.
+ */
+
+.organiser-ui {
+  --bg: #f5f1e9;
+  --paper: #fcf9f3;
+  --ink: #3c3036;
+  --green: #402347;
+  --muted: #716970;
+  --line: #e2d4c0;
+  --gold: #96744e;
+  --lime: #ede4ef;
+  --display: 'Cormorant Garamond', Georgia, serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 14px;
+}
+
+/* A header that stays put while a long guest list scrolls under it. */
+.organiser-ui header {
+  position: sticky; top: 0; z-index: 20;
+  max-width: none; padding: 16px max(24px, calc((100vw - 1240px) / 2));
+  background: rgba(252, 249, 243, .88); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.organiser-ui .brand { font: 500 12px/1.2 'DM Sans', sans-serif; letter-spacing: 3px; color: var(--ink); }
+.organiser-ui .brand small { color: var(--muted); letter-spacing: 2px; }
+.organiser-ui .tracker-link,
+.organiser-ui .organiser-tools > a {
+  display: inline-flex; align-items: center; min-height: 38px; padding: 0 16px;
+  border: 1px solid var(--line); border-radius: 999px; color: var(--ink); text-decoration: none;
+  transition: border-color .2s ease, background-color .2s ease;
+}
+.organiser-ui .tracker-link:hover,
+.organiser-ui .organiser-tools > a:hover { border-color: #b79a77; background: #fff; }
+.organiser-ui .lock-button { border-radius: 999px; min-height: 38px; padding: 0 16px; border-color: var(--line); }
+
+.organiser-ui main,
+.organiser-ui .admin-main,
+.organiser-ui .dashboard-main { max-width: 1240px; padding: 0 24px 56px; margin: 0 auto; }
+.organiser-ui .hero { max-width: none; padding: 44px 0 26px; }
+.organiser-ui .eyebrow { color: var(--gold); font-size: 11px; letter-spacing: 2.4px; }
+.organiser-ui .admin-title { font: 400 clamp(42px, 5.4vw, 68px)/1 var(--display); letter-spacing: -1.6px; color: #2f2530; margin: 14px 0 12px; }
+.organiser-ui .hero p,
+.organiser-ui .intro { color: var(--muted); font-size: 14px; }
+
+/* Panels arrive one after another rather than all at once. */
+.organiser-ui .panel {
+  background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 28px 30px;
+  box-shadow: 0 1px 0 rgba(64, 35, 71, .03), 0 14px 32px -22px rgba(64, 35, 71, .22);
+  animation: org-rise .5s cubic-bezier(.22, .61, .36, 1) both;
+}
+.organiser-ui .panel:nth-of-type(2) { animation-delay: .05s; }
+.organiser-ui .panel:nth-of-type(3) { animation-delay: .1s; }
+.organiser-ui .panel:nth-of-type(4) { animation-delay: .15s; }
+.organiser-ui .panel:nth-of-type(n+5) { animation-delay: .2s; }
+.organiser-ui .panel h2 { font: 500 28px/1.15 var(--display); color: #2f2530; margin: 0 0 12px; }
+.organiser-ui .helper { font-size: 12.5px; color: var(--muted); }
+
+/* Form controls. */
+.organiser-ui label { font-size: 12px; }
+.organiser-ui :is(input, select, textarea) {
+  border: 1px solid #d9cbb6; border-radius: 7px; background: #fff; min-height: 44px; font-size: 14px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.organiser-ui :is(input, select, textarea):hover { border-color: #bfa98d; }
+.organiser-ui :is(input, select, textarea):focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(64, 35, 71, .12); outline: none; }
+.organiser-ui :is(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+.organiser-ui .check input { min-height: 18px; width: 18px; accent-color: var(--green); }
+
+.organiser-ui .primary {
+  background: var(--green); border-radius: 9px; min-height: 46px; padding: 0 22px; font-weight: 500;
+  transition: background-color .2s ease, transform .15s ease, box-shadow .2s ease;
+}
+.organiser-ui .primary:not(:disabled):hover { background: #2e1832; box-shadow: 0 8px 20px rgba(64, 35, 71, .22); }
+.organiser-ui :is(.primary, .secondary):not(:disabled):active { transform: translateY(1px); }
+.organiser-ui .secondary,
+.organiser-ui button.secondary {
+  background: none; border: 1px solid var(--line); border-radius: 9px; color: var(--ink);
+  min-height: 42px; padding: 0 16px; transition: border-color .2s ease, background-color .2s ease;
+}
+.organiser-ui .secondary:not(:disabled):hover { border-color: #b79a77; background: #fff; }
+
+/* Dashboard figures and the guest list. */
+.organiser-ui .booking-totals { gap: 12px; }
+.organiser-ui .booking-totals > div { background: #faf6ef; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.organiser-ui .table-scroll { border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.organiser-ui .booking-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+.organiser-ui .booking-table thead th {
+  position: sticky; top: 0; z-index: 1; background: #f3ede3; text-align: left;
+  font-size: 11px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted);
+  padding: 12px 14px; border-bottom: 1px solid var(--line);
+}
+.organiser-ui .booking-table td { padding: 12px 14px; border-bottom: 1px solid #efe5d6; vertical-align: top; }
+.organiser-ui .booking-table tbody tr { transition: background-color .15s ease; }
+.organiser-ui .booking-table tbody tr:hover td { background: #faf5ee; }
+.organiser-ui .booking-table tbody tr:last-child td { border-bottom: 0; }
+.organiser-ui .booking-table td.wa-sent div:first-child { color: #2f6b4a; }
+.organiser-ui .checkin-person { border-radius: 10px; border-color: var(--line); background: #fff; }
+
+@keyframes org-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 760px) {
+  .organiser-ui header { padding: 12px 16px; }
+  .organiser-ui main, .organiser-ui .admin-main, .organiser-ui .dashboard-main { padding: 0 14px 40px; }
+  .organiser-ui .hero { padding: 26px 0 18px; }
+  .organiser-ui .panel { padding: 20px 16px; border-radius: 10px; }
+  .organiser-ui .panel h2 { font-size: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .organiser-ui .panel { animation: none; }
+  .organiser-ui :is(.primary, .secondary):not(:disabled):active { transform: none; }
+}

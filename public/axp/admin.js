@@ -1,10 +1,10 @@
 const el=id=>document.getElementById(id);
 let revision=0;
 const sections=[
- ['Event details',[['eventName','Event name'],['eventDate','Event date','date'],['startTime','Start time · IST','time'],['endTime','End time · IST (00:00 = following midnight)','time'],['barCloseTime','Bar closes · IST','time'],['venueName','Venue name'],['venueLocation','Venue location'],['venueMapQuery','Map pin · "lat,lng" or a place search'],['venueMapsUrl','Google Maps share link · optional','url']]],
+ ['Event details',[['eventName','Event name'],['eventDate','Event date','date'],['startTime','Start time · IST','time'],['endTime','End time · IST (00:00 = following midnight)','time'],['barCloseTime','Last service · IST','time'],['eventSubtitle','Event subtitle · under the title'],['eventTagline','Event tagline'],['eventDescription','Event description · shown under the hero','textarea'],['eventHighlights','What’s on · comma separated','textarea'],['instagramHandle','Instagram handle · e.g. @axpsocial'],['venueName','Venue name'],['venueLocation','Venue location'],['venueMapQuery','Map pin · "lat,lng" or a place search'],['venueMapsUrl','Google Maps share link · optional','url']]],
  ['Contacts',[['supportPhone','Public support phone','tel'],['supportEmail','Public support email · optional','email'],['alertEmail','Private capacity-alert email · optional','email']]],
  ['Organiser brands',[['potentiaaPhone','POTENTIAA phone · optional','tel'],['potentiaaLogo','POTENTIAA logo path · e.g. /axp/potentiaa-logo.png'],['avyantaPhone','AVYANTA phone · optional','tel'],['avyantaLogo','AVYANTA logo path · e.g. /axp/avyanta-logo.png']]],
- ['Passes and prices',[['normalPrice','Non-alcoholic base price · ₹','number'],['alcoholPrice','Alcohol-inclusive base price · ₹','number'],['normalDescription','Non-alcoholic pass benefits','textarea'],['alcoholDescription','Alcohol-inclusive pass benefits','textarea'],['extraPerPerson','Additional charge per person · ₹ (blank = unconfirmed)','number'],['extraPerBooking','Additional charge per booking · ₹ (blank = unconfirmed)','number']]],
+ ['Passes and prices',[['normalPrice','Silver pass price · ₹','number'],['alcoholPrice','Gold pass price · ₹','number'],['normalDescription','Silver pass benefits','textarea'],['alcoholDescription','Gold pass benefits','textarea'],['extraPerPerson','Additional charge per person · ₹ (blank = unconfirmed)','number'],['extraPerBooking','Additional charge per booking · ₹ (blank = unconfirmed)','number']]],
  ['Booking limits',[['capacity','Approved event capacity · people','number'],['warningAt','Early warning · confirmed people','number'],['maxPerBooking','Maximum passes per booking · 1–5','number']]],
  ['Collecting merchant',[['merchantName','Authorised collecting merchant name'],['merchantLegalName','Registered business name'],['merchantAddress','Registered business address','textarea'],['merchantEmail','Public merchant contact email','email'],['merchantGstin','Merchant GSTIN · optional'],['paymentUrl','Razorpay payment page URL','url']]],
 ];
@@ -13,7 +13,7 @@ function buildForm(){
  for(const [title,fields]of sections){const panel=document.createElement('section');panel.className='panel';const heading=document.createElement('h2');heading.textContent=title;panel.append(heading);const grid=document.createElement('div');grid.className='field-grid';
   for(const [key,labelText,type='text']of fields){const label=document.createElement('label');label.textContent=labelText;const field=document.createElement(type==='textarea'?'textarea':'input');field.id=key;field.name=key;if(type!=='textarea')field.type=type;else field.rows=3;
    if(type==='number'){field.min='0';field.step=['capacity','warningAt','maxPerBooking'].includes(key)?'1':'0.01';}if(key==='maxPerBooking')field.max='5';
-   field.required=!['supportEmail','alertEmail','merchantGstin','extraPerPerson','extraPerBooking','venueMapQuery','venueMapsUrl','potentiaaPhone','potentiaaLogo','avyantaPhone','avyantaLogo'].includes(key);label.append(field);grid.append(label);
+   field.required=!['supportEmail','alertEmail','merchantGstin','extraPerPerson','extraPerBooking','eventSubtitle','eventTagline','eventDescription','eventHighlights','instagramHandle','venueMapQuery','venueMapsUrl','potentiaaPhone','potentiaaLogo','avyantaPhone','avyantaLogo'].includes(key);label.append(field);grid.append(label);
   }panel.append(grid);el('setting-sections').append(panel);
  }
 }
@@ -36,3 +36,6 @@ el('settings-form').addEventListener('submit',async event=>{
 });
 el('reload-settings').addEventListener('click',load);buildForm();load();
 window.addEventListener('organiser-access-changed',()=>{el('settings-form').hidden=true;el('access-panel').hidden=false;el('access-message').textContent='Your organiser access has changed. Sign in with an authorised account.';el('admin-signin').hidden=false;});
+// Signing out lives here rather than in an onclick attribute: the page sets
+// script-src 'self', so an inline handler never runs.
+el('lock-signout')?.addEventListener('click',async()=>{el('lock-signout').disabled=true;try{await fetch('/api/axp/admin/auth',{method:'DELETE'});}finally{location.reload();}});
