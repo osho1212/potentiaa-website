@@ -249,6 +249,7 @@ if(typeof document!=='undefined'){
   const HIGHLIGHT_ICONS=[
     [/network|connect|meet/i,'<circle cx="9" cy="8" r="3"/><circle cx="16.5" cy="9" r="2.4"/><path d="M3.5 19c.6-3.2 3-5 5.5-5s4.9 1.8 5.5 5"/><path d="M14.6 14.2c2.5-.3 4.7 1.3 5.3 4.3"/>'],
     [/pop.?up|stall|shop|market|business/i,'<path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>'],
+    [/\bart\b|gallery|paint|exhibit/i,'<path d="M12 3.5c-4.7 0-8.5 3.4-8.5 7.9 0 4.6 3.8 8.1 8.5 8.1 1 0 1.7-.7 1.7-1.6 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.6 1.6-1.6h1.9c2.3 0 4.1-1.8 4.1-4.1 0-3.9-3.8-6.5-8.5-6.5Z"/><circle cx="7.8" cy="11.2" r="1.2"/><circle cx="10.2" cy="7.6" r="1.2"/><circle cx="14.6" cy="7.8" r="1.2"/>'],
     [/poker|chess|card|game/i,'<rect x="4" y="5" width="10" height="14" rx="1.6" transform="rotate(-8 9 12)"/><rect x="10" y="5" width="10" height="14" rx="1.6" transform="rotate(8 15 12)"/>'],
     [/stage|mic|perform|open/i,'<rect x="9" y="3.5" width="6" height="10" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3.5M9 20.5h6"/>'],
     [/dj|music|band|song/i,'<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>'],
