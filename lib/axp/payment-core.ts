@@ -173,11 +173,22 @@ export async function bookingEntryCode(secret: string, bookingId: string): Promi
 
 export function verifyBookingEntryCode(secret: string, entryCode: string): string | null {
   const parts = entryCode.split(':');
-  if (parts.length !== 3 || parts[0] !== 'AXP') return null;
-  const bookingId = parts[1];
-  const sig = parts[2];
-  const expectedSig = hmac(secret || 'default-secret-key-potentiaa-axp-2026', bookingId).slice(0, 16);
-  if (safeEqual(sig, expectedSig)) return bookingId;
+  if (parts[0] !== 'AXP') return null;
+  if (parts.length === 3) {
+    const bookingId = parts[1];
+    const sig = parts[2];
+    const expectedSig = hmac(secret || 'default-secret-key-potentiaa-axp-2026', bookingId).slice(0, 16);
+    if (safeEqual(sig, expectedSig)) return bookingId;
+    return null;
+  }
+  if (parts.length === 4) {
+    const bookingId = parts[1];
+    const attendeeId = parts[2];
+    const sig = parts[3];
+    const expectedSig = hmac(secret || 'default-secret-key-potentiaa-axp-2026', `${bookingId}:${attendeeId}`).slice(0, 16);
+    if (safeEqual(sig, expectedSig)) return bookingId;
+    return null;
+  }
   return null;
 }
 

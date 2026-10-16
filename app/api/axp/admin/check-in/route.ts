@@ -18,17 +18,36 @@ export async function POST(request: NextRequest) {
     let attendeeId = '';
 
     // Handle formats:
-    // 1) AXPG1.<bookingId>.<hash>
-    // 2) AXP1.<attendeeId>.<hash>
-    // 3) Plain bookingId or attendeeId
-    if (trimmed.startsWith('AXPG1.')) {
+    // 1) AXP:<bookingId>:<attendeeId>:<sig> (Individual attendee pass)
+    // 2) AXP:<bookingId>:<sig> (WhatsApp confirmation group QR)
+    // 3) AXPG1.<bookingId>.<hash> (Legacy group)
+    // 4) AXP1.<attendeeId>.<hash> (Legacy attendee)
+    // 5) Plain UUIDs / Fallback
+    if (trimmed.startsWith('AXP:')) {
+      const parts = trimmed.split(':');
+      if (parts.length >= 4) {
+        bookingId = parts[1] || '';
+        attendeeId = parts[2] || '';
+      } else if (parts.length === 3) {
+        bookingId = parts[1] || '';
+      }
+    } else if (trimmed.startsWith('AXPG1.')) {
       const parts = trimmed.split('.');
       bookingId = parts[1] || '';
     } else if (trimmed.startsWith('AXP1.')) {
       const parts = trimmed.split('.');
       attendeeId = parts[1] || '';
     } else {
-      bookingId = trimmed;
+      // Check if string contains UUID patterns
+      const uuidMatches = trimmed.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi);
+      if (uuidMatches && uuidMatches.length >= 2) {
+        bookingId = uuidMatches[0];
+        attendeeId = uuidMatches[1];
+      } else if (uuidMatches && uuidMatches.length === 1) {
+        bookingId = uuidMatches[0];
+      } else {
+        bookingId = trimmed;
+      }
     }
 
     let booking = bookingId ? await findBookingById(bookingId) : null;
@@ -38,6 +57,18 @@ export async function POST(request: NextRequest) {
       for (const b of all) {
         if (b.attendees.some((a) => a.id === attendeeId)) {
           booking = b;
+          break;
+        }
+      }
+    }
+
+    // Fallback: if booking wasn't found by bookingId, check if bookingId was actually an attendeeId
+    if (!booking && bookingId) {
+      const all = await listAllBookings();
+      for (const b of all) {
+        if (b.attendees.some((a) => a.id === bookingId)) {
+          booking = b;
+          attendeeId = bookingId;
           break;
         }
       }
