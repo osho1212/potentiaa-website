@@ -1,4 +1,4 @@
-import jsQR from '/qr-reader';
+import jsQR from '/axp/jsqr.js';
 
 const el=id=>document.getElementById(id);
 let entries=[],inspected=null,stream=null,scanning=false,inspectionVersion=0,cameraVersion=0,loading=null;
@@ -93,7 +93,10 @@ el('confirm-checkin').addEventListener('click',async()=>{
 const canvas=document.createElement('canvas'),context=canvas.getContext('2d',{willReadFrequently:true});
 function decode(source,width,height){
   if(!width||!height)return null;const scale=Math.min(1,1600/Math.max(width,height));canvas.width=Math.round(width*scale);canvas.height=Math.round(height*scale);context.drawImage(source,0,0,canvas.width,canvas.height);
-  const pixels=context.getImageData(0,0,canvas.width,canvas.height);return jsQR(pixels.data,pixels.width,pixels.height,{inversionAttempts:'dontInvert'})?.data;
+  const pixels=context.getImageData(0,0,canvas.width,canvas.height);
+  const scanner=(typeof jsQR==='function')?jsQR:(typeof window!=='undefined'&&typeof window.jsQR==='function')?window.jsQR:null;
+  if(!scanner){console.warn('QR scanner not ready');return null;}
+  return scanner(pixels.data,pixels.width,pixels.height,{inversionAttempts:'dontInvert'})?.data;
 }
 async function scanned(code){stop();el('ticket-code').value=code;await inspect();}
 el('stop-camera').addEventListener('click',stop);window.addEventListener('pagehide',stop);
