@@ -131,11 +131,14 @@ if(typeof document!=='undefined'){
       const time=t=>new Intl.DateTimeFormat('en-IN',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'UTC'}).format(new Date('2000-01-01T'+t+':00Z'));
       el('event-times').textContent=`${time(settings.startTime)}–${settings.endTime==='00:00'?'midnight':time(settings.endTime)} · IST`;
       el('event-venue').textContent=settings.venueName;el('event-location').textContent=settings.venueLocation;
-      el('map-venue-name').textContent=settings.venueName;el('map-venue-location').textContent=settings.venueLocation;
       const mapQuery=(settings.venueMapQuery||'').trim();
-      el('venue-map').src=mapQuery?`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&hl=en&output=embed`:'about:blank';
-      el('venue-directions').href=settings.venueMapsUrl||(mapQuery?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`:'#');
-      el('getting-there').hidden=!mapQuery&&!settings.venueMapsUrl;
+      const directions=settings.venueMapsUrl||(mapQuery?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`:'');
+      el('venue-directions').href=directions||'#';el('venue-directions').hidden=!directions;
+      el('event-description').textContent=settings.eventDescription||'';
+      el('about-event').hidden=!(settings.eventDescription||'').trim();
+      document.documentElement.dataset.mapEmbed=mapQuery?`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&hl=en&output=embed`:'';
+      window.dispatchEvent(new Event('axp-settings-loaded'));
+      el('footer-copyright').textContent=`© ${new Date().getFullYear()} ${settings.merchantName}. All rights reserved.`;
       applyBrand('potentiaa',settings.potentiaaLogo,settings.potentiaaPhone);
       applyBrand('avyanta',settings.avyantaLogo,settings.avyantaPhone);
       el('event-rules').textContent=`Entry 20+ · Alcohol-inclusive passes 21+ · Bar closes at ${time(settings.barCloseTime)} · Maximum ${settings.maxPerBooking} passes per booking`;
@@ -152,3 +155,19 @@ if(typeof document!=='undefined'){
   }
   render();loadSettings();
 }
+
+// The step nav shows where the guest actually is. Without this, step 01 is
+// drawn as active however far down the page they have scrolled.
+(function trackSteps(){
+  const links=[...document.querySelectorAll('.axp-steps a')];
+  const sections=links.map(a=>document.querySelector(a.getAttribute('href')||''));
+  if(!links.length||sections.some(s=>!s))return;
+  let current=0;
+  const mark=()=>links.forEach((a,i)=>{a.classList.toggle('is-current',i===current);a.classList.toggle('is-done',i<current);});
+  const observer=new IntersectionObserver(entries=>{
+    for(const entry of entries){if(!entry.isIntersecting)continue;const i=sections.indexOf(entry.target);if(i>=0)current=i;}
+    mark();
+  },{rootMargin:'-45% 0px -45% 0px'});
+  for(const section of sections)observer.observe(section);
+  mark();
+})();

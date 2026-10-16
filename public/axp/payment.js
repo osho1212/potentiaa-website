@@ -12,7 +12,26 @@ const resendEmailBtn=document.createElement('button');resendEmailBtn.type='butto
 resendEmailBtn.addEventListener('click',async()=>{if(!savedBooking)return;resendEmailBtn.disabled=true;resendEmailBtn.textContent='Sending passes…';await sendConfirmationEmail(savedBooking,true);resendEmailBtn.disabled=false;resendEmailBtn.textContent='Resend passes to email';});
 const resume=document.createElement('button');resume.type='button';resume.className='secondary';resume.textContent='Resume this checkout';resume.hidden=true;resume.addEventListener('click',async()=>{try{await loadCheckout();openGateway(await request('/api/bookings/'+attempt.id+'/checkout'));}catch(error){message.textContent=error.message;}});
 const another=document.createElement('button');another.type='button';another.className='secondary';another.textContent='Start another booking';another.hidden=true;another.addEventListener('click',()=>{sessionStorage.removeItem('axp-last-booking');location.reload();});
-card.append(heading,message,savedDetails,emailStatus,tickets,refresh,resume,download,resendEmailBtn,another);
+const confirmationMap=document.createElement('section');confirmationMap.className='confirmation-map';confirmationMap.hidden=true;
+const confirmationMapTitle=document.createElement('p');confirmationMapTitle.className='confirmation-map-title';confirmationMapTitle.textContent='Getting there';
+const confirmationMapFrame=document.createElement('div');confirmationMapFrame.className='map-frame map-frame-small';
+const confirmationMapIframe=document.createElement('iframe');confirmationMapIframe.title='Map showing the venue location';confirmationMapIframe.loading='lazy';confirmationMapIframe.referrerPolicy='no-referrer-when-downgrade';
+const confirmationMapLink=document.createElement('a');confirmationMapLink.className='venue-link';confirmationMapLink.target='_blank';confirmationMapLink.rel='noopener noreferrer';confirmationMapLink.textContent='Open in Google Maps ↗';
+confirmationMapFrame.append(confirmationMapIframe);confirmationMap.append(confirmationMapTitle,confirmationMapFrame,confirmationMapLink);
+// The venue map belongs after the pass, not before it: it matters on the day,
+// not when the booking lands. app.js owns the settings fetch and publishes the
+// embed url, which can arrive after a saved booking has already rendered.
+function syncConfirmationMap(){
+ const embed=document.documentElement.dataset.mapEmbed||'';
+ const link=document.getElementById('venue-directions');
+ const href=link&&!link.hidden?link.href:'';
+ if(embed&&confirmationMapIframe.getAttribute('src')!==embed)confirmationMapIframe.src=embed;
+ confirmationMapFrame.hidden=!embed;
+ confirmationMapLink.href=href||'#';confirmationMapLink.hidden=!href;
+ confirmationMap.hidden=!embed&&!href;
+}
+window.addEventListener('axp-settings-loaded',()=>{if(savedBooking&&savedBooking.status==='confirmed')syncConfirmationMap();});
+card.append(heading,message,savedDetails,emailStatus,tickets,refresh,resume,download,resendEmailBtn,another,confirmationMap);
 function freezeForm(){el('booking-form').inert=true;document.querySelector('.passes').inert=true;el('plus').disabled=true;el('minus').disabled=true;}
 function updateButton(){
  button.disabled=!paymentReady||el('review-booking-button').disabled||!!attempt;
@@ -154,7 +173,7 @@ function showBooking(booking){
  savedBooking=booking;renderSavedSummary(booking);
  heading.textContent=(booking.mode==='test'?'TEST · ':'')+'Booking '+booking.id;
  const labels={confirmed:'Payment verified. Your named passes are ready below.',pending:'Awaiting verified payment. Do not make another payment if money was deducted.',creating:'Payment order is still being prepared.',order_uncertain:'Payment order needs a support check. Contact the organiser before retrying.',paid_review:'Payment needs organiser review. No valid ticket has been issued. Contact event support.',refunded:'This payment was refunded. Its tickets are invalid.'};
- message.textContent=labels[booking.status]||'Contact event support to check this booking.';download.hidden=booking.status!=='confirmed';resume.hidden=booking.status!=='pending'||booking.expiresAt<=new Date().toISOString();another.hidden=!['confirmed','refunded'].includes(booking.status);
+ message.textContent=labels[booking.status]||'Contact event support to check this booking.';refresh.hidden=['confirmed','refunded'].includes(booking.status);confirmationMap.hidden=booking.status!=='confirmed';download.hidden=booking.status!=='confirmed';resume.hidden=booking.status!=='pending'||booking.expiresAt<=new Date().toISOString();another.hidden=!['confirmed','refunded'].includes(booking.status);
  if(booking.status==='confirmed'){
   const emails=[];
   if(booking.buyer?.email)emails.push(booking.buyer.email.toLowerCase());
@@ -170,6 +189,7 @@ function showBooking(booking){
   emailStatus.hidden=false;
   resendEmailBtn.hidden=false;
   renderTickets(false);
+  syncConfirmationMap();
   sendConfirmationEmail(booking);
  }
  if(booking.status==='pending'&&resume.hidden)message.textContent='This checkout hold has expired. Check payment status or contact event support before making another payment. No ticket has been issued.';

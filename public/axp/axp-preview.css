@@ -282,17 +282,8 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
   letter-spacing: 0.3px;
 }
 
-/* ---------- Getting there: venue map ---------- */
-.axp-edition .map-panel { margin: 42px 0 10px; }
-.axp-edition .map-head { margin-bottom: 18px; }
-.axp-edition .map-head .eyebrow { font-size: 9px; letter-spacing: 2.4px; color: var(--gold); }
-.axp-edition .map-head h2 { font: 400 clamp(30px, 4vw, 46px)/1.05 var(--display); margin: 10px 0; letter-spacing: -1px; color: #3c3033; }
-.axp-edition .map-address { display: flex; flex-direction: column; gap: 3px; margin: 0; }
-.axp-edition .map-address strong { font-size: 13px; font-weight: 500; }
-.axp-edition .map-address span { font-size: 12px; color: var(--muted); }
 .axp-edition .map-frame { position: relative; margin-top: 20px; aspect-ratio: 21 / 9; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #ece4d8; }
 .axp-edition .map-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
-.axp-edition .map-panel .venue-link { display: inline-block; text-align: left; margin-top: 16px; font-size: 11px; color: #766670; }
 
 /* ---------- Brought to you by ---------- */
 .axp-edition .brand-strip { margin-top: 46px; padding-top: 30px; border-top: 1px solid var(--line); text-align: center; }
@@ -305,9 +296,7 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 .axp-edition .brand-phone:hover { text-decoration: underline; }
 
 @media (max-width: 760px) {
-  .axp-edition .map-panel { margin: 30px 0 6px; }
   .axp-edition .map-frame { aspect-ratio: 4 / 3; margin-top: 16px; }
-  .axp-edition .map-panel .venue-link { display: flex; align-items: center; justify-content: center; min-height: 44px; }
   .axp-edition .brand-strip { margin-top: 34px; padding-top: 24px; }
   .axp-edition .brand-row { gap: 30px 44px; }
   .axp-edition .brand-card img { height: 48px; }
@@ -316,4 +305,49 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 @media (max-width: 480px) {
   .axp-edition .brand-card { min-width: 108px; }
   .axp-edition .brand-card img { height: 42px; }
+}
+
+/* ---------- Event description, under the hero ---------- */
+.axp-edition .event-description { max-width: 760px; margin: 46px 0 10px; }
+.axp-edition .event-description .eyebrow { font-size: 9px; letter-spacing: 2.4px; color: var(--gold); }
+.axp-edition .event-description h2 { font: 400 clamp(30px, 4vw, 46px)/1.05 var(--display); margin: 10px 0 14px; letter-spacing: -1px; color: #3c3033; }
+.axp-edition #event-description { margin: 0; font-size: 13.5px; line-height: 1.85; color: #5d5359; }
+
+/* ---------- Directions link, in the hero's WHERE block ---------- */
+.axp-edition .venue-directions { display: inline-flex; align-items: center; margin-top: 5px; font-size: 10.5px; color: #6c5a66; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- Footer ---------- */
+.axp-edition .footer-copyright { color: #8d8189; letter-spacing: .6px; }
+
+/* ---------- Venue map, after the pass on a confirmed booking ---------- */
+.axp-edition .confirmation-map { margin-top: 32px; padding-top: 22px; border-top: 1px solid var(--line); }
+.axp-edition .confirmation-map-title { margin: 0 0 12px; font: 500 10px/1 'DM Sans', sans-serif; letter-spacing: 2.2px; text-transform: uppercase; color: var(--muted); }
+.axp-edition .map-frame-small { max-width: 420px; aspect-ratio: 3 / 2; margin-top: 0; border-radius: 8px; }
+.axp-edition .confirmation-map .venue-link { display: inline-block; text-align: left; margin-top: 10px; }
+
+/* ---------- Form polish: rhythm, focus, error states ---------- */
+.axp-edition .panel { margin-bottom: 22px; }
+.axp-edition .section-top { margin-bottom: 26px; }
+.axp-edition label { gap: 8px; }
+.axp-edition input, .axp-edition select { transition: border-color .15s ease, box-shadow .15s ease; }
+.axp-edition input:hover, .axp-edition select:hover { border-color: #bfa98d; }
+.axp-edition input:focus, .axp-edition select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(64, 35, 71, .12); outline: none; }
+.axp-edition :is(button, a, input, select):focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+.axp-edition input[aria-invalid="true"], .axp-edition select[aria-invalid="true"] { border-color: #a8412f; background: #fdf6f4; }
+.axp-edition .field-error { color: #a8412f; font-size: 10.5px; font-weight: 500; }
+
+/* Step nav reflects where the guest actually is, rather than always step 01. */
+.axp-steps a > span { transition: background-color .2s ease, color .2s ease, border-color .2s ease; }
+.axp-steps a:first-child > span { background: none; border-color: #ab8661; color: inherit; }
+.axp-steps a.is-done > span { background: #e7dbc9; border-color: #c4a685; color: #5d4a35; }
+.axp-steps a.is-current { color: #3c3033; font-weight: 500; }
+.axp-steps a.is-current > span { background: var(--green); border-color: var(--green); color: #fff9ef; }
+
+@media (max-width: 760px) {
+  .axp-edition .event-description { margin: 30px 0 6px; }
+  .axp-edition .map-frame-small { max-width: none; aspect-ratio: 4 / 3; }
+  .axp-edition .confirmation-map { margin-top: 26px; }
+  .axp-edition .panel { margin-bottom: 16px; }
+  .axp-edition input, .axp-edition select { min-height: 48px; font-size: 16px; }
+  .axp-edition .confirmation-map .venue-link { display: flex; justify-content: center; min-height: 44px; }
 }

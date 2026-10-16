@@ -12,6 +12,11 @@ import { bookingEntryCode } from '@/lib/axp/payment-core';
  *   {{1}} attendee name      {{2}} pass type        {{3}} event name
  *   {{4}} date and venue     {{5}} booking ref      {{6}} entry code
  *
+ * The template also needs an IMAGE header, which carries that attendee's QR so
+ * the message is a scannable pass rather than a notice about one. Set
+ * WHATSAPP_TEMPLATE_HAS_IMAGE=false only if the approved template has no
+ * header, or Meta rejects every send.
+ *
  * Credentials are secrets, so they live in the deployment environment and never
  * in the settings store that the organiser page can write:
  *
@@ -32,6 +37,12 @@ export interface WhatsAppDeliveryResult {
   attempted: number;
   recipients: string[];
   errors: string[];
+}
+
+/** Absolute, publicly reachable PNG of a pass QR; Meta fetches this itself. */
+export function passQrUrl(entryCode: string): string {
+  const site = (process.env.NEXT_PUBLIC_SITE_URL || 'https://potentiaa.com').replace(/\/+$/, '');
+  return `${site}/api/axp/pass-qr?code=${encodeURIComponent(entryCode)}`;
 }
 
 export function isWhatsAppConfigured(): boolean {
@@ -96,6 +107,7 @@ export async function sendBookingPassesOnWhatsApp(
   const locale = process.env.WHATSAPP_TEMPLATE_LOCALE || 'en';
   const apiVersion = process.env.WHATSAPP_API_VERSION || 'v21.0';
   const country = process.env.WHATSAPP_DEFAULT_COUNTRY || '91';
+  const withQrHeader = process.env.WHATSAPP_TEMPLATE_HAS_IMAGE !== 'false';
   const secret = process.env.TICKET_SIGNING_SECRET || 'axp-secret-key-2026';
 
   const eventName = templateSafe(settings.eventName || 'Aagaz');
@@ -137,6 +149,17 @@ export async function sendBookingPassesOnWhatsApp(
       templateSafe(entryCode),
     ].map((text) => ({ type: 'text', text }));
 
+    // The header image is the attendee's own QR, so the message itself is the
+    // pass. Meta fetches this URL from its servers, so it has to be public.
+    const components: any[] = [];
+    if (withQrHeader) {
+      components.push({
+        type: 'header',
+        parameters: [{ type: 'image', image: { link: passQrUrl(entryCode) } }],
+      });
+    }
+    components.push({ type: 'body', parameters });
+
     result.attempted += 1;
 
     try {
@@ -154,7 +177,7 @@ export async function sendBookingPassesOnWhatsApp(
           template: {
             name: templateName,
             language: { code: locale },
-            components: [{ type: 'body', parameters }],
+            components,
           },
         }),
       });

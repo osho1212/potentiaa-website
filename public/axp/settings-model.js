@@ -1,5 +1,6 @@
 export const DEFAULT_SETTINGS=Object.freeze({
   eventName:'Aagaz',eventDate:'2026-11-06',startTime:'15:00',endTime:'00:00',barCloseTime:'22:00',
+  eventDescription:'Aagaz is the first gathering of AxP Social: an afternoon at a restored Himalayan haveli that unfolds into an evening. A small and considered guest list, food and drink through the day, music as the light goes, and the kind of conversation that only happens when a room is the right size. Every pass is named, and the number of them is limited.',
   venueName:'Sukh Saklana Haveli: Royalty',venueLocation:'Rishikesh, Uttarakhand',
   venueMapQuery:'30.205913,78.233515',venueMapsUrl:'https://maps.app.goo.gl/6jjs4SCLQUx6tTKt6',
   supportPhone:'+91 9897798748',supportEmail:'',alertEmail:'',
@@ -13,7 +14,7 @@ export const DEFAULT_SETTINGS=Object.freeze({
   capacity:200,warningAt:150,maxPerBooking:5,
   extraPerPerson:null,extraPerBooking:null,chargesConfirmed:false,
 });
-const OPTIONAL_WITH_DEFAULTS=['merchantLegalName','merchantAddress','merchantEmail','merchantGstin','venueMapQuery','venueMapsUrl','potentiaaPhone','potentiaaLogo','avyantaPhone','avyantaLogo'];
+const OPTIONAL_WITH_DEFAULTS=['eventDescription','merchantLegalName','merchantAddress','merchantEmail','merchantGstin','venueMapQuery','venueMapsUrl','potentiaaPhone','potentiaaLogo','avyantaPhone','avyantaLogo'];
 export function buildMapEmbedUrl(query){
   const q=(query||'').trim();
   if(!q)return '';
@@ -23,7 +24,7 @@ export function validateSettings(input){
   if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('Enter valid event settings.');
   /** @type {Record<string, any>} */
   const out={};
-  const textFields={eventName:80,eventDate:10,startTime:5,endTime:5,barCloseTime:5,venueName:160,venueLocation:160,venueMapQuery:200,venueMapsUrl:500,supportPhone:30,supportEmail:180,alertEmail:180,potentiaaPhone:30,potentiaaLogo:300,avyantaPhone:30,avyantaLogo:300,merchantName:120,merchantLegalName:160,merchantAddress:500,merchantEmail:180,merchantGstin:15,paymentUrl:500,normalDescription:500,alcoholDescription:500};
+  const textFields={eventName:80,eventDate:10,startTime:5,endTime:5,barCloseTime:5,eventDescription:900,venueName:160,venueLocation:160,venueMapQuery:200,venueMapsUrl:500,supportPhone:30,supportEmail:180,alertEmail:180,potentiaaPhone:30,potentiaaLogo:300,avyantaPhone:30,avyantaLogo:300,merchantName:120,merchantLegalName:160,merchantAddress:500,merchantEmail:180,merchantGstin:15,paymentUrl:500,normalDescription:500,alcoholDescription:500};
   for(const [key,max]of Object.entries(textFields)){
     const value=OPTIONAL_WITH_DEFAULTS.includes(key)&&input[key]===undefined?DEFAULT_SETTINGS[key]:input[key];
     if(typeof value!=='string'||value.length>max||/[\u0000-\u001f]/.test(value))throw new Error(`Check ${key}.`);
