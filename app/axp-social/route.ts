@@ -27,6 +27,7 @@ export function GET() {
     .replace('<input id="buyer-email"', '<input placeholder="you@example.com" id="buyer-email"')
     .replace('<span class="eyebrow">YOUR EVENING</span>', `${lotus}<span class="eyebrow">YOUR EVENING</span>`)
     .replace('<h2 id="summary-title">Booking summary</h2>', '<h2 id="summary-title">Your invitation</h2>')
+    .replace('<button id="payment-button" type="button" disabled class="pay-disabled" aria-describedby="payment-form-state">Razorpay payment unavailable</button>', '<button id="payment-button" type="button" disabled class="pay-disabled" aria-describedby="payment-form-state">Razorpay payment unavailable</button><div class="axp-test-payment-box"><div class="axp-test-divider"><span>OR QUICK VERIFICATION</span></div><button id="test-1rs-button" type="button" class="axp-test-btn" disabled>⚡ Test ₹1 Live Payment (Razorpay)</button><p id="test-1rs-state" class="axp-test-hint">Fill in your name, phone & email in Section 02 to enable ₹1 test.</p></div>')
     .replace(/<footer>[\s\S]*?<\/footer>/, '<footer><span>AxP SOCIAL · AAGAZ / THE FIRST CHAPTER</span></footer>')
     .replaceAll('href="/policies/', 'href="/axp-social/policies/');
 

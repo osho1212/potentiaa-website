@@ -87,6 +87,7 @@ function renderSavedSummary(booking){
  el('normal-line').textContent=`${normal} × ${money(booking.pricing.normalPrice)}`;el('alcohol-line').textContent=`${alcohol} × ${money(booking.pricing.alcoholPrice)}`;
  el('people-line').textContent=String(booking.people);el('subtotal').textContent=money(booking.pricing.subtotal);el('extra-charge-total').textContent=money(booking.pricing.extraCharges);el('final-total').textContent=money(booking.total);
  el('confirmed-charges').hidden=false;el('charges-pending').hidden=true;button.hidden=true;el('booking-form').hidden=true;document.querySelector('.passes').hidden=true;
+ const testBox=document.querySelector('.axp-test-payment-box');if(testBox)testBox.hidden=true;
  const summary=document.createElement('p');summary.textContent=`${booking.people} named ${booking.people===1?'pass':'passes'} · Total payable: ${money(booking.total)}`;
  const list=document.createElement('ul');for(const guest of booking.attendees){const row=document.createElement('li');row.textContent=guest.name+' · '+(guest.pass==='alcohol'?'Alcohol-inclusive · 21+':'Non-alcoholic');list.append(row);}savedDetails.replaceChildren(summary,list);
 }
@@ -105,4 +106,144 @@ async function downloadTickets(){
   const blob=new Blob(['<!doctype html>'+doc.documentElement.outerHTML],{type:'text/html;charset=utf-8'}),link=document.createElement('a');ticketFileUrl=URL.createObjectURL(blob);link.href=ticketFileUrl;link.download=`aagaz-${data.bookingId}-tickets.html`;link.textContent='Save tickets file';tickets.append(link);link.click();message.textContent='Your named tickets are shown below. If the download did not start, use Save tickets file. Keep your QRs private; the saved file can be printed or saved as PDF.';
  }catch(error){message.textContent=error.message;}
 }
+
+function initTest1RsButton(){
+ const testBtn=el('test-1rs-button');
+ const testState=el('test-1rs-state');
+ if(!testBtn)return;
+
+ function updateTestButton(){
+  const name=el('buyer-name')?.value.trim();
+  const phone=el('buyer-phone')?.value.trim();
+  const email=el('buyer-email')?.value.trim();
+  const hasName=name&&name.length>=2;
+  const hasPhone=phone&&phone.replace(/\D/g,'').length>=8;
+  const hasEmail=email&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  if(attempt){
+   testBtn.disabled=true;
+   if(testState)testState.textContent='An existing booking is being processed below.';
+  }else if(hasName&&hasPhone&&hasEmail){
+   testBtn.disabled=false;
+   if(testState)testState.textContent='Ready! Click to test ₹1.00 payment with live Razorpay.';
+  }else{
+   testBtn.disabled=true;
+   const missing=[];
+   if(!hasName)missing.push('name');
+   if(!hasPhone)missing.push('phone');
+   if(!hasEmail)missing.push('email');
+   if(testState)testState.textContent='Enter your '+missing.join(', ')+' in Section 02 to enable ₹1 test.';
+  }
+ }
+
+ window.addEventListener('booking-readiness-updated',updateTestButton);
+ for(const id of ['buyer-name','buyer-phone','buyer-email']){
+  const input=el(id);
+  if(input){
+   input.addEventListener('input',updateTestButton);
+   input.addEventListener('change',updateTestButton);
+  }
+ }
+ updateTestButton();
+
+ testBtn.addEventListener('click',async()=>{
+  const name=el('buyer-name')?.value.trim();
+  const phone=el('buyer-phone')?.value.trim();
+  const email=el('buyer-email')?.value.trim();
+  const instagram=el('buyer-instagram')?.value.trim()||'@test';
+
+  if(!name||!phone||!email){
+   updateTestButton();
+   el('buyer-name')?.focus();
+   return;
+  }
+
+  testBtn.disabled=true;
+  if(testState)testState.textContent='Creating live ₹1.00 Razorpay order…';
+  card.hidden=false;
+  message.textContent='Creating your ₹1.00 live payment order…';
+  card.scrollIntoView({behavior:'smooth',block:'start'});
+
+  try{
+   await loadCheckout();
+   const res=await fetch('/api/payments/test-order',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({buyer:{name,phone,email,instagram}})
+   });
+   const data=await res.json();
+   if(!res.ok){
+    throw new Error(data.error||'Could not create ₹1 test order.');
+   }
+
+   attempt={
+    id:data.id,
+    accessToken:data.id,
+    idempotencyKey:'live:test-1rs-'+data.id,
+    mode:'live'
+   };
+   saveAttempt();
+   freezeForm();
+
+   const options=data.checkout;
+   resume.hidden=false;
+   message.textContent=`₹1.00 Live Test Order created. Total payable: ₹1.00. Opening Razorpay…`;
+
+   const checkout=new window.Razorpay({
+    key:options.key,
+    amount:options.amount,
+    currency:options.currency,
+    name:options.name,
+    description:options.description,
+    order_id:options.orderId,
+    prefill:{
+     name:options.prefill.name,
+     email:options.prefill.email,
+     contact:options.prefill.phone
+    },
+    theme:{color:'#294f3c'},
+    handler:async response=>{
+     message.textContent='Verifying your ₹1.00 payment with Razorpay…';
+     try{
+      const verifyRes=await fetch('/api/bookings/'+data.id+'/verify',{
+       method:'POST',
+       headers:{'Content-Type':'application/json'},
+       body:JSON.stringify(response)
+      });
+      const verifiedData=await verifyRes.json();
+      if(!verifyRes.ok){
+       throw new Error(verifiedData.error||'Payment signature could not be verified.');
+      }
+      showBooking(verifiedData);
+      message.textContent=`✅ Live payment of ₹1.00 verified! Payment ID: ${response.razorpay_payment_id}. Live Razorpay payments are working!`;
+     }catch(err){
+      message.textContent=err.message+' Payment was received by Razorpay.';
+     }
+    },
+    modal:{
+     ondismiss:()=>{
+      message.textContent='Checkout closed. Click "Check payment status" or retry ₹1 test.';
+      testBtn.disabled=false;
+      updateTestButton();
+     }
+    }
+   });
+
+   checkout.on('payment.failed',()=>{
+    message.textContent='The payment was not completed in Razorpay.';
+    testBtn.disabled=false;
+    updateTestButton();
+   });
+
+   checkout.open();
+  }catch(err){
+   message.textContent=err.message;
+   if(testState)testState.textContent=err.message;
+   testBtn.disabled=false;
+   updateTestButton();
+  }
+ });
+}
+
 loadConfig();
+initTest1RsButton();

@@ -218,3 +218,66 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
   .axp-steps i { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* ₹1 LIVE TEST TRANSACTION BUTTON (TEMPORARY) */
+.axp-test-payment-box {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(200, 160, 90, 0.08);
+  border: 1px dashed rgba(200, 160, 90, 0.45);
+  text-align: center;
+}
+.axp-test-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.axp-test-divider span {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #c5a059;
+  text-transform: uppercase;
+}
+.axp-test-btn {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: linear-gradient(135deg, #1b3d2f 0%, #294f3c 100%);
+  color: #f7f1e5;
+  border: 1px solid #c5a059;
+  box-shadow: 0 4px 14px rgba(27, 61, 47, 0.25);
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.axp-test-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #244f3d 0%, #35634c 100%);
+  box-shadow: 0 6px 20px rgba(197, 160, 89, 0.35);
+  transform: translateY(-1px);
+}
+.axp-test-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(200, 160, 90, 0.2);
+}
+.axp-test-hint {
+  margin-top: 10px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 0.3px;
+}
