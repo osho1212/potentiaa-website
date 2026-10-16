@@ -34,19 +34,12 @@ function rows(){
       imageBookings.add(item.id);
       const emailBtn=document.createElement('button');emailBtn.type='button';emailBtn.className='secondary confirmation-download';emailBtn.textContent='Email passes';
       emailBtn.addEventListener('click',async()=>{emailBtn.disabled=true;emailBtn.textContent='Sending email…';try{
-        const bookingAttendees=entries.filter(e=>e.id===item.id);
-        const distinctEmails=new Map();
-        distinctEmails.set(item.buyer_email.toLowerCase(),{name:item.buyer_name,email:item.buyer_email,isBuyer:true});
-        for(const att of bookingAttendees){
-          if(att.email&&!distinctEmails.has(att.email.toLowerCase())){
-            distinctEmails.set(att.email.toLowerCase(),{name:att.name,email:att.email,isBuyer:false});
-          }
-        }
-        const listText=bookingAttendees.map((a,i)=>`${i+1}. ${a.name} — ${passName(a.pass_type)}`).join('\n');
-        for(const target of distinctEmails.values()){
-          await fetch('https://api.emailjs.com/api/v1.0/email/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service_id:'service_59d1ylv',template_id:'template_x1xmkvu',user_id:'wUJPfRnz1y09Ms68T',template_params:{to_name:target.name,to_email:target.email,booking_id:item.id,booking_id_short:item.id.slice(0,8),guest_count:target.isBuyer?String(bookingAttendees.length):'1 (Personal Pass)',amount_paid:target.isBuyer?`₹${item.total.toLocaleString('en-IN')}`:'Paid by '+item.buyer_name,attendees_list:listText,pass_link:window.location.origin+'/axp-social?booking='+encodeURIComponent(item.id)+'#passes'}})});
-        }
-        el('dashboard-message').textContent=`✉️ Passes emailed to: ${[...distinctEmails.keys()].join(', ')}.`;
+        // The server sends it, with each guest's QR, exactly as at checkout. This
+        // used to call EmailJS from here, which the page's connect-src blocked.
+        const response=await fetch('/api/bookings/'+encodeURIComponent(item.id)+'/send-passes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({resend:true})});
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(data.error||'The passes could not be emailed.');
+        el('dashboard-message').textContent=data.success?`Passes emailed to: ${(data.recipients||[]).join(', ')}.`:'The passes could not be emailed. Check the EmailJS settings and try again.';
       }catch(err){el('dashboard-message').textContent='Email error: '+err.message;}finally{emailBtn.disabled=false;emailBtn.textContent='Email passes';}});row.children[1].append(emailBtn);
     }
     el('booking-rows').append(row);

@@ -1,6 +1,6 @@
 const el=id=>document.getElementById(id);
 const testMode=new URLSearchParams(location.search).get('mode')==='test';
-let paymentReady=false,checkoutScript=null,attempt=null,polling=false,savedBooking=null,ticketFileUrl=null,emailjsConfig=null,emailDispatched=false;
+let paymentReady=false,checkoutScript=null,attempt=null,polling=false,savedBooking=null,ticketFileUrl=null,emailDispatched=false;
 const button=el('payment-button');
 const card=document.createElement('section');card.className='panel booking-confirmation';card.hidden=true;card.setAttribute('aria-label','Booking status');el('booking-form').after(card);
 const heading=document.createElement('h2');heading.textContent='Your booking';const message=document.createElement('p');message.setAttribute('role','status');const tickets=document.createElement('div');tickets.className='ticket-list';
@@ -49,7 +49,6 @@ async function request(path,{body,auth=true}={}){
 async function loadConfig(){
  try{
   const config=await request(testMode?'/api/admin/payment-setup':'/api/payment-config',{auth:false});paymentReady=testMode?config.testReady:config.salesOpen;
-  if(config.emailjs)emailjsConfig=config.emailjs;
   if(testMode){document.querySelector('.preview').textContent='ORGANISER TEST MODE — no real money. Only test credentials are used.';el('payment-status-title').textContent=paymentReady?'Test checkout ready':'Test checkout needs setup';el('payment-status-description').textContent=paymentReady?'A successful test does not reserve a place at the live event.':'Add Test Mode API keys and confirm the event’s additional charges in organiser settings.';document.querySelector('.privacy').textContent='Organiser test mode saves test buyer and attendee details and payment references for verification. Use fictional details. No real money is taken.';}
   else if(paymentReady){document.querySelector('.preview').textContent='BOOKINGS OPEN · Named passes · Secure payment by Razorpay';el('payment-status-title').textContent='Secure payments enabled';el('payment-status-description').textContent='Your amount is calculated and checked on our server. Tickets are issued after payment is verified.';document.querySelector('.privacy').textContent='Your details are used for booking, tickets and entry checks. Payment details are entered in Razorpay checkout. Booking does not subscribe you to marketing.';}
   updateButton();
@@ -64,82 +63,25 @@ async function loadConfig(){
   try{const previous=JSON.parse(sessionStorage.getItem('axp-last-booking'));if(previous?.idempotencyKey&&previous.accessToken){attempt=previous;card.hidden=false;freezeForm();await poll();updateButton();}}catch{}
  }
 }
+// The server sends every pass email, QR included, once per booking. This
+// screen asks it whether that has happened, which also covers a booking the
+// webhook confirmed while this tab was closed, and Resend asks for one more.
 async function sendConfirmationEmail(booking,isResend=false){
- if(!booking||(!isResend&&emailDispatched))return;
- const buyerName=booking.buyer?.name||el('buyer-name')?.value?.trim()||'Guest';
- const buyerEmail=(booking.buyer?.email||el('buyer-email')?.value?.trim()||'').toLowerCase();
- if(!buyerEmail)return;
- const cfg=emailjsConfig||{serviceId:'service_59d1ylv',templateId:'template_x1xmkvu',publicKey:'wUJPfRnz1y09Ms68T'};
- if(!cfg.serviceId||!cfg.templateId||!cfg.publicKey)return;
- const attendeesList=(booking.attendees&&booking.attendees.length>0)
-  ? booking.attendees.map((a,i)=>`${i+1}. ${a.name} — ${a.pass==='alcohol'?'Gold Pass · 21+':'Silver Pass'}${a.instagram?' ('+a.instagram+')':''}`).join('\n')
-  : `1. ${buyerName} — Silver Pass`;
- const amount=typeof booking.total==='number'?`₹${booking.total.toLocaleString('en-IN')}`:(booking.amountPaise?`₹${(booking.amountPaise/100).toLocaleString('en-IN')}`:'₹1.00');
- const passLink=window.location.origin+'/axp-social?booking='+encodeURIComponent(booking.id||'')+'#passes';
-
- const recipients=[{
-  name:buyerName,
-  email:buyerEmail,
-  isBuyer:true,
-  count:String(booking.people||(booking.attendees?booking.attendees.length:1)),
-  amount:amount,
-  list:attendeesList
- }];
-
- if(Array.isArray(booking.attendees)){
-  for(const guest of booking.attendees){
-   const guestEmail=(guest.email||'').trim().toLowerCase();
-   if(guestEmail&&guestEmail!==buyerEmail&&!recipients.some(r=>r.email.toLowerCase()===guestEmail)){
-    recipients.push({
-     name:guest.name||'Guest',
-     email:guest.email.trim(),
-     isBuyer:false,
-     count:'1 (Personal Pass)',
-     amount:'Paid by '+buyerName,
-     list:`• ${guest.name} — ${guest.pass==='alcohol'?'Gold Pass · 21+':'Silver Pass'}${guest.instagram?' ('+guest.instagram+')':''}\n(Booked in group order by ${buyerName})`
-    });
-   }
-  }
- }
-
- const sentEmails=[];
- for(const r of recipients){
-  try{
-   const res=await fetch('https://api.emailjs.com/api/v1.0/email/send',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-     service_id:cfg.serviceId,
-     template_id:cfg.templateId,
-     user_id:cfg.publicKey,
-     template_params:{
-      to_name:r.name,
-      to_email:r.email,
-      booking_id:booking.id,
-      booking_id_short:booking.id?booking.id.slice(0,8):'AAGAZ',
-      guest_count:r.count,
-      amount_paid:r.amount,
-      attendees_list:r.list,
-      pass_link:passLink,
-     }
-    })
-   });
-   if(res.ok){
-    sentEmails.push(r.email);
-   }else{
-    console.warn('EmailJS response status for',r.email,res.status,await res.text());
-   }
-  }catch(err){
-   console.warn('EmailJS error for',r.email,err);
-  }
- }
-
- if(sentEmails.length>0){
+ if(!booking?.id||(!isResend&&emailDispatched))return;
+ const failed='Your passes could not be emailed just now. Try Resend in a minute, or download them below.';
+ try{
+  const response=await fetch('/api/bookings/'+encodeURIComponent(booking.id)+'/send-passes',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({resend:isResend})});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok){showEmailStatus(data.error||failed,false);return;}
   emailDispatched=true;
-  emailStatus.textContent=`✉️ Passes and order confirmation email sent to: ${sentEmails.join(', ')}. Check inbox or spam folder.`;
-  emailStatus.hidden=false;
-  resendEmailBtn.hidden=false;
- }
+  const list=(data.recipients||[]).join(', ');
+  if(data.success&&list)showEmailStatus(`${isResend?'Sent again to':'Your passes were emailed to'} ${list}. If they are not in your inbox, check spam or promotions.`,true);
+  else showEmailStatus(failed,false);
+ }catch{showEmailStatus(failed,false);}
+}
+function showEmailStatus(text,ok){
+ emailStatus.textContent=text;emailStatus.classList.toggle('is-error',!ok);
+ emailStatus.hidden=false;resendEmailBtn.hidden=false;
 }
 function loadCheckout(){
  if(window.Razorpay)return Promise.resolve();if(checkoutScript)return checkoutScript;
@@ -175,17 +117,7 @@ function showBooking(booking){
  const labels={confirmed:'Payment verified. Your named passes are ready below.',pending:'Awaiting verified payment. Do not make another payment if money was deducted.',creating:'Payment order is still being prepared.',order_uncertain:'Payment order needs a support check. Contact the organiser before retrying.',paid_review:'Payment needs organiser review. No valid ticket has been issued. Contact event support.',refunded:'This payment was refunded. Its tickets are invalid.'};
  message.textContent=labels[booking.status]||'Contact event support to check this booking.';refresh.hidden=['confirmed','refunded'].includes(booking.status);confirmationMap.hidden=booking.status!=='confirmed';download.hidden=booking.status!=='confirmed';resume.hidden=booking.status!=='pending'||booking.expiresAt<=new Date().toISOString();another.hidden=!['confirmed','refunded'].includes(booking.status);
  if(booking.status==='confirmed'){
-  const emails=[];
-  if(booking.buyer?.email)emails.push(booking.buyer.email.toLowerCase());
-  if(Array.isArray(booking.attendees)){
-   for(const a of booking.attendees){
-    if(a.email&&!emails.includes(a.email.toLowerCase())){
-     emails.push(a.email.toLowerCase());
-    }
-   }
-  }
-  const emailList=emails.length>0?emails.join(', '):(booking.buyer?.email||'your registered email');
-  emailStatus.innerHTML=`<strong>✉️ Passes & order confirmation emailed to:</strong> ${emailList}.<br><span style="display:inline-block;margin-top:4px;font-size:12px;opacity:0.9;">⚠️ If you don't see it in your Primary inbox, please check your <strong>Spam / Junk</strong> or <strong>Promotions</strong> folder.</span>`;
+  emailStatus.textContent='Sending your passes to your email…';emailStatus.classList.remove('is-error');
   emailStatus.hidden=false;
   resendEmailBtn.hidden=false;
   renderTickets(false);

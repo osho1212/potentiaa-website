@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light only">
+  <title>Your pass for Aagaz · AxP Social</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f5f1e9; -webkit-text-size-adjust:100%;">
+
+  <!-- Inbox preview line: shown beside the subject, hidden in the email itself -->
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; font-size:1px; line-height:1px; color:#f5f1e9;">
+    Your place at Aagaz is confirmed. Your entry pass with QR is inside — show it at the gate on 6 November.
+  </div>
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f5f1e9;">
+    <tr>
+      <td align="center" style="padding:32px 12px;">
+
+        <!-- Card -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px; background-color:#fffdf8; border:1px solid #e2d4c0; border-radius:16px; overflow:hidden;">
+
+          <!-- Gold foil band -->
+          <tr>
+            <td style="height:6px; line-height:6px; font-size:0; background-color:#c99a3b; background-image:linear-gradient(100deg,#e9c877 0%,#fbedc0 22%,#c4933a 45%,#f6dd98 65%,#b6852d 85%,#e9c877 100%);">&nbsp;</td>
+          </tr>
+
+          <!-- Header -->
+          <tr>
+            <td align="center" style="padding:34px 28px 26px; background-color:#faf6ee; border-bottom:1px solid #ece0cf;">
+              <p style="margin:0 0 10px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#96744e;">AxP Social presents</p>
+              <h1 style="margin:0; font-family:Georgia,'Times New Roman',serif; font-size:44px; font-weight:400; letter-spacing:6px; line-height:1.1; color:#2f2530;">AAGAZ</h1>
+              <p style="margin:8px 0 18px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; letter-spacing:2.4px; text-transform:uppercase; color:#716970;">A private Diwali sundowner</p>
+              <span style="display:inline-block; padding:6px 16px; border-radius:999px; background-color:#f3eaf5; border:1px solid #d9c5de; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:#402347;">&#10003;&nbsp; Booking confirmed</span>
+            </td>
+          </tr>
+
+          <!-- Greeting -->
+          <tr>
+            <td style="padding:28px 32px 6px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <p style="margin:0 0 10px; font-size:16px; color:#2f2530;">Dear <strong>{{to_name}}</strong>,</p>
+              <p style="margin:0; font-size:14px; line-height:1.7; color:#524a54;">Your place at Aagaz is confirmed. Your entry pass is below &mdash; keep this email handy and show the QR at the gate on the day.</p>
+            </td>
+          </tr>
+
+          <!-- The pass: a ticket carrying the QR -->
+          <tr>
+            <td style="padding:22px 32px 6px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#ffffff; border:1px solid #e2d4c0; border-radius:14px; overflow:hidden;">
+                <tr>
+                  <td style="height:4px; line-height:4px; font-size:0; background-color:#402347; background-image:linear-gradient(90deg,#402347,#8b5f97,#402347);">&nbsp;</td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding:24px 24px 6px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    <p style="margin:0 0 4px; font-size:11px; font-weight:700; letter-spacing:2.6px; text-transform:uppercase; color:#96744e;">Your entry pass</p>
+                    <p style="margin:0 0 18px; font-family:Georgia,'Times New Roman',serif; font-size:22px; color:#2f2530;">Show this at the gate</p>
+
+                    <!-- The QR sits on white with its own margin, so it scans even when a mail app darkens the page -->
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="background-color:#ffffff; border:1px solid #ece0cf; border-radius:12px;">
+                      <tr>
+                        <td style="padding:12px;">
+                          <img src="{{qr_url}}" width="200" height="200" alt="Entry QR code for booking {{booking_id_short}}" style="display:block; width:200px; height:200px; border:0; outline:none; text-decoration:none;">
+                        </td>
+                      </tr>
+                    </table>
+
+                    <p style="margin:14px 0 0; font-size:12px; color:#716970;">Booking <strong style="color:#2f2530; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;">#{{booking_id_short}}</strong></p>
+                  </td>
+                </tr>
+
+                <!-- Perforation -->
+                <tr>
+                  <td style="padding:16px 0 0;">
+                    <div style="border-top:2px dashed #e2d4c0; font-size:0; line-height:0;">&nbsp;</div>
+                  </td>
+                </tr>
+
+                <!-- Stub -->
+                <tr>
+                  <td style="padding:14px 24px 18px; background-color:#faf6ee; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="padding-right:12px; font-size:11px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:#96744e;">6 Nov &middot; 3 PM</td>
+                        <td align="right" style="white-space:nowrap; font-size:11px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:#402347;">Admits {{guest_count}}</td>
+                      </tr>
+                    </table>
+                    <p style="margin:10px 0 0; font-size:11px; line-height:1.55; color:#8d8189;">If the QR doesn&rsquo;t load, give this code at the gate:<br><span style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px; color:#524a54; word-break:break-all;">{{entry_code}}</span></p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Event details -->
+          <tr>
+            <td style="padding:20px 32px 6px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#faf6ee; border:1px solid #ece0cf; border-radius:12px;">
+                <tr>
+                  <td style="padding:16px 20px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="padding:0 12px 10px 0; font-size:13px; color:#716970;">When</td>
+                        <td align="right" style="padding:0 0 10px; font-size:13px; font-weight:600; color:#2f2530;">Friday, 6 November 2026 &middot; 3:00 PM IST</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:0 12px 10px 0; font-size:13px; color:#716970;">Where</td>
+                        <td align="right" style="padding:0 0 10px; font-size:13px; font-weight:600; color:#402347;">Sukh Saklana Haveli: Royalty, Rishikesh</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:0 12px 10px 0; font-size:13px; color:#716970;">Guests</td>
+                        <td align="right" style="padding:0 0 10px; font-size:13px; font-weight:600; color:#2f2530;">{{guest_count}}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:0 12px 0 0; font-size:13px; color:#716970;">Payment</td>
+                        <td align="right" style="padding:0; font-size:13px; font-weight:600; color:#402347;">{{amount_paid}}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Passes on this booking (pre-line keeps one name per line) -->
+          <tr>
+            <td style="padding:20px 32px 6px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <p style="margin:0 0 10px; font-size:11px; font-weight:700; letter-spacing:1.8px; text-transform:uppercase; color:#96744e;">Passes on this booking</p>
+              <div style="padding:14px 18px; border-radius:10px; background-color:#f8f3f9; border:1px solid #eadff0; border-left:4px solid #402347; font-size:13px; line-height:1.85; color:#2f2530; white-space:pre-line;">{{attendees_list}}</div>
+            </td>
+          </tr>
+
+          <!-- Call to action -->
+          <tr>
+            <td align="center" style="padding:24px 32px 6px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="border-radius:999px; background-color:#402347;">
+                    <a href="{{pass_link}}" target="_blank" style="display:inline-block; padding:15px 34px; border-radius:999px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#ffffff; text-decoration:none;">View &amp; download passes &rarr;</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:12px 0 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; color:#8d8189;">Button not working? <a href="{{pass_link}}" target="_blank" style="color:#402347; text-decoration:underline;">Open your passes</a></p>
+            </td>
+          </tr>
+
+          <!-- Before you arrive -->
+          <tr>
+            <td style="padding:24px 32px 8px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <p style="margin:0 0 12px; font-size:11px; font-weight:700; letter-spacing:1.8px; text-transform:uppercase; color:#96744e;">Before you arrive</p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td valign="top" style="width:20px; padding:1px 0 10px; font-size:10px; color:#c4933a;">&#9670;</td>
+                  <td style="padding:0 0 10px; font-size:13px; line-height:1.6; color:#524a54;">Bring a valid government photo ID for every guest &mdash; it&rsquo;s checked against the pass at the gate.</td>
+                </tr>
+                <tr>
+                  <td valign="top" style="width:20px; padding:1px 0 10px; font-size:10px; color:#c4933a;">&#9670;</td>
+                  <td style="padding:0 0 10px; font-size:13px; line-height:1.6; color:#524a54;">Passes are named and can&rsquo;t be transferred.</td>
+                </tr>
+                <tr>
+                  <td valign="top" style="width:20px; padding:1px 0 0; font-size:10px; color:#c4933a;">&#9670;</td>
+                  <td style="padding:0; font-size:13px; line-height:1.6; color:#524a54;">Gold passes are for guests aged 21 and over.</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding:26px 32px 28px; margin-top:16px; background-color:#faf6ee; border-top:1px solid #ece0cf;">
+              <p style="margin:0 0 6px; font-family:Georgia,'Times New Roman',serif; font-size:16px; font-style:italic; color:#2f2530;">Where connections become celebrations.</p>
+              <p style="margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; line-height:1.6; color:#9c919d;">AxP Social &middot; Potentiaa &times; Avyanta<br>Questions? Just reply to this email.</p>
+            </td>
+          </tr>
+
+          <!-- Gold foil band -->
+          <tr>
+            <td style="height:4px; line-height:4px; font-size:0; background-color:#c99a3b; background-image:linear-gradient(100deg,#e9c877 0%,#fbedc0 22%,#c4933a 45%,#f6dd98 65%,#b6852d 85%,#e9c877 100%);">&nbsp;</td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

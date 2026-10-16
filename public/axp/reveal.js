@@ -52,3 +52,40 @@ if (!reduce) {
     hero.prepend(field);
   }
 }
+
+// ticket-tilt: passes lean toward the pointer and catch the light, like a card
+// held in the hand. Only where there is a real hover pointer to follow.
+if (!reduce && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+  for (const ticket of document.querySelectorAll('.ticket')) {
+    ticket.addEventListener('pointermove', event => {
+      const box = ticket.getBoundingClientRect();
+      const x = (event.clientX - box.left) / box.width;
+      const y = (event.clientY - box.top) / box.height;
+      ticket.style.setProperty('--ry', ((x - 0.5) * 9).toFixed(2) + 'deg');
+      ticket.style.setProperty('--rx', ((0.5 - y) * 7).toFixed(2) + 'deg');
+      ticket.style.setProperty('--mx', (x * 100).toFixed(1) + '%');
+      ticket.style.setProperty('--my', (y * 100).toFixed(1) + '%');
+    });
+    ticket.addEventListener('pointerleave', () => {
+      ticket.style.setProperty('--rx', '0deg');
+      ticket.style.setProperty('--ry', '0deg');
+    });
+  }
+}
+
+// A few small fireworks over "What's on", for the finale it promises.
+if (!reduce) {
+  const section = document.getElementById('what-is-on');
+  if (section && !section.querySelector('.fireworks')) {
+    const sky = document.createElement('div');
+    sky.className = 'fireworks';
+    sky.setAttribute('aria-hidden', 'true');
+    for (let b = 0; b < 3; b++) {
+      const burst = document.createElement('span');
+      burst.className = 'burst';
+      for (let i = 0; i < 12; i++) burst.append(document.createElement('i'));
+      sky.append(burst);
+    }
+    section.prepend(sky);
+  }
+}

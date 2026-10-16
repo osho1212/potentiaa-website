@@ -244,6 +244,30 @@ if(typeof document!=='undefined'){
     };
     clearInterval(countdownTimer);tick();countdownTimer=setInterval(tick,1000);
   }
+  // Each "What's on" item gets a small line icon chosen from its wording, so
+  // organisers can still edit the list freely in settings.
+  const HIGHLIGHT_ICONS=[
+    [/network|connect|meet/i,'<circle cx="9" cy="8" r="3"/><circle cx="16.5" cy="9" r="2.4"/><path d="M3.5 19c.6-3.2 3-5 5.5-5s4.9 1.8 5.5 5"/><path d="M14.6 14.2c2.5-.3 4.7 1.3 5.3 4.3"/>'],
+    [/pop.?up|stall|shop|market|business/i,'<path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>'],
+    [/poker|chess|card|game/i,'<rect x="4" y="5" width="10" height="14" rx="1.6" transform="rotate(-8 9 12)"/><rect x="10" y="5" width="10" height="14" rx="1.6" transform="rotate(8 15 12)"/>'],
+    [/stage|mic|perform|open/i,'<rect x="9" y="3.5" width="6" height="10" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3.5M9 20.5h6"/>'],
+    [/dj|music|band|song/i,'<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>'],
+    [/food|drink|dine|bar|mocktail|eat/i,'<path d="M4 17h16M6 17a6 6 0 0 1 12 0M12 9V7.5M10.5 7.5h3"/>'],
+    [/firework|spark|light|diwali/i,'<path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/>'],
+  ];
+  const SVG_NS='http://www.w3.org/2000/svg';
+  function highlightItem(text){
+    const item=document.createElement('li');
+    const match=HIGHLIGHT_ICONS.find(([pattern])=>pattern.test(text));
+    const svg=document.createElementNS(SVG_NS,'svg');
+    svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');svg.setAttribute('class','highlight-icon');
+    // The markup is a fixed string from the table above, never from settings.
+    const shape=new DOMParser().parseFromString(`<svg xmlns="${SVG_NS}">${match?match[1]:'<circle cx="12" cy="12" r="3"/>'}</svg>`,'image/svg+xml').documentElement;
+    for(const child of [...shape.childNodes])svg.append(document.importNode(child,true));
+    const label=document.createElement('span');label.textContent=text;
+    item.append(svg,label);
+    return item;
+  }
   function applyBrand(key,logo,phone){
     const img=el(key+'-logo'),link=el(key+'-phone');
     if(img){img.hidden=!logo;if(logo)img.src=logo;}
@@ -270,7 +294,7 @@ if(typeof document!=='undefined'){
       el('event-tagline').textContent=settings.eventTagline||'';
       el('event-tagline').hidden=!(settings.eventTagline||'').trim();
       const highlights=(settings.eventHighlights||'').split(',').map(part=>part.trim()).filter(Boolean);
-      el('event-highlights').replaceChildren(...highlights.map(text=>{const item=document.createElement('li');item.textContent=text;return item;}));
+      el('event-highlights').replaceChildren(...highlights.map(highlightItem));
       el('what-is-on').hidden=highlights.length===0;
       const handle=(settings.instagramHandle||'').trim().replace(/^@/,'');
       el('instagram-link').hidden=!handle;

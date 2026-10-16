@@ -4,7 +4,9 @@ import os from 'os';
 import { EventSettings, DEFAULT_SETTINGS, validateSettings } from './event-settings';
 import { AttendeeInput, BuyerInput } from './payment-core';
 import type { WhatsAppDeliveryResult } from './whatsapp-service';
+import type { EmailDeliveryResult } from './email-service';
 import {
+  saveBookingFieldsFirestore,
   saveBookingFirestore,
   getBookingFirestore,
   getAllBookingsFirestore,
@@ -31,8 +33,10 @@ export interface BookingRecord {
   createdAt: string;
   snapshot: any;
   checkedInAttendees?: string[];
-  /** Written by the verify route when WhatsApp pass delivery was switched on. */
+  /** Written by pass delivery when WhatsApp pass delivery was switched on. */
   whatsappDelivery?: WhatsAppDeliveryResult;
+  /** Written by pass delivery each time the confirmation email goes out. */
+  emailDelivery?: EmailDeliveryResult & { sentAt: string; resends: number };
 }
 
 export interface StorageData {
@@ -164,6 +168,27 @@ export async function findBookingByIdempotency(key: string): Promise<BookingReco
   } catch {}
 
   return null;
+}
+
+/**
+ * Writes only the pass-delivery receipts onto a booking. Delivery can run
+ * while the same booking is being checked in at the gate (a guest pressing
+ * Resend), so it must never write back attendee records it read earlier.
+ */
+export async function saveBookingDelivery(
+  id: string,
+  fields: Pick<BookingRecord, 'emailDelivery' | 'whatsappDelivery'>
+): Promise<void> {
+  const data = initLocalData();
+  if (data.bookings[id]) {
+    data.bookings[id] = { ...data.bookings[id], ...fields };
+    saveLocalData(data);
+  }
+  try {
+    await saveBookingFieldsFirestore(id, fields as Record<string, unknown>);
+  } catch (err) {
+    console.error(`[Storage] Failed to record pass delivery for ${id}:`, err);
+  }
 }
 
 export async function saveBooking(booking: BookingRecord): Promise<BookingRecord> {
