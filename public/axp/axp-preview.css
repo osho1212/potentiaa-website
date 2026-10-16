@@ -58,8 +58,8 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 .axp-edition .section-top h2 { font: 600 32px/1.1 var(--display); color: #35252f; margin: 0 0 8px; letter-spacing: -.35px; }
 .axp-edition .section-top p { color: #756a72; font-size: 12px; line-height: 1.55; }
 .axp-edition .pass-options { grid-template-columns: 1fr 1fr; gap: 15px; }
-.axp-edition .pass-options article, .axp-edition .pass-options article:last-child { border: 1px solid #b49a7d; border-radius: 4px; padding: 20px 18px; background: transparent; }
-.axp-edition .pass-options article:first-child { border-color: #735579; background: #f4edf5; }
+.axp-edition .pass-options article, .axp-edition .pass-options article:first-child { border: 1px solid #b49a7d; border-radius: 4px; padding: 20px 18px; background: transparent; }
+.axp-edition .pass-options article:last-child { border-color: #735579; background: #f4edf5; }
 .axp-edition .pass-tag { font-size: 9px; letter-spacing: 1.5px; color: #785985; font-weight: 500; }
 .axp-edition .pass-options h3 { font: 600 24px/1.15 var(--display); margin: 11px 0 9px; }
 .axp-edition .pass-options p { font-size: 12px; line-height: 1.6; color: #716770; margin-bottom: 18px; }
@@ -402,4 +402,45 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 @media (max-width: 760px) {
   .axp-edition .stall-hero { padding: 26px 20px 20px; }
   .axp-edition #stall-submit { width: 100%; min-height: 48px; }
+}
+
+/* ---------- Five steps: the event information now lives in step 01 ---------- */
+.axp-edition .event-info-body > section { max-width: none; margin: 0 0 30px; }
+.axp-edition .event-info-body > section:last-child { margin-bottom: 0; }
+.axp-edition .event-info-body .event-description h2,
+.axp-edition .event-info-body .pass-types h2,
+.axp-edition .event-info-body .event-highlights h2 { font-size: clamp(22px, 2.6vw, 30px); margin: 8px 0 12px; }
+.axp-edition .event-info-body .event-tagline { font-size: clamp(17px, 2vw, 21px); margin-bottom: 10px; }
+.axp-edition .event-info-body #event-description { font-size: 13px; }
+
+/* ---------- Review step: everything that was filled in ---------- */
+.axp-edition .review-body { margin-top: 4px; }
+.axp-edition .review-heading { font: 500 11px/1 'DM Sans', sans-serif; letter-spacing: 2.2px; text-transform: uppercase; color: var(--muted); margin: 0 0 14px; }
+.axp-edition #review-buyer { margin: 0 0 16px; font-size: 12.5px; line-height: 1.7; color: #4f434b; overflow-wrap: anywhere; }
+.axp-edition .review-person { border-top: 1px solid var(--line); padding: 13px 0; display: grid; gap: 3px; }
+.axp-edition .review-person strong { font-size: 13px; font-weight: 600; }
+.axp-edition .review-person span { font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
+.axp-edition .review-body .subtotal { margin-top: 6px; border-top: 1px solid var(--line); padding-top: 16px; }
+.axp-edition #review-notice { font-size: 11px; color: var(--muted); line-height: 1.7; margin: 14px 0 0; }
+
+/* ---------- Payment step ---------- */
+.axp-edition #payment-step .payment-status { border-top: 0; padding-top: 0; }
+.axp-edition #payment-step .support { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); display: grid; gap: 5px; }
+.axp-edition #payment-step #payment-button,
+.axp-edition #payment-step .pay-disabled { width: 100%; margin-top: 18px; min-height: 48px; justify-content: center; }
+
+@media (max-width: 760px) {
+  .axp-edition .event-info-body > section { margin-bottom: 22px; }
+  .axp-edition .review-person { padding: 11px 0; }
+  .axp-edition #payment-step .support { margin-top: 18px; }
+}
+
+/* ---------- Step nav on a phone: numbers plus a caption ---------- */
+.step-caption { display: none; }
+@media (max-width: 760px) {
+  .axp-edition .axp-steps { display: flex; flex-wrap: nowrap; justify-content: space-between; align-items: center; gap: 6px; padding: 18px 0 8px; }
+  .axp-edition .axp-steps a { font-size: 0; min-height: 0; gap: 0; flex: 0 0 auto; }
+  .axp-edition .axp-steps a > span { font-size: 10px; width: 30px; height: 30px; }
+  .axp-edition .axp-steps i { flex: 1 1 auto; width: auto; min-width: 6px; }
+  .step-caption { display: block; margin: 0 0 18px; font: 500 10px/1.4 'DM Sans', sans-serif; letter-spacing: 1.8px; text-transform: uppercase; color: var(--muted); text-align: center; }
 }

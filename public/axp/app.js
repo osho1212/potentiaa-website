@@ -134,18 +134,47 @@ if(typeof document!=='undefined'){
     summary();
   }
   for(const key of ['name','email','instagram','phone'])el('buyer-'+key).addEventListener('input',syncBuyerToAttendee);
+  // The review step shows everything that was entered, so it is rebuilt every
+  // time the step opens rather than only when a button is pressed.
+  function detailLine(label,value){return value&&String(value).trim()?`${label}: ${String(value).trim()}`:'';}
+  function renderReview(){
+    const total=calculateBooking(state,settings);
+    el('review-buyer').textContent=[
+      detailLine('Booking contact',el('buyer-name').value),
+      detailLine('Email',el('buyer-email').value),
+      detailLine('Phone',el('buyer-phone').value),
+      detailLine('Instagram',el('buyer-instagram').value),
+    ].filter(Boolean).join('  \u00b7  ');
+    el('review-guests').replaceChildren(...state.map((guest,i)=>{
+      const row=document.createElement('div');row.className='review-person';
+      const name=document.createElement('strong');
+      name.textContent=`${i+1}. ${guest.name.trim()||'Attendee '+(i+1)}`;
+      const pass=document.createElement('span');
+      pass.textContent=guest.pass==='alcohol'
+        ?`Gold pass \u00b7 ${money(settings.alcoholPrice)} base \u00b7 21+`
+        :`Silver pass \u00b7 ${money(settings.normalPrice)} base`;
+      const extra=document.createElement('span');
+      extra.textContent=[
+        detailLine('Date of birth',guest.dob),
+        detailLine('Email',guest.email),
+        detailLine('Phone',guest.phone),
+        detailLine('Instagram',guest.instagram),
+      ].filter(Boolean).join('  \u00b7  ');
+      row.append(name,pass);if(extra.textContent)row.append(extra);
+      return row;
+    }));
+    el('review-total').textContent=money(total.subtotal);
+    el('review-notice').textContent=(total.total===null?'Final charges are pending.':`Additional charges: ${money(total.extraCharges)}. Total payable: ${money(total.total)}.`)+' No booking has been saved, no places have been reserved, and no payment has been taken.';
+  }
   el('booking-form').addEventListener('submit',event=>{
     event.preventDefault();el('form-message').textContent='';
     if(!showMissingFields())return;
-    const total=calculateBooking(state,settings);el('review-buyer').textContent=`Booking contact: ${el('buyer-name').value.trim()} · ${el('buyer-email').value.trim()}`;
-    el('review-guests').replaceChildren();state.forEach((guest,i)=>{const row=document.createElement('div');row.className='review-person';row.textContent=`${i+1}. ${guest.name.trim()}${guest.email?' · '+guest.email.trim():''}`;const pass=document.createElement('span');pass.textContent=guest.pass==='normal'?`Silver pass · ${money(settings.normalPrice)} base`:`Gold pass · ${money(settings.alcoholPrice)} base · 21+`;row.append(pass);el('review-guests').append(row);});
-    el('review-total').textContent=money(total.subtotal);el('review').showModal();
-    el('review-notice').textContent=(total.total===null?'Final charges are pending.':`Additional charges: ${money(total.extraCharges)}. Total payable: ${money(total.total)}.`)+' No booking has been saved, no places have been reserved, and no payment has been taken.';
+    renderReview();showStep(4);
   });
   for(const eventName of ['input','change'])el('booking-form').addEventListener(eventName,refreshReadiness);
   el('booking-form').addEventListener('focusout',event=>{if(event.target.matches('[required]')){touched.add(event.target.id);refreshReadiness();}});
   el('check-required-fields').addEventListener('click',showMissingFields);
-  for(const id of ['close-review','back-to-form'])el(id).addEventListener('click',()=>el('review').close());
+
   function applyBrand(key,logo,phone){
     const img=el(key+'-logo'),link=el(key+'-phone');
     if(img){img.hidden=!logo;if(logo)img.src=logo;}
@@ -199,7 +228,7 @@ if(typeof document!=='undefined'){
   // a guest cannot carry an empty required field into the next screen; moving
   // back is always free. refreshReadiness still judges the whole form, which is
   // what gates the final review button.
-  const steps=['your-details','your-guests','booking-review'];
+  const steps=['event-info-step','your-details','your-guests','booking-review','payment-step'];
   let stepIndex=0;
   function stepPanels(){return steps.map(id=>el(id)).filter(Boolean);}
   function showStep(index){
@@ -213,6 +242,16 @@ if(typeof document!=='undefined'){
       const back=panel.querySelector('.step-back'),next=panel.querySelector('.step-next');
       if(back)back.hidden=stepIndex===0;
       if(next)next.hidden=stepIndex===steps.length-1;
+    }
+    if(steps[stepIndex]==='booking-review')renderReview();
+    // Five labelled steps do not fit a phone, so there the nav shrinks to
+    // numbers and this caption carries the wording.
+    const stepsNav=document.querySelector('.axp-steps');
+    if(stepsNav){
+      let caption=document.querySelector('.step-caption');
+      if(!caption){caption=document.createElement('p');caption.className='step-caption';stepsNav.after(caption);}
+      const label=(stepsNav.children[stepIndex*2]?.textContent||'').trim().replace(/^\d+\s*/,'');
+      caption.textContent=`Step ${stepIndex+1} of ${steps.length}${label?' · '+label:''}`;
     }
     const nav=document.querySelector('.axp-steps');
     if(nav&&nav.getBoundingClientRect().top<0)nav.scrollIntoView({block:'start',behavior:'smooth'});
