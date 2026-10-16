@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { EventSettings, DEFAULT_SETTINGS } from './event-settings';
 import { POLICY_VERSION } from './policy-content';
+import { duplicateWithinBooking } from './contact-guard';
 
 export interface AttendeeInput {
   name: string;
@@ -206,6 +207,9 @@ export function validateBookingInput(input: any, settings: EventSettings) {
     const finalEmail = guestEmail || (i === 0 && buyer?.email ? buyer.email : undefined);
     return { ...p, email: finalEmail, age, pass: guest.pass };
   });
+
+  const duplicate = duplicateWithinBooking(attendees);
+  if (duplicate) throw new Error(duplicate);
 
   if (!settings.chargesConfirmed) {
     throw new Error('Final prices have not been confirmed by the organiser.');

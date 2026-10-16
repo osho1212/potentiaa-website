@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { getEventSettings, saveBooking, findBookingByIdempotency } from '@/lib/axp/storage-adapter';
+import { getEventSettings, saveBooking, findBookingByIdempotency, listAllBookings } from '@/lib/axp/storage-adapter';
+import { contactAlreadyBooked } from '@/lib/axp/contact-guard';
 import {
   validateBookingInput,
   createRazorpayOrder,
@@ -23,6 +24,16 @@ export async function POST(request: NextRequest) {
     const existing = await findBookingByIdempotency(key);
     if (existing) {
       return NextResponse.json(existing);
+    }
+
+    // One pass per person: no phone number or email already on another
+    // booking. Checked before the order exists, so nothing is held or charged.
+    const conflict = contactAlreadyBooked(
+      { mode: mode === 'live' ? 'live' : 'test', buyer: validated.buyer, attendees: validated.attendees },
+      await listAllBookings()
+    );
+    if (conflict) {
+      return NextResponse.json({ error: conflict }, { status: 409 });
     }
 
     const accessHash = sha256(accessToken);
