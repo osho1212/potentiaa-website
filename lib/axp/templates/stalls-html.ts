@@ -19,8 +19,7 @@ export const rawStallsHtml = `<!doctype html>
 <a class="axp-skip" href="#stall-form">Skip to the application form</a>
 <main>
   <section class="hero stall-hero" aria-labelledby="stall-title">
-    <a class="hero-brand" href="/axp-social" aria-label="AxP Social — back to the Aagaz invitation"><img src="/axp/emblem.png" alt="" width="44" height="44"><span class="axp-wordmark">AxP <span>SOCIAL</span></span></a>
-    <p class="axp-presenter">AxP Social presents</p>
+    <a class="axp-presenter" href="/axp-social" aria-label="AxP Social presents Aagaz — back to the invitation"><img src="/axp/emblem.png" alt="" width="34" height="34"><span>AxP Social presents</span></a>
     <h1 id="stall-title">Business stalls<span>Bring your table to the circle.</span></h1>
     <p class="intro">Aagaz gathers a small, curated room. A limited number of stall spaces are open to businesses whose work the room would want to meet. Tell us about yours and the organisers will come back to you.</p>
   </section>

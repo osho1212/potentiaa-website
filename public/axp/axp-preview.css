@@ -1011,3 +1011,29 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 
 /* Email status on the confirmed screen, when a send did not go through. */
 .axp-edition .email-confirmation-status.is-error { background: #fbf3e6; border-color: #ecd3a8; color: #7a5317; }
+
+/* The logo sits on the "presents" line; the separate wordmark row is gone. */
+.axp-edition .axp-presenter { display: flex; align-items: center; justify-content: center; gap: 12px; color: inherit; text-decoration: none; }
+.axp-edition .axp-presenter img { width: 34px; height: 34px; object-fit: contain; flex: none; }
+.axp-edition .stall-hero .axp-presenter { justify-content: flex-start; }
+@media (max-width: 760px) {
+  .axp-edition .axp-presenter { gap: 10px; }
+  .axp-edition .axp-presenter img { width: 30px; height: 30px; }
+  .axp-edition a.axp-presenter { min-height: 44px; }
+}
+
+/* Phones keep When and Where side by side, set a little smaller to fit. */
+@media (max-width: 480px) {
+  .axp-edition .event-meta { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .axp-edition .event-meta > div, .axp-edition .event-meta > div + div { padding: 10px 12px; }
+  .axp-edition .event-meta small { font-size: 9.5px; letter-spacing: 1.6px; }
+  .axp-edition .event-meta strong { font-size: 16px; line-height: 1.2; }
+  .axp-edition .event-meta span, .axp-edition #event-times, .axp-edition #event-location, .axp-edition .venue-directions { font-size: 11px; }
+}
+
+/* When and Where hold three short lines each, so the boxes fit their content
+   rather than spreading it down an equal-height box. */
+.axp-edition .event-meta > div { align-content: start; }
+@media (max-width: 480px) {
+  .axp-edition .event-meta .venue-directions { min-height: 28px; margin-top: 2px; }
+}
