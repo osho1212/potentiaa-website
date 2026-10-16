@@ -96,6 +96,8 @@ if(typeof document!=='undefined'){
     el('confirmed-charges').hidden=total.total===null;
     if(total.total!==null){el('extra-charge-total').textContent=money(total.extraCharges);el('final-total').textContent=money(total.total);}
     el('charges-pending').hidden=total.total!==null;
+    const passes=state.length,amount=total.total!==null?total.total:total.subtotal;
+    document.querySelectorAll('.step-total').forEach(node=>{node.textContent=`${passes} ${passes===1?'pass':'passes'} \u00b7 ${money(amount)}`;});
   }
   function input(labelText,property,index,{type='text',placeholder='',maxLength=100,required=true}={}){
     const label=required?requiredLabel(labelText):optionalLabel(labelText);
@@ -117,7 +119,7 @@ if(typeof document!=='undefined'){
         input('Phone number','phone',index,{type:'tel',placeholder:'+91 98765 43210',maxLength:20,required:false})
       );
       const dobLabel=requiredLabel('Date of birth');
-      const dob=document.createElement('input');dob.type='date';dob.id=`guest-${index}-dob`;dob.name=`attendees[${index}][dob]`;dob.required=true;dob.value=guest.dob;
+      const dob=document.createElement('input');dob.type='date';dob.id=`guest-${index}-dob`;dob.name=`attendees[${index}][dob]`;dob.required=true;dob.value=guest.dob;{const day=String(settings.eventDate||'');if(/^\d{4}-\d{2}-\d{2}$/.test(day)){const y=Number(day.slice(0,4)),md=day.slice(4);dob.max=(y-20)+md;dob.min=(y-100)+md;}}
       dobLabel.append(dob,describeField(dob,`Attendee ${index+1}: date of birth`));grid.append(dobLabel);
       const passLabel=requiredLabel('Pass type');const pass=document.createElement('select');pass.id=`guest-${index}-pass`;pass.name=`attendees[${index}][pass]`;pass.required=true;
       pass.append(new Option(`Silver \u00b7 ${money(settings.normalPrice)} base`,'normal'),new Option(`Gold \u00b7 ${money(settings.alcoholPrice)} base \u00b7 21+`,'alcohol'));pass.value=guest.pass;pass.options[1].disabled=ageBracket(guest.dob)!=='21plus';
@@ -125,8 +127,8 @@ if(typeof document!=='undefined'){
       pass.addEventListener('change',()=>{guest.pass=pass.value;summary();});passLabel.append(pass,describeField(pass,`Attendee ${index+1}: pass type`));grid.append(passLabel);section.append(grid);el('attendees').append(section);
     });summary();refreshReadiness();
   }
-  el('plus').addEventListener('click',()=>{if(state.length<settings.maxPerBooking){state.push({name:'',email:'',instagram:'',phone:'',dob:'',age:'',pass:'normal'});render();}});
-  el('minus').addEventListener('click',()=>{if(state.length>1){state.pop();render();}});
+  el('plus').addEventListener('click',()=>{if(state.length<settings.maxPerBooking){state.push({name:'',email:'',instagram:'',phone:'',dob:'',age:'',pass:'normal'});render();saveDraft();}});
+  el('minus').addEventListener('click',()=>{if(state.length>1){state.pop();render();saveDraft();}});
   function copyBuyerToFirst(){for(const key of ['name','email','instagram','phone'])state[0][key]=el('buyer-'+key).value;render();}
   el('copy-buyer').addEventListener('click',()=>{mirrorBuyer=true;copyBuyerToFirst();});
   // A lone attendee is almost always the buyer, so their details follow the
@@ -171,6 +173,11 @@ if(typeof document!=='undefined'){
       return row;
     }));
     el('review-total').textContent=money(total.subtotal);
+    if(!el('review-edit-contact')){
+      const edit=(id,text,step)=>{const button=document.createElement('button');button.type='button';button.id=id;button.className='review-edit';button.textContent=text;button.addEventListener('click',()=>showStep(step));return button;};
+      el('review-buyer').after(edit('review-edit-contact','Edit contact details',1));
+      el('review-guests').after(edit('review-edit-guests','Edit attendees',2));
+    }
     el('review-notice').textContent=(total.total===null?'Final charges are pending.':`Additional charges: ${money(total.extraCharges)}. Total payable: ${money(total.total)}.`)+' No booking has been saved, no places have been reserved, and no payment has been taken.';
   }
   el('booking-form').addEventListener('submit',event=>{
@@ -182,6 +189,61 @@ if(typeof document!=='undefined'){
   el('booking-form').addEventListener('focusout',event=>{if(event.target.matches('[required]')){touched.add(event.target.id);refreshReadiness();}});
   el('check-required-fields').addEventListener('click',showMissingFields);
 
+  // A refresh, a dropped connection or an accidental swipe should not cost a
+  // guest everything they typed. The draft lives in sessionStorage, so it is
+  // scoped to this tab and gone when the tab closes; it is cleared once the
+  // booking is confirmed. Terms acceptance is deliberately not saved.
+  function restoreDraft(){
+    try{
+      const draft=JSON.parse(sessionStorage.getItem('axp-booking-draft')||'null');
+      if(!draft||draft.v!==1)return 0;
+      for(const key of ['name','email','instagram','phone'])if(typeof draft.buyer?.[key]==='string')el('buyer-'+key).value=draft.buyer[key];
+      if(Array.isArray(draft.attendees)&&draft.attendees.length){
+        const blank={name:'',email:'',instagram:'',phone:'',dob:'',age:'',pass:'normal'};
+        state.splice(0,state.length,...draft.attendees.slice(0,5).map(guest=>({...blank,...guest})));
+        state.forEach(guest=>{guest.age=ageBracket(guest.dob)||'';if(guest.pass==='alcohol'&&guest.age!=='21plus')guest.pass='normal';});
+      }
+      mirrorBuyer=draft.mirrorBuyer!==false;
+      return Number.isInteger(draft.step)?draft.step:0;
+    }catch{return 0;}
+  }
+  function saveDraft(){
+    try{
+      sessionStorage.setItem('axp-booking-draft',JSON.stringify({
+        v:1,step:stepIndex,mirrorBuyer,
+        buyer:Object.fromEntries(['name','email','instagram','phone'].map(key=>[key,el('buyer-'+key).value])),
+        attendees:state,
+      }));
+    }catch{}
+  }
+  // A live countdown to the doors opening; it hides itself once they have.
+  let countdownTimer=null;
+  function startCountdown(){
+    const box=el('event-countdown'),units=el('event-countdown-units');
+    if(!box||!units)return;
+    const start=new Date(`${settings.eventDate}T${settings.startTime||'00:00'}:00+05:30`);
+    if(Number.isNaN(start.getTime())){box.hidden=true;return;}
+    const parts=[['days',86400],['hrs',3600],['min',60],['sec',1]];
+    if(!units.childElementCount){
+      for(const [name] of parts){
+        const cell=document.createElement('span');cell.className='cd-unit';
+        const num=document.createElement('strong');num.className='cd-num';
+        const caption=document.createElement('small');caption.textContent=name;
+        cell.append(num,caption);units.append(cell);
+      }
+    }
+    const tick=()=>{
+      let left=Math.floor((start.getTime()-Date.now())/1000);
+      if(left<=0){box.hidden=true;clearInterval(countdownTimer);return;}
+      box.hidden=false;
+      parts.forEach(([,size],i)=>{
+        const value=Math.floor(left/size);left-=value*size;
+        const num=units.children[i].firstChild,text=String(value).padStart(i?2:1,'0');
+        if(num.textContent!==text){num.textContent=text;num.classList.remove('cd-tick');void num.offsetWidth;num.classList.add('cd-tick');}
+      });
+    };
+    clearInterval(countdownTimer);tick();countdownTimer=setInterval(tick,1000);
+  }
   function applyBrand(key,logo,phone){
     const img=el(key+'-logo'),link=el(key+'-phone');
     if(img){img.hidden=!logo;if(logo)img.src=logo;}
@@ -201,6 +263,7 @@ if(typeof document!=='undefined'){
       const directions=settings.venueMapsUrl||(mapQuery?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`:'');
       el('venue-directions').href=directions||'#';el('venue-directions').hidden=!directions;
       el('event-description').textContent=settings.eventDescription||'';
+      startCountdown();
       el('about-event').hidden=!(settings.eventDescription||'').trim();
       el('event-subtitle').textContent=settings.eventSubtitle||'';
       el('event-subtitle').hidden=!(settings.eventSubtitle||'').trim();
@@ -229,27 +292,36 @@ if(typeof document!=='undefined'){
       settingsLoaded=true;el('settings-load-state').hidden=true;render();
     }catch{settingsLoaded=false;el('settings-load-state').textContent='Event settings could not be loaded. Please reload before reviewing a booking.';refreshReadiness();}
   }
+  const restoredStep=restoreDraft();
   render();loadSettings();
+  for(const eventName of ['input','change'])el('booking-form').addEventListener(eventName,()=>saveDraft());
 
   // One panel at a time. Moving forward validates the step you are leaving, so
   // a guest cannot carry an empty required field into the next screen; moving
   // back is always free. refreshReadiness still judges the whole form, which is
   // what gates the final review button.
   const steps=['event-info-step','your-details','your-guests','booking-review','payment-step'];
+  // The forward button says where it goes, not just "Next". The review step
+  // moves on with its own "Continue to payment" button instead.
+  const nextLabels=['Book your passes','Continue to attendees','Review booking',null,null];
   let stepIndex=0;
   function stepPanels(){return steps.map(id=>el(id)).filter(Boolean);}
-  function showStep(index){
+  function stepLabel(index){const nav=document.querySelector('.axp-steps');return (nav?.children[index*2]?.textContent||'').trim().replace(/^\d+\s*/,'');}
+  function showStep(index,{push=true,focus=true}={}){
+    const previous=stepIndex;
     stepIndex=Math.max(0,Math.min(steps.length-1,index));
     steps.forEach((id,n)=>{const panel=el(id);if(panel)panel.hidden=n!==stepIndex;});
     document.querySelectorAll('.axp-steps a').forEach((link,n)=>{
       link.classList.toggle('is-current',n===stepIndex);
       link.classList.toggle('is-done',n<stepIndex);
+      if(n===stepIndex)link.setAttribute('aria-current','step');else link.removeAttribute('aria-current');
     });
     for(const panel of stepPanels()){
       const back=panel.querySelector('.step-back'),next=panel.querySelector('.step-next');
       if(back)back.hidden=stepIndex===0;
-      if(next)next.hidden=stepIndex===steps.length-1;
+      if(next)next.hidden=stepIndex===steps.length-1||steps[stepIndex]==='booking-review';
     }
+    document.querySelectorAll('.step-block-note').forEach(note=>{note.textContent='';});
     const entering=el(steps[stepIndex]);
     if(entering){entering.classList.remove('is-entering');void entering.offsetWidth;entering.classList.add('is-entering');}
     if(steps[stepIndex]==='booking-review')renderReview();
@@ -258,12 +330,22 @@ if(typeof document!=='undefined'){
     const stepsNav=document.querySelector('.axp-steps');
     if(stepsNav){
       let caption=document.querySelector('.step-caption');
-      if(!caption){caption=document.createElement('p');caption.className='step-caption';stepsNav.after(caption);}
-      const label=(stepsNav.children[stepIndex*2]?.textContent||'').trim().replace(/^\d+\s*/,'');
+      if(!caption){caption=document.createElement('p');caption.className='step-caption';caption.setAttribute('aria-live','polite');stepsNav.after(caption);}
+      const label=stepLabel(stepIndex);
       caption.textContent=`Step ${stepIndex+1} of ${steps.length}${label?' · '+label:''}`;
     }
-    const nav=document.querySelector('.axp-steps');
-    if(nav&&nav.getBoundingClientRect().top<0)nav.scrollIntoView({block:'start',behavior:'smooth'});
+    // Each step is a history entry, so a phone's back button steps back through
+    // the form instead of leaving the page and losing everything typed.
+    if(push&&stepIndex!==previous){try{history.pushState({axpStep:stepIndex},'',`#step-${stepIndex+1}`);}catch{}}
+    saveDraft();
+    if(focus&&stepIndex!==previous&&entering){
+      // Keyboard and screen-reader users land on the new step's heading, not on
+      // a button that has just been hidden.
+      const heading=entering.querySelector('.section-top h2');
+      if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}
+      const nav=document.querySelector('.axp-steps');
+      if(nav){const top=nav.getBoundingClientRect().top;if(top<0||top>innerHeight*.6)nav.scrollIntoView({block:'start',behavior:'smooth'});}
+    }
   }
   function stepValid(index){
     const panel=el(steps[index]);
@@ -276,14 +358,63 @@ if(typeof document!=='undefined'){
     refreshReadiness();
     return ok;
   }
+  function stepSilentlyValid(index){
+    const panel=el(steps[index]);
+    return !panel||[...panel.querySelectorAll('input,select')].every(field=>!fieldError(field));
+  }
+  // When a step will not let you through, take you to the first thing that is
+  // wrong and say so beside the buttons, rather than failing silently.
+  function explainBlocked(index){
+    const panel=el(steps[index]);
+    const field=panel&&[...panel.querySelectorAll('input,select')].find(f=>fieldError(f));
+    if(!field){showMissingFields();return;}
+    field.focus({preventScroll:true});
+    field.scrollIntoView({block:'center',behavior:'smooth'});
+    let note=panel.querySelector('.step-block-note');
+    if(!note){note=document.createElement('p');note.className='step-block-note';note.setAttribute('role','alert');panel.querySelector('.step-nav')?.before(note);}
+    note.textContent='A few details need attention before you continue. They are marked above.';
+  }
+  function goForward(){if(stepValid(stepIndex))showStep(stepIndex+1);else explainBlocked(stepIndex);}
   for(const panel of stepPanels()){
     const back=panel.querySelector('.step-back'),next=panel.querySelector('.step-next');
     if(back)back.addEventListener('click',()=>showStep(stepIndex-1));
-    if(next)next.addEventListener('click',()=>{if(stepValid(stepIndex))showStep(stepIndex+1);else showMissingFields();});
+    if(next){
+      const label=nextLabels[steps.indexOf(panel.id)];
+      if(label){next.textContent=label+' ';const arrow=document.createElement('span');arrow.setAttribute('aria-hidden','true');arrow.textContent='→';next.append(arrow);}
+      next.addEventListener('click',goForward);
+    }
   }
+  // A small running total beside the buttons while passes are being chosen.
+  for(const id of ['your-details','your-guests']){
+    const nav=el(id)?.querySelector('.step-nav');
+    if(nav&&!nav.querySelector('.step-total')){const total=document.createElement('span');total.className='step-total';total.setAttribute('aria-live','polite');nav.prepend(total);}
+  }
+  summary();
   document.querySelectorAll('.axp-steps a').forEach((link,n)=>link.addEventListener('click',event=>{
     event.preventDefault();
-    if(n<=stepIndex||stepValid(stepIndex))showStep(n);else showMissingFields();
+    if(n<=stepIndex){showStep(n);return;}
+    // Jumping ahead still has to pass every step in between.
+    for(let i=stepIndex;i<n;i++){if(!stepValid(i)){showStep(i);explainBlocked(i);return;}}
+    showStep(n);
   }));
-  showStep(0);
+  window.addEventListener('popstate',event=>{
+    const target=event.state&&Number.isInteger(event.state.axpStep)?event.state.axpStep:null;
+    if(target===null)return;
+    if(target>stepIndex){
+      for(let i=stepIndex;i<target;i++){
+        if(!stepValid(i)){showStep(i,{push:false});try{history.replaceState({axpStep:i},'',`#step-${i+1}`);}catch{}explainBlocked(i);return;}
+      }
+    }
+    showStep(target,{push:false});
+  });
+  el('hero-cta')?.addEventListener('click',event=>{event.preventDefault();showStep(1);});
+  try{history.replaceState({axpStep:0},'',location.pathname+location.search);}catch{}
+  showStep(0,{push:false,focus:false});
+  // Come back to where the guest left off, but never past a step that is no
+  // longer complete. Terms are not saved, so this stops at review at the latest.
+  if(restoredStep>0){
+    let reach=0;
+    while(reach<restoredStep&&reach<steps.length-1&&stepSilentlyValid(reach))reach++;
+    if(reach>0)showStep(reach,{focus:false});
+  }
 }

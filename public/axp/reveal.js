@@ -1,4 +1,5 @@
-// Content below the fold rises into place as it scrolls into view.
+// Motion shared by the guest pages: content below the fold rises into place as
+// it scrolls into view, and golden glints drift over the hero.
 //
 // Nothing is hidden unless this script runs and motion is welcome: the hiding
 // rule only applies under html.reveal-ready, which is set here, so a script
@@ -37,4 +38,17 @@ if (!reduce && 'IntersectionObserver' in window) {
   }, { rootMargin: '0px 0px -6% 0px', threshold: 0.06 });
 
   for (const item of items) observer.observe(item);
+}
+
+// Golden glints over the hero. Their positions and timings live in CSS
+// (nth-child), so nothing here needs an inline style.
+if (!reduce) {
+  for (const hero of document.querySelectorAll('.hero')) {
+    if (hero.querySelector('.hero-glints')) continue;
+    const field = document.createElement('div');
+    field.className = 'hero-glints';
+    field.setAttribute('aria-hidden', 'true');
+    for (let i = 0; i < 14; i++) field.append(document.createElement('span'));
+    hero.prepend(field);
+  }
 }

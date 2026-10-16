@@ -17,7 +17,7 @@ export function renderPasscodeGateHtml(targetName: string, returnPath: string): 
       background: #faf7f2;
       padding: 24px;
       margin: 0;
-      font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+      font-family: "DM Sans", system-ui, -apple-system, sans-serif;
       color: #1e1e1e;
     }
     .auth-card {
@@ -46,7 +46,7 @@ export function renderPasscodeGateHtml(targetName: string, returnPath: string): 
       margin-bottom: 8px;
     }
     .auth-title {
-      font-family: var(--font-serif, "Playfair Display", Georgia, serif);
+      font-family: "Cormorant Garamond", Georgia, serif;
       font-size: 26px;
       font-weight: 500;
       color: #1c2e24;
@@ -87,12 +87,12 @@ export function renderPasscodeGateHtml(targetName: string, returnPath: string): 
       transition: border-color 0.2s, box-shadow 0.2s;
     }
     .auth-input-group input:focus {
-      border-color: #1b4d3e;
+      border-color: #402347;
       box-shadow: 0 0 0 3px rgba(27, 77, 62, 0.12);
     }
     .auth-button {
       padding: 14px;
-      background: #1b4d3e;
+      background: #402347;
       color: #ffffff;
       font-weight: 600;
       font-size: 15px;
@@ -130,7 +130,7 @@ export function renderPasscodeGateHtml(targetName: string, returnPath: string): 
       transition: color 0.2s;
     }
     .auth-back:hover {
-      color: #1b4d3e;
+      color: #402347;
     }
   </style>
 </head>

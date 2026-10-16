@@ -13,6 +13,7 @@ export function GET() {
     .replace('<body>', '<body class="axp-edition"><a class="axp-skip" href="#your-details">Skip to booking form</a>')
     .replace(/<header>[\s\S]*?<\/header>/, '')
     .replace('<section class="hero"', '<section id="event-details" class="hero"')
+    .replace('<div id="event-rules"', '<div class="hero-actions"><a id="hero-cta" class="hero-cta" href="#your-details">Book your passes <span aria-hidden="true">→</span></a><div id="event-countdown" class="event-countdown" hidden><span class="cd-label">Doors open in</span><span id="event-countdown-units" class="cd-units"></span></div></div><div id="event-rules"')
     .replace('<div id="event-kicker"', '<a class="hero-brand" href="/axp-social" aria-label="AxP Social — Aagaz"><img src="/axp/emblem.png" alt="" width="56" height="56"><span class="axp-wordmark">AxP <span>SOCIAL</span></span></a><p class="axp-presenter">AxP Social presents</p><div id="event-kicker"')
     .replace('It starts with us.', 'A new circle. A beautiful beginning.')
     .replace('The first gathering of AXP Social. A new circle, a beautiful haveli, and an afternoon that turns into a night to remember.', 'An afternoon that becomes an evening to remember. Join us for the first gathering of AxP Social.')

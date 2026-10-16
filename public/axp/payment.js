@@ -190,6 +190,7 @@ function showBooking(booking){
   resendEmailBtn.hidden=false;
   renderTickets(false);
   syncConfirmationMap();
+  try{sessionStorage.removeItem('axp-booking-draft');}catch{}
   sendConfirmationEmail(booking);
  }
  if(booking.status==='pending'&&resume.hidden)message.textContent='This checkout hold has expired. Check payment status or contact event support before making another payment. No ticket has been issued.';
@@ -206,7 +207,19 @@ function renderSavedSummary(booking){
  const summary=document.createElement('p');summary.textContent=`${booking.people} named ${booking.people===1?'pass':'passes'} · Total payable: ${money(booking.total)}`;
  const list=document.createElement('ul');for(const guest of booking.attendees){const row=document.createElement('li');row.textContent=guest.name+(guest.email?` (${guest.email})`:'')+' · '+(guest.pass==='alcohol'?'Gold · 21+':'Silver');list.append(row);}savedDetails.replaceChildren(summary,list);
 }
-async function poll(){if(!attempt)return;try{let booking;if(attempt.id)booking=await request('/api/bookings/'+attempt.id);else{booking=await request('/api/bookings/recover',{body:{mode:attempt.mode,idempotencyKey:attempt.idempotencyKey}});attempt.id=booking.id;saveAttempt();}showBooking(booking);}catch(error){message.textContent=error.message;}}
+// A saved attempt the server no longer knows (expired, purged, or a bad
+// ?booking= link) must not strand the guest behind a dead card and a frozen
+// form: forget it and hand the form back.
+function releaseStaleAttempt(){
+ attempt=null;polling=false;
+ try{sessionStorage.removeItem('axp-last-booking');}catch{}
+ card.hidden=true;
+ el('booking-form').inert=false;
+ const nav=document.querySelector('.axp-steps');if(nav)nav.inert=false;
+ el('plus').disabled=false;el('minus').disabled=document.querySelectorAll('.attendee').length<=1;
+ updateButton();
+}
+async function poll(){if(!attempt)return;try{let booking;if(attempt.id)booking=await request('/api/bookings/'+attempt.id);else{booking=await request('/api/bookings/recover',{body:{mode:attempt.mode,idempotencyKey:attempt.idempotencyKey}});attempt.id=booking.id;saveAttempt();}showBooking(booking);}catch(error){if(error.status===404){releaseStaleAttempt();return;}message.textContent=error.message;}}
 async function startPolling(){if(polling)return;polling=true;for(let i=0;i<12&&polling;i++){await new Promise(resolve=>setTimeout(resolve,5000));await poll();}polling=false;}
 async function renderTickets(triggerDownload=false){
  if(!attempt?.id)return;
