@@ -13,15 +13,13 @@ export const rawStallsHtml = `<!doctype html>
 <link rel="stylesheet" href="/axp/fonts/fonts.css">
 <link rel="stylesheet" href="/axp/axp-preview.css">
 <script type="module" src="/axp/stalls.js"></script>
+<script type="module" src="/axp/reveal.js"></script>
 </head>
 <body class="axp-edition">
 <a class="axp-skip" href="#stall-form">Skip to the application form</a>
-<header class="axp-header">
-  <a class="brand" href="/axp-social" aria-label="AxP Social — Aagaz"><img src="/axp/emblem.png" alt="" width="56" height="56"><span class="axp-wordmark">AxP <span>SOCIAL</span></span></a>
-  <nav aria-label="Main navigation"><a href="/axp-social">Guest invitation <span aria-hidden="true">&#8599;</span></a></nav>
-</header>
 <main>
   <section class="hero stall-hero" aria-labelledby="stall-title">
+    <a class="hero-brand" href="/axp-social" aria-label="AxP Social — back to the Aagaz invitation"><img src="/axp/emblem.png" alt="" width="44" height="44"><span class="axp-wordmark">AxP <span>SOCIAL</span></span></a>
     <p class="axp-presenter">AxP Social presents</p>
     <h1 id="stall-title">Business stalls<span>Bring your table to the circle.</span></h1>
     <p class="intro">Aagaz gathers a small, curated room. A limited number of stall spaces are open to businesses whose work the room would want to meet. Tell us about yours and the organisers will come back to you.</p>

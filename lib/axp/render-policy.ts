@@ -106,9 +106,9 @@ export function renderPolicyHtml(settings: EventSettings, slug: string): string 
     POLICY_PAGES[slug]
   )} · ${e(
     s.eventName
-  )} · AxP Social</title><link rel="stylesheet" href="/axp/style.css"></head><body><header><a class="brand" href="/axp-social">AxP SOCIAL · ${e(
+  )} · AxP Social</title><link rel="stylesheet" href="/axp/style.css"><link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/axp-preview.css"><script type="module" src="/axp/reveal.js"></script></head><body class="axp-edition policy-page"><header class="policy-header"><a class="hero-brand policy-brand" href="/axp-social" aria-label="AxP Social — ${e(
     s.eventName
-  )}</a><a href="/axp-social" class="tracker-link">Booking form ↗</a></header><main class="policy-main"><article class="panel"><h1>${e(
+  )}"><img src="/axp/emblem.png" alt="" width="44" height="44"><span class="axp-wordmark">AxP <span>SOCIAL</span></span></a><a href="/axp-social" class="tracker-link">Back to the invitation ↗</a></header><main class="policy-main"><article class="panel"><h1>${e(
     POLICY_PAGES[slug]
   )}</h1><p class="helper">${e(
     s.eventName

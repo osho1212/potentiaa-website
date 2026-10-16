@@ -551,3 +551,96 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 .axp-edition .email-confirmation-status { font-size: 13px; color: #2e1533; background: #f3e8f7; border: 1px solid #d4bee0; padding: 14px 18px; border-radius: 10px; margin: 18px 0; line-height: 1.6; font-weight: 500; box-shadow: 0 2px 8px rgba(64, 35, 71, .08); }
 .axp-edition .ticket-list-title { font-size: 15px; font-weight: 600; margin: 18px 0 10px; }
 .axp-edition .ticket-download-link { display: inline-block; margin: 12px 0; }
+
+/* ---------- Mobile hero: the image stays behind the type, as on a laptop ---------- */
+@media (max-width: 760px) {
+  .axp-hero-art { display: none; }
+  .axp-edition .hero {
+    background: url('/axp/ivory-plum-gathering.png') 64% center / cover no-repeat;
+    padding: 24px 20px 30px;
+    min-height: 0;
+  }
+  /* A 3:1 photograph behind a tall column of type needs a wash that is strong
+     where the title sits and thins out as the scene shows through below. */
+  .axp-edition .hero::after {
+    background: linear-gradient(180deg,
+      rgba(245, 241, 233, .93) 0%,
+      rgba(245, 241, 233, .84) 36%,
+      rgba(245, 241, 233, .52) 66%,
+      rgba(245, 241, 233, .26) 100%);
+  }
+  .axp-edition .event-meta > div { background: rgba(255, 253, 249, .80); backdrop-filter: blur(8px); }
+  .axp-edition .event-fine { background: rgba(255, 253, 249, .78); backdrop-filter: blur(6px); }
+}
+
+/* ---------- Scroll reveal (driven by /axp/reveal.js) ----------
+   An animation rather than a transition, with backwards fill: the rise holds
+   its first frame through the stagger delay, then hands transform back to the
+   normal cascade, so the pass cards' hover lift still works afterwards. */
+.reveal-ready .reveal-item:not(.is-visible) { opacity: 0; }
+.reveal-ready .reveal-item.is-visible { animation: axp-rise .7s cubic-bezier(.22, .61, .36, 1) backwards; }
+.reveal-ready .reveal-item.is-visible[data-reveal-index="1"] { animation-delay: .07s; }
+.reveal-ready .reveal-item.is-visible[data-reveal-index="2"] { animation-delay: .14s; }
+.reveal-ready .reveal-item.is-visible[data-reveal-index="3"] { animation-delay: .21s; }
+.reveal-ready .reveal-item.is-visible[data-reveal-index="4"] { animation-delay: .28s; }
+.reveal-ready .reveal-item.is-visible[data-reveal-index="5"] { animation-delay: .35s; }
+.reveal-ready .reveal-item.is-visible[data-reveal-index="6"] { animation-delay: .42s; }
+.reveal-ready .reveal-item.is-visible[data-reveal-index="7"] { animation-delay: .49s; }
+.reveal-ready .reveal-item.is-visible[data-reveal-index="8"] { animation-delay: .56s; }
+
+/* Rows built while a step opens arrive one after another, not all at once. */
+.axp-edition .step-panel.is-entering :is(.attendee, .review-person) { animation: axp-rise .45s cubic-bezier(.22, .61, .36, 1) backwards; }
+.axp-edition .step-panel.is-entering :is(.attendee, .review-person):nth-child(2) { animation-delay: .06s; }
+.axp-edition .step-panel.is-entering :is(.attendee, .review-person):nth-child(3) { animation-delay: .12s; }
+.axp-edition .step-panel.is-entering :is(.attendee, .review-person):nth-child(4) { animation-delay: .18s; }
+.axp-edition .step-panel.is-entering :is(.attendee, .review-person):nth-child(5) { animation-delay: .24s; }
+
+/* Buttons answer the press. */
+.axp-edition :is(.primary, .secondary, .step-nav button) { transition: transform .15s ease, background-color .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.axp-edition :is(.primary, .step-nav .primary):not(:disabled):hover { box-shadow: 0 6px 18px rgba(64, 35, 71, .22); }
+.axp-edition :is(.primary, .secondary, .step-nav button):not(:disabled):active { transform: translateY(1px) scale(.99); }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-ready .reveal-item:not(.is-visible) { opacity: 1; }
+  .reveal-ready .reveal-item.is-visible,
+  .axp-edition .step-panel.is-entering :is(.attendee, .review-person) { animation: none; }
+  .axp-edition :is(.primary, .secondary, .step-nav button):not(:disabled):active { transform: none; }
+}
+
+/* ---------- Stall page hero: same photograph, type on the soft wall side ---------- */
+.axp-edition .stall-hero { background: url('/axp/ivory-plum-gathering.png') 60% center / cover no-repeat; min-height: 340px; padding: 44px 54px 36px; }
+.axp-edition .stall-hero::after {
+  background: linear-gradient(90deg,
+    rgba(245, 241, 233, .95) 0%, rgba(245, 241, 233, .86) 42%,
+    rgba(245, 241, 233, .30) 78%, rgba(245, 241, 233, .08) 100%);
+}
+@media (max-width: 760px) {
+  .axp-edition .stall-hero { min-height: 0; padding: 28px 20px 30px; background-position: 64% center; }
+  .axp-edition .stall-hero::after {
+    background: linear-gradient(180deg,
+      rgba(245, 241, 233, .94) 0%, rgba(245, 241, 233, .82) 55%, rgba(245, 241, 233, .38) 100%);
+  }
+}
+
+/* ---------- Policy pages, in the same design as the invitation ---------- */
+.axp-edition.policy-page { min-height: 100vh; }
+.axp-edition .policy-header { max-width: 900px; margin: 0 auto; padding: 22px 24px 18px; display: flex; justify-content: space-between; align-items: center; gap: 16px; border-bottom: 1px solid var(--line); }
+.axp-edition .policy-brand { width: auto; margin: 0; }
+.axp-edition .policy-main { max-width: 900px; margin: 0 auto; padding: 34px 24px 24px; }
+.axp-edition .policy-main article.panel { padding: 34px 32px; border-radius: 10px; }
+.axp-edition .policy-main article.panel h1 { font: 400 clamp(34px, 5vw, 54px)/1.05 var(--display); letter-spacing: -1px; margin: 0 0 10px; color: #3c3033; }
+.axp-edition .policy-main article.panel :is(h2, h3) { font-family: var(--display); font-weight: 500; }
+.axp-edition .policy-main article.panel :is(p, li) { font-size: 13.5px; line-height: 1.8; color: #4f434b; }
+.axp-edition .policy-main .booking-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+.axp-edition .policy-main .booking-table :is(th, td) { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.axp-edition .policy-main .policy-nav { margin-top: 26px; }
+.axp-edition .policy-main .policy-nav [aria-current="page"] { color: var(--green); font-weight: 600; text-decoration: none; }
+@media (max-width: 760px) {
+  .axp-edition .policy-header { padding: 16px 16px 14px; }
+  .axp-edition .policy-header .tracker-link { font-size: 11px; padding: 8px 10px; }
+  .axp-edition .policy-main { padding: 22px 16px 18px; }
+  .axp-edition .policy-main article.panel { padding: 24px 18px; }
+  .axp-edition .policy-main .booking-table { display: block; overflow-x: auto; }
+}
+/* The stall hero is left-set, so its lockup is too. */
+.axp-edition .stall-hero .hero-brand { width: auto; justify-content: flex-start; }

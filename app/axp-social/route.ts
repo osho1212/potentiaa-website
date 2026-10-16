@@ -9,7 +9,7 @@ export function GET() {
     .replace('src="app.js"', 'src="/axp/app.js?v=2"')
     .replace('src="payment.js"', 'src="/axp/payment.js?v=2"')
     .replace('width=device-width, initial-scale=1', 'width=device-width, initial-scale=1, viewport-fit=cover')
-    .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/axp-preview.css"><link rel="preload" as="image" href="/axp/ivory-plum-gathering.png"></head>')
+    .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/axp-preview.css"><link rel="preload" as="image" href="/axp/ivory-plum-gathering.png"><script type="module" src="/axp/reveal.js"></script></head>')
     .replace('<body>', '<body class="axp-edition"><a class="axp-skip" href="#your-details">Skip to booking form</a>')
     .replace(/<header>[\s\S]*?<\/header>/, '')
     .replace('<section class="hero"', '<section id="event-details" class="hero"')
