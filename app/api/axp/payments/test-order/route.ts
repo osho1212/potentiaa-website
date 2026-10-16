@@ -60,6 +60,20 @@ export async function POST(request: NextRequest) {
       salesOpen: true,
     };
 
+    const rawAttendees = Array.isArray(body.attendees) && body.attendees.length > 0
+      ? body.attendees
+      : [{ name, email, instagram, phone, age: '21plus', pass: 'normal' }];
+
+    const attendees = rawAttendees.map((a: any, idx: number) => ({
+      id: crypto.randomUUID(),
+      name: String(a.name || (idx === 0 ? name : `Guest ${idx + 1}`)).trim(),
+      email: String(a.email || (idx === 0 ? email : '')).trim().toLowerCase(),
+      instagram: String(a.instagram || instagram || '@test').trim(),
+      phone: String(a.phone || phone).trim(),
+      age: (a.age === '20' ? '20' : '21plus') as '20' | '21plus',
+      pass: (a.pass === 'alcohol' ? 'alcohol' : 'normal') as 'alcohol' | 'normal',
+    }));
+
     const bookingRecord = {
       id: bookingId,
       mode: 'live' as const,
@@ -72,18 +86,8 @@ export async function POST(request: NextRequest) {
         phone,
         email,
       },
-      attendees: [
-        {
-          id: crypto.randomUUID(),
-          name,
-          email,
-          instagram: instagram || '@test',
-          phone,
-          age: '21plus' as const,
-          pass: 'normal' as const,
-        },
-      ],
-      guestCount: 1,
+      attendees,
+      guestCount: attendees.length,
       amountPaise,
       currency: 'INR',
       status: 'pending' as const,

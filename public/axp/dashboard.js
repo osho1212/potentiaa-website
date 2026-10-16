@@ -22,14 +22,8 @@ function rows(){
       const cell=document.createElement('td');for(const line of lines){const div=document.createElement('div');div.textContent=line;cell.append(div);}row.append(cell);
     }
     if(item.status==='confirmed'&&!imageBookings.has(item.id)){
-      imageBookings.add(item.id);const button=document.createElement('button');button.type='button';button.className='secondary confirmation-download';button.textContent='Save WhatsApp image';
-      button.addEventListener('click',async()=>{button.disabled=true;try{
-        const response=await fetch('/api/admin/bookings/'+encodeURIComponent(item.id)+'/confirmation-image',{cache:'no-store'});
-        if(!response.ok){const data=await response.json();throw new Error(data.error||'Could not prepare confirmation image.');}
-        saveFile(await response.blob(),'aagaz-'+item.id+'.png');
-      }catch(error){el('dashboard-message').textContent=error.message;}finally{button.disabled=false;}});row.children[1].append(button);
-
-      const emailBtn=document.createElement('button');emailBtn.type='button';emailBtn.className='secondary confirmation-download';emailBtn.style.marginTop='6px';emailBtn.textContent='Email passes';
+      imageBookings.add(item.id);
+      const emailBtn=document.createElement('button');emailBtn.type='button';emailBtn.className='secondary confirmation-download';emailBtn.textContent='Email passes';
       emailBtn.addEventListener('click',async()=>{emailBtn.disabled=true;emailBtn.textContent='Sending email…';try{
         const bookingAttendees=entries.filter(e=>e.id===item.id);
         const distinctEmails=new Map();
@@ -41,7 +35,7 @@ function rows(){
         }
         const listText=bookingAttendees.map((a,i)=>`${i+1}. ${a.name} — ${passName(a.pass_type)}`).join('\n');
         for(const target of distinctEmails.values()){
-          await fetch('https://api.emailjs.com/api/v1.0/email/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service_id:'service_59d1ylv',template_id:'template_x1xmkvu',user_id:'wUJPfRnz1y09Ms68T',template_params:{to_name:target.name,to_email:target.email,booking_id:item.id,booking_id_short:item.id.slice(0,8),guest_count:target.isBuyer?String(bookingAttendees.length):'1 (Personal Pass)',amount_paid:target.isBuyer?`₹${item.total.toLocaleString('en-IN')}`:'Paid by '+item.buyer_name,attendees_list:listText,pass_link:window.location.origin+'/axp-social#passes'}})});
+          await fetch('https://api.emailjs.com/api/v1.0/email/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service_id:'service_59d1ylv',template_id:'template_x1xmkvu',user_id:'wUJPfRnz1y09Ms68T',template_params:{to_name:target.name,to_email:target.email,booking_id:item.id,booking_id_short:item.id.slice(0,8),guest_count:target.isBuyer?String(bookingAttendees.length):'1 (Personal Pass)',amount_paid:target.isBuyer?`₹${item.total.toLocaleString('en-IN')}`:'Paid by '+item.buyer_name,attendees_list:listText,pass_link:window.location.origin+'/axp-social?booking='+encodeURIComponent(item.id)+'#passes'}})});
         }
         el('dashboard-message').textContent=`✉️ Passes emailed to: ${[...distinctEmails.keys()].join(', ')}.`;
       }catch(err){el('dashboard-message').textContent='Email error: '+err.message;}finally{emailBtn.disabled=false;emailBtn.textContent='Email passes';}});row.children[1].append(emailBtn);

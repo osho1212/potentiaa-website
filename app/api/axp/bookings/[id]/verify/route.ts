@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findBookingById, saveBooking } from '@/lib/axp/storage-adapter';
 import { verifyRazorpaySignature } from '@/lib/axp/payment-core';
+import { sendBookingConfirmationEmails } from '@/lib/axp/email-service';
 
 export async function POST(
   request: NextRequest,
@@ -34,6 +35,16 @@ export async function POST(
 
     booking.status = 'confirmed';
     booking.paymentId = razorpay_payment_id;
+
+    // Send confirmation emails from server immediately
+    let emailDelivery = { success: false, recipients: [] as string[] };
+    try {
+      emailDelivery = await sendBookingConfirmationEmails(booking);
+      (booking as any).emailDelivery = emailDelivery;
+    } catch (emailErr) {
+      console.error('Failed to send confirmation emails from server:', emailErr);
+    }
+
     await saveBooking(booking);
 
     const settings = booking.snapshot?.settings || {};
@@ -54,6 +65,7 @@ export async function POST(
         subtotal: booking.amountPaise / 100,
         extraCharges: 0,
       },
+      emailDelivery,
     });
   } catch (error: any) {
     console.error('Payment verification error:', error);
