@@ -1037,3 +1037,28 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 @media (max-width: 480px) {
   .axp-edition .event-meta .venue-directions { min-height: 28px; margin-top: 2px; }
 }
+
+/* ---------- Organiser strip: one line on wide screens ---------- */
+.axp-edition .brand-strip { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px 28px; margin-top: 24px; padding-top: 16px; }
+.axp-edition .brand-strip .eyebrow { margin: 0; }
+.axp-edition .brand-row { margin-top: 0; grid-template-columns: repeat(2, auto); }
+.axp-edition .brand-card { grid-template-columns: auto auto; grid-template-rows: 44px; column-gap: 12px; padding: 0 20px; }
+.axp-edition .brand-card img { height: 44px; max-width: 120px; }
+.axp-edition .brand-card #potentiaa-logo { height: 28px; margin-top: 0; }
+.axp-edition .brand-card .brand-phone { grid-column: 2; grid-row: 1; align-self: center; }
+
+/* ---------- Footer: the policy links sit above the copyright line ---------- */
+.axp-edition main > footer.axp-footer { display: block; margin-top: 24px; padding: 6px 0 max(22px, env(safe-area-inset-bottom, 0px)); text-align: center; }
+.axp-edition .axp-footer .policy-nav { padding: 10px 0 4px; line-height: 1.6; }
+.axp-edition .axp-footer .footer-meta { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px 16px; margin-top: 10px; }
+
+@media (max-width: 760px) {
+  .axp-edition .brand-strip { gap: 8px; margin-top: 20px; padding-top: 14px; }
+  .axp-edition .brand-strip .eyebrow { flex-basis: 100%; text-align: center; }
+  .axp-edition .brand-row { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .axp-edition .brand-card { grid-template-columns: auto; grid-template-rows: 40px auto; row-gap: 0; padding: 0 10px; }
+  .axp-edition .brand-card img { height: 40px; }
+  .axp-edition .brand-card #potentiaa-logo { height: 25px; }
+  .axp-edition .brand-card .brand-phone { grid-column: 1; grid-row: 2; min-height: 32px; }
+  .axp-edition .axp-footer .footer-meta { flex-direction: column; justify-content: center; }
+}
