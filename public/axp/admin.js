@@ -36,3 +36,6 @@ el('settings-form').addEventListener('submit',async event=>{
 });
 el('reload-settings').addEventListener('click',load);buildForm();load();
 window.addEventListener('organiser-access-changed',()=>{el('settings-form').hidden=true;el('access-panel').hidden=false;el('access-message').textContent='Your organiser access has changed. Sign in with an authorised account.';el('admin-signin').hidden=false;});
+// Signing out lives here rather than in an onclick attribute: the page sets
+// script-src 'self', so an inline handler never runs.
+el('lock-signout')?.addEventListener('click',async()=>{el('lock-signout').disabled=true;try{await fetch('/api/axp/admin/auth',{method:'DELETE'});}finally{location.reload();}});

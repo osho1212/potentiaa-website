@@ -20,7 +20,7 @@ export function GET(request: NextRequest) {
     .replace('src="/dashboard.js"', 'src="/axp/dashboard.js?v=2"')
     .replace(
       '<header><a class="brand" href="/admin">AXP SOCIAL · ORGANISER</a><a href="/admin">Settings and team access</a></header>',
-      '<header><a class="brand" href="/axp-social/admin">AXP SOCIAL · ORGANISER</a><div><a href="/axp-social/admin" style="margin-right: 18px;">Settings & team</a><a href="/axp-social" class="tracker-link">Guest invitation ↗</a><button type="button" onclick="fetch(\'/api/axp/admin/auth\',{method:\'DELETE\'}).then(()=>location.reload())" style="margin-left: 12px; background: none; border: 1px solid #ccc; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer;">Lock / Sign out</button></div></header>'
+      '<header class="organiser-header"><a class="brand" href="/axp-social/admin">AXP SOCIAL · ORGANISER</a><div class="organiser-tools"><a href="/axp-social/admin">Settings & team</a><a href="/axp-social" class="tracker-link">Guest invitation ↗</a><button type="button" id="lock-signout" class="lock-button">Lock / Sign out</button></div></header>'
     )
     .replaceAll('href="/admin"', 'href="/axp-social/admin"')
     .replace(

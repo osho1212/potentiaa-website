@@ -94,6 +94,9 @@ async function inspect(){
   }catch(error){if(version===inspectionVersion)el('checkin-result').textContent=error.message;}finally{el('inspect-ticket').disabled=false;}
 }
 el('refresh-dashboard').addEventListener('click',load);
+// Signing out lives here rather than in an onclick attribute: the page sets
+// script-src 'self', so an inline handler never runs.
+el('lock-signout')?.addEventListener('click',async()=>{el('lock-signout').disabled=true;try{await fetch('/api/axp/admin/auth',{method:'DELETE'});}finally{location.reload();}});
 el('dashboard-mode').addEventListener('change',async()=>{stop();clearInspection();if(loading)await loading;await load();});
 el('booking-search').addEventListener('input',rows);
 el('inspect-ticket').addEventListener('click',inspect);el('ticket-code').addEventListener('input',clearInspection);

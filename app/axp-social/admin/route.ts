@@ -17,12 +17,13 @@ export function GET(request: NextRequest) {
 
   const html = rawAdminHtml
     .replace('href="/style.css"', 'href="/axp/style.css"')
+    .replace('<header>', '<header class="organiser-header">')
     .replace('src="/admin.js"', 'src="/axp/admin.js"')
     .replace('src="/team.js"', 'src="/axp/team.js"')
     .replace('src="/payment-setup.js"', 'src="/axp/payment-setup.js"')
     .replace(
-      'href="/" class="tracker-link">Back to booking form ↗</a>',
-      'href="/axp-social" class="tracker-link">Guest invitation ↗</a><a href="/axp-social/dashboard" class="tracker-link" style="margin-left: 10px;">Check-in dashboard ↗</a><button type="button" onclick="fetch(\'/api/axp/admin/auth\',{method:\'DELETE\'}).then(()=>location.reload())" style="margin-left: 12px; background: none; border: 1px solid #ccc; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer;">Lock / Sign out</button>'
+      '<a href="/" class="tracker-link">Back to booking form ↗</a>',
+      '<div class="organiser-tools"><a href="/axp-social" class="tracker-link">Guest invitation ↗</a><a href="/axp-social/dashboard" class="tracker-link">Check-in dashboard ↗</a><button type="button" id="lock-signout" class="lock-button">Lock / Sign out</button></div>'
     )
     .replaceAll('href="/"', 'href="/axp-social"')
     .replaceAll('href="/admin"', 'href="/axp-social/admin"')
