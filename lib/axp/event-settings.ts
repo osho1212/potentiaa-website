@@ -6,9 +6,16 @@ export interface EventSettings {
   barCloseTime: string;
   venueName: string;
   venueLocation: string;
+  venueMapQuery: string;
+  venueMapsUrl: string;
   supportPhone: string;
   supportEmail: string;
   alertEmail: string;
+  potentiaaPhone: string;
+  potentiaaLogo: string;
+  avyantaPhone: string;
+  avyantaLogo: string;
+  whatsappEnabled: boolean;
   merchantName: string;
   paymentUrl: string;
   merchantLegalName: string;
@@ -35,9 +42,16 @@ export const DEFAULT_SETTINGS: Readonly<EventSettings> = Object.freeze({
   barCloseTime: '22:00',
   venueName: 'Sukh Saklana Haveli: Royalty',
   venueLocation: 'Rishikesh, Uttarakhand',
+  venueMapQuery: '30.205913,78.233515',
+  venueMapsUrl: 'https://maps.app.goo.gl/6jjs4SCLQUx6tTKt6',
   supportPhone: '+91 9897798748',
   supportEmail: '',
   alertEmail: '',
+  potentiaaPhone: '+91 82678 39736',
+  potentiaaLogo: '/axp/potentiaa-logo.png',
+  avyantaPhone: '+91 9897798748',
+  avyantaLogo: '/axp/avyanta-logo.png',
+  whatsappEnabled: false,
   merchantName: 'Avyanta Hotels',
   paymentUrl: 'https://razorpay.me/@avyantahotels',
   merchantLegalName: 'KGS GLOBAL PRIVATE LIMITED',
@@ -55,6 +69,33 @@ export const DEFAULT_SETTINGS: Readonly<EventSettings> = Object.freeze({
   extraPerBooking: 0,
   chargesConfirmed: true,
 });
+
+/**
+ * Settings added after the first events went live. Stored documents predate
+ * them, so a missing key falls back to its default instead of failing
+ * validation and locking the organiser out of the settings form.
+ */
+const OPTIONAL_WITH_DEFAULTS = [
+  'merchantLegalName',
+  'merchantAddress',
+  'merchantEmail',
+  'merchantGstin',
+  'venueMapQuery',
+  'venueMapsUrl',
+  'potentiaaPhone',
+  'potentiaaLogo',
+  'avyantaPhone',
+  'avyantaLogo',
+];
+
+/**
+ * The no-API-key Google Maps embed. Takes either "lat,lng" or a place query.
+ */
+export function buildMapEmbedUrl(query: string): string {
+  const q = (query || '').trim();
+  if (!q) return '';
+  return `https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=15&hl=en&output=embed`;
+}
 
 export function validateSettings(input: any): EventSettings {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
@@ -85,8 +126,7 @@ export function validateSettings(input: any): EventSettings {
 
   for (const [key, max] of Object.entries(textFields)) {
     const value =
-      ['merchantLegalName', 'merchantAddress', 'merchantEmail', 'merchantGstin'].includes(key) &&
-      input[key] === undefined
+      OPTIONAL_WITH_DEFAULTS.includes(key) && input[key] === undefined
         ? (DEFAULT_SETTINGS as any)[key]
         : input[key];
     if (typeof value !== 'string' || value.length > max || /[\u0000-\u001f]/.test(value)) {
@@ -127,6 +167,38 @@ export function validateSettings(input: any): EventSettings {
     out.supportPhone.replace(/\D/g, '').length > 15
   ) {
     throw new Error('Check the support phone number.');
+  }
+
+  for (const key of ['potentiaaPhone', 'avyantaPhone']) {
+    const value = out[key];
+    if (value && (!/^\+?[\d ()-]{8,30}$/.test(value) || value.replace(/\D/g, '').length > 15)) {
+      throw new Error('Check the POTENTIAA and AVYANTA phone numbers.');
+    }
+  }
+
+  for (const key of ['potentiaaLogo', 'avyantaLogo']) {
+    const value = out[key];
+    if (value && !/^\/[\w\-./]+\.(?:png|jpg|jpeg|webp|svg)$/i.test(value)) {
+      throw new Error('Each logo must be a site path such as /axp/potentiaa-logo.png.');
+    }
+  }
+
+  if (out.venueMapsUrl) {
+    let mapsUrl: URL;
+    try {
+      mapsUrl = new URL(out.venueMapsUrl);
+    } catch {
+      throw new Error('Enter a valid Google Maps link.');
+    }
+    if (
+      mapsUrl.protocol !== 'https:' ||
+      !['maps.app.goo.gl', 'goo.gl', 'maps.google.com', 'www.google.com', 'google.com'].includes(
+        mapsUrl.hostname
+      )
+    ) {
+      throw new Error('Use an HTTPS Google Maps link.');
+    }
+    out.venueMapsUrl = mapsUrl.href;
   }
 
   for (const key of ['supportEmail', 'alertEmail', 'merchantEmail']) {
@@ -190,6 +262,11 @@ export function validateSettings(input: any): EventSettings {
   if (out.warningAt > out.capacity) {
     throw new Error('Early warning cannot exceed capacity.');
   }
+
+  out.whatsappEnabled =
+    typeof input.whatsappEnabled === 'boolean'
+      ? input.whatsappEnabled
+      : DEFAULT_SETTINGS.whatsappEnabled;
 
   if (typeof input.chargesConfirmed !== 'boolean') {
     throw new Error('Check whether final charges are confirmed.');
