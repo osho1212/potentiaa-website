@@ -81,7 +81,7 @@ function templateSafe(value: unknown): string {
 }
 
 function passLabel(pass: string): string {
-  return pass === 'alcohol' ? 'Alcohol-inclusive Pass (21+)' : 'Classic Pass (non-alcoholic)';
+  return pass === 'alcohol' ? 'Gold Pass (21+, alcohol-inclusive)' : 'Silver Pass (non-alcoholic)';
 }
 
 export async function sendBookingPassesOnWhatsApp(

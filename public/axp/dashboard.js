@@ -3,7 +3,7 @@ import jsQR from '/axp/jsqr.js';
 const el=id=>document.getElementById(id);
 let entries=[],inspected=null,stream=null,scanning=false,inspectionVersion=0,cameraVersion=0,loading=null;
 const time=value=>value?new Date(value).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})+' IST':'Not checked in';
-const passName=value=>value==='alcohol'?'Alcohol-inclusive · 21+':'Non-alcoholic';
+const passName=value=>value==='alcohol'?'Gold · 21+':'Silver';
 // whatsapp_status is per attendee: 'sent' when their number is in the delivery
 // receipt, 'failed' when it is not, 'not_applicable' when the booking carries no
 // receipt at all — delivery was off (or the booking never got paid).

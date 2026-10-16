@@ -72,9 +72,9 @@ export function renderPolicyHtml(settings: EventSettings, slug: string): string 
       s.venueName
     )}, ${e(s.venueLocation)}.</p>`,
 
-    pricing: `<p>${event}.</p><table class="booking-table"><thead><tr><th>Pass</th><th>Base price per person</th><th>Benefits</th></tr></thead><tbody><tr><td>Non-alcoholic</td><td>${e(
+    pricing: `<p>${event}.</p><table class="booking-table"><thead><tr><th>Pass</th><th>Base price per person</th><th>Benefits</th></tr></thead><tbody><tr><td>Silver · non-alcoholic</td><td>${e(
       money(s.normalPrice)
-    )}</td><td>${e(s.normalDescription)}</td></tr><tr><td>Alcohol-inclusive · 21+</td><td>${e(
+    )}</td><td>${e(s.normalDescription)}</td></tr><tr><td>Gold · alcohol-inclusive · 21+</td><td>${e(
       money(s.alcoholPrice)
     )}</td><td>${e(s.alcoholDescription)}</td></tr></tbody></table><p>${
       s.chargesConfirmed
@@ -84,7 +84,7 @@ export function renderPolicyHtml(settings: EventSettings, slug: string): string 
         : 'Additional charges are not yet confirmed. Guest payment cannot open until final charges are confirmed.'
     }</p><p>Mixed pass types are allowed. Your full payable amount is calculated and shown before payment. A saved booking retains its agreed prices.</p><p>Only the listed pass benefits are included. Any drinks menu or serving details still marked as unconfirmed must be finalised before sales open.</p>${merchant}${contact}`,
 
-    terms: `<p>${event}. The bar closes at ${e(time(s.barCloseTime))} IST.</p><ol><li>Passes are issued to named attendees and are non-transferable. Provide accurate buyer and attendee details. Contact support for corrections.</li><li>General entry is for attendees aged 20 or older. Alcohol-inclusive passes are for attendees aged 21 or older. Organisers check photo ID and eligibility at the venue; this website does not request an ID-document upload.</li><li>A booking may contain up to ${
+    terms: `<p>${event}. The bar closes at ${e(time(s.barCloseTime))} IST.</p><ol><li>Passes are issued to named attendees and are non-transferable. Provide accurate buyer and attendee details. Contact support for corrections.</li><li>General entry is for attendees aged 20 or older. Gold passes are for attendees aged 21 or older. Organisers check photo ID and eligibility at the venue; this website does not request an ID-document upload.</li><li>A booking may contain up to ${
       s.maxPerBooking
     } attendees. Places are subject to availability. An unpaid checkout hold lasts 15 minutes.</li><li>A booking is confirmed after the site verifies the correct captured payment. If a payment seems uncertain, check the existing booking or contact support before paying again.</li><li>After verification, view and download each attendee's named QR ticket from the confirmation page. Automatic ticket emails are not currently enabled. Keep the ticket file and booking reference available for entry.</li><li>Each ticket may be checked in once. Keep its QR private. Refunded tickets are invalid for entry.</li><li>Guest cancellation and non-attendance follow the <a href="/axp-social/policies/refunds">cancellation and refund policy</a>. Organiser cancellation and refunds required by applicable law remain exceptions.</li></ol>${merchant}${contact}`,
 

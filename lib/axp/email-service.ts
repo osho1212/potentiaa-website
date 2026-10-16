@@ -42,11 +42,11 @@ export async function sendBookingConfirmationEmails(booking: any): Promise<Email
           .map(
             (a, i) =>
               `${i + 1}. ${a.name} — ${
-                a.pass === 'alcohol' ? 'Alcohol-inclusive Pass · 21+' : 'Classic Pass · Non-alcoholic'
+                a.pass === 'alcohol' ? 'Gold Pass · 21+' : 'Silver Pass · Non-alcoholic'
               }${a.instagram ? ' (' + a.instagram + ')' : ''}`
           )
           .join('\n')
-      : `1. ${buyerName} — Classic Pass · Non-alcoholic`;
+      : `1. ${buyerName} — Silver Pass · Non-alcoholic`;
 
   const amountPaise = booking.amountPaise || (typeof booking.total === 'number' ? booking.total * 100 : 100);
   const formattedAmount = `₹${(amountPaise / 100).toLocaleString('en-IN', {
@@ -86,7 +86,7 @@ export async function sendBookingConfirmationEmails(booking: any): Promise<Email
         count: '1 (Personal Pass)',
         amount: 'Paid by ' + buyerName,
         list: `• ${guest.name} — ${
-          guest.pass === 'alcohol' ? 'Alcohol-inclusive Pass · 21+' : 'Classic Pass · Non-alcoholic'
+          guest.pass === 'alcohol' ? 'Gold Pass · 21+' : 'Silver Pass · Non-alcoholic'
         }${guest.instagram ? ' (' + guest.instagram + ')' : ''}\n(Booked in group order by ${buyerName})`,
         entryCode: guestCode,
         qrUrl: passQrUrl(guestCode),

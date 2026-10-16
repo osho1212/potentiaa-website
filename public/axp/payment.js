@@ -72,8 +72,8 @@ async function sendConfirmationEmail(booking,isResend=false){
  const cfg=emailjsConfig||{serviceId:'service_59d1ylv',templateId:'template_x1xmkvu',publicKey:'wUJPfRnz1y09Ms68T'};
  if(!cfg.serviceId||!cfg.templateId||!cfg.publicKey)return;
  const attendeesList=(booking.attendees&&booking.attendees.length>0)
-  ? booking.attendees.map((a,i)=>`${i+1}. ${a.name} — ${a.pass==='alcohol'?'Alcohol-inclusive Pass · 21+':'Classic Pass · Non-alcoholic'}${a.instagram?' ('+a.instagram+')':''}`).join('\n')
-  : `1. ${buyerName} — Classic Pass · Non-alcoholic`;
+  ? booking.attendees.map((a,i)=>`${i+1}. ${a.name} — ${a.pass==='alcohol'?'Gold Pass · 21+':'Silver Pass · Non-alcoholic'}${a.instagram?' ('+a.instagram+')':''}`).join('\n')
+  : `1. ${buyerName} — Silver Pass · Non-alcoholic`;
  const amount=typeof booking.total==='number'?`₹${booking.total.toLocaleString('en-IN')}`:(booking.amountPaise?`₹${(booking.amountPaise/100).toLocaleString('en-IN')}`:'₹1.00');
  const passLink=window.location.origin+'/axp-social?booking='+encodeURIComponent(booking.id||'')+'#passes';
 
@@ -96,7 +96,7 @@ async function sendConfirmationEmail(booking,isResend=false){
      isBuyer:false,
      count:'1 (Personal Pass)',
      amount:'Paid by '+buyerName,
-     list:`• ${guest.name} — ${guest.pass==='alcohol'?'Alcohol-inclusive Pass · 21+':'Classic Pass · Non-alcoholic'}${guest.instagram?' ('+guest.instagram+')':''}\n(Booked in group order by ${buyerName})`
+     list:`• ${guest.name} — ${guest.pass==='alcohol'?'Gold Pass · 21+':'Silver Pass · Non-alcoholic'}${guest.instagram?' ('+guest.instagram+')':''}\n(Booked in group order by ${buyerName})`
     });
    }
   }
@@ -204,7 +204,7 @@ function renderSavedSummary(booking){
  el('confirmed-charges').hidden=false;el('charges-pending').hidden=true;button.hidden=true;el('booking-form').hidden=true;document.querySelector('.passes').hidden=true;
  const testBox=document.querySelector('.axp-test-payment-box');if(testBox)testBox.hidden=true;
  const summary=document.createElement('p');summary.textContent=`${booking.people} named ${booking.people===1?'pass':'passes'} · Total payable: ${money(booking.total)}`;
- const list=document.createElement('ul');for(const guest of booking.attendees){const row=document.createElement('li');row.textContent=guest.name+(guest.email?` (${guest.email})`:'')+' · '+(guest.pass==='alcohol'?'Alcohol-inclusive · 21+':'Non-alcoholic');list.append(row);}savedDetails.replaceChildren(summary,list);
+ const list=document.createElement('ul');for(const guest of booking.attendees){const row=document.createElement('li');row.textContent=guest.name+(guest.email?` (${guest.email})`:'')+' · '+(guest.pass==='alcohol'?'Gold · 21+':'Silver');list.append(row);}savedDetails.replaceChildren(summary,list);
 }
 async function poll(){if(!attempt)return;try{let booking;if(attempt.id)booking=await request('/api/bookings/'+attempt.id);else{booking=await request('/api/bookings/recover',{body:{mode:attempt.mode,idempotencyKey:attempt.idempotencyKey}});attempt.id=booking.id;saveAttempt();}showBooking(booking);}catch(error){message.textContent=error.message;}}
 async function startPolling(){if(polling)return;polling=true;for(let i=0;i<12&&polling;i++){await new Promise(resolve=>setTimeout(resolve,5000));await poll();}polling=false;}
@@ -262,7 +262,7 @@ async function renderTickets(triggerDownload=false){
   for(const ticket of data.tickets){
     const article=doc.createElement('article');article.className='pass-card';
     const tag=doc.createElement('span');tag.className='pass-type';
-    tag.textContent=ticket.pass==='alcohol'?'Alcohol-inclusive Pass · 21+':'Classic Pass · Non-alcoholic';
+    tag.textContent=ticket.pass==='alcohol'?'Gold Pass · 21+':'Silver Pass · Non-alcoholic';
     const name=doc.createElement('h2');name.className='guest-name';name.textContent=ticket.name;
     const qrWrap=doc.createElement('div');qrWrap.className='qr-wrap';
     const image=doc.createElement('img');

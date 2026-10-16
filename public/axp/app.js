@@ -4,7 +4,7 @@ export function calculateBooking(attendees,settings=DEFAULT_SETTINGS) {
   let normal=0,alcohol=0;
   for(const guest of attendees){
     if(!['normal','alcohol'].includes(guest.pass))throw new Error('Choose a valid pass type.');
-    if(guest.pass==='alcohol' && guest.age!=='21plus')throw new Error('Alcohol-inclusive passes require age 21 or over.');
+    if(guest.pass==='alcohol' && guest.age!=='21plus')throw new Error('Gold passes require age 21 or over.');
     if(guest.pass==='normal')normal++;else alcohol++;
   }
   const subtotalPaise=normal*Math.round(settings.normalPrice*100)+alcohol*Math.round(settings.alcoholPrice*100);
@@ -44,7 +44,7 @@ if(typeof document!=='undefined'){
     else if(field.id.endsWith('-phone')&&!phone(field.value))message='Enter a valid phone number with country code.';
     else if(field.id.endsWith('-dob')&&!ageBracket(field.value))message=`Attendees must be 20 or older on ${dateLabel()}.`;
     else if(field.type==='email'&&field.validity.typeMismatch)message='Enter a valid email address, such as name@example.com.';
-    else if(field.id.endsWith('-pass')&&field.value==='alcohol'&&ageBracket((el(field.id.replace(/-pass$/,'-dob'))||{}).value)!=='21plus')message='Alcohol-inclusive passes need age 21 or over on the event date.';
+    else if(field.id.endsWith('-pass')&&field.value==='alcohol'&&ageBracket((el(field.id.replace(/-pass$/,'-dob'))||{}).value)!=='21plus')message='Gold passes need age 21 or over on the event date.';
     else if(!field.validity.valid)message=field.validationMessage;
     field.setCustomValidity(message);return message;
   }
@@ -114,7 +114,7 @@ if(typeof document!=='undefined'){
       const dob=document.createElement('input');dob.type='date';dob.id=`guest-${index}-dob`;dob.name=`attendees[${index}][dob]`;dob.required=true;dob.value=guest.dob;
       dobLabel.append(dob,describeField(dob,`Attendee ${index+1}: date of birth`));grid.append(dobLabel);
       const passLabel=requiredLabel('Pass type');const pass=document.createElement('select');pass.id=`guest-${index}-pass`;pass.name=`attendees[${index}][pass]`;pass.required=true;
-      pass.append(new Option(`Non-alcoholic \u00b7 ${money(settings.normalPrice)} base`,'normal'),new Option(`Alcohol-inclusive \u00b7 ${money(settings.alcoholPrice)} base`,'alcohol'));pass.value=guest.pass;pass.options[1].disabled=ageBracket(guest.dob)!=='21plus';
+      pass.append(new Option(`Silver \u00b7 ${money(settings.normalPrice)} base`,'normal'),new Option(`Gold \u00b7 ${money(settings.alcoholPrice)} base \u00b7 21+`,'alcohol'));pass.value=guest.pass;pass.options[1].disabled=ageBracket(guest.dob)!=='21plus';
       dob.addEventListener('input',()=>{guest.dob=dob.value;const bracket=ageBracket(dob.value);guest.age=bracket||'';if(bracket!=='21plus'&&guest.pass==='alcohol'){guest.pass='normal';pass.value='normal';}pass.options[1].disabled=bracket!=='21plus';summary();});
       pass.addEventListener('change',()=>{guest.pass=pass.value;summary();});passLabel.append(pass,describeField(pass,`Attendee ${index+1}: pass type`));grid.append(passLabel);section.append(grid);el('attendees').append(section);
     });summary();refreshReadiness();
@@ -138,7 +138,7 @@ if(typeof document!=='undefined'){
     event.preventDefault();el('form-message').textContent='';
     if(!showMissingFields())return;
     const total=calculateBooking(state,settings);el('review-buyer').textContent=`Booking contact: ${el('buyer-name').value.trim()} · ${el('buyer-email').value.trim()}`;
-    el('review-guests').replaceChildren();state.forEach((guest,i)=>{const row=document.createElement('div');row.className='review-person';row.textContent=`${i+1}. ${guest.name.trim()}${guest.email?' · '+guest.email.trim():''}`;const pass=document.createElement('span');pass.textContent=guest.pass==='normal'?`Non-alcoholic pass · ${money(settings.normalPrice)} base`:`Alcohol-inclusive pass · ${money(settings.alcoholPrice)} base · 21+`;row.append(pass);el('review-guests').append(row);});
+    el('review-guests').replaceChildren();state.forEach((guest,i)=>{const row=document.createElement('div');row.className='review-person';row.textContent=`${i+1}. ${guest.name.trim()}${guest.email?' · '+guest.email.trim():''}`;const pass=document.createElement('span');pass.textContent=guest.pass==='normal'?`Silver pass · ${money(settings.normalPrice)} base`:`Gold pass · ${money(settings.alcoholPrice)} base · 21+`;row.append(pass);el('review-guests').append(row);});
     el('review-total').textContent=money(total.subtotal);el('review').showModal();
     el('review-notice').textContent=(total.total===null?'Final charges are pending.':`Additional charges: ${money(total.extraCharges)}. Total payable: ${money(total.total)}.`)+' No booking has been saved, no places have been reserved, and no payment has been taken.';
   });
@@ -181,7 +181,7 @@ if(typeof document!=='undefined'){
       el('footer-copyright').textContent=`© ${new Date().getFullYear()} ${settings.merchantName}. All rights reserved.`;
       applyBrand('potentiaa',settings.potentiaaLogo,settings.potentiaaPhone);
       applyBrand('avyanta',settings.avyantaLogo,settings.avyantaPhone);
-      el('event-rules').textContent=`Entry 20+ · Alcohol-inclusive passes 21+ · Bar closes at ${time(settings.barCloseTime)} · Maximum ${settings.maxPerBooking} passes per booking`;
+      el('event-rules').textContent=`Entry 20+ · Gold passes 21+ · Bar closes at ${time(settings.barCloseTime)} · Maximum ${settings.maxPerBooking} passes per booking`;
       el('pass-limit-hint').textContent=`Choose up to ${settings.maxPerBooking} passes. Mixing pass types is welcome.`;
       el('normal-benefits').textContent=settings.normalDescription;el('alcohol-benefits').textContent=settings.alcoholDescription;
       el('normal-price').textContent=money(settings.normalPrice);el('alcohol-price').textContent=money(settings.alcoholPrice);
@@ -189,7 +189,7 @@ if(typeof document!=='undefined'){
       el('support-phone').textContent=settings.supportPhone;el('support-phone').href='tel:'+settings.supportPhone.replace(/[^+\d]/g,'');
       el('support-email').hidden=!settings.supportEmail;if(settings.supportEmail){el('support-email').textContent=settings.supportEmail;el('support-email').href='mailto:'+settings.supportEmail;}
       el('merchant-name').textContent=settings.merchantName;
-      el('bar-rule').textContent=`Alcohol-inclusive passes are for attendees aged 21 or over. The bar closes at ${time(settings.barCloseTime)}.`;
+      el('bar-rule').textContent=`Gold passes are for attendees aged 21 or over. The bar closes at ${time(settings.barCloseTime)}.`;
       settingsLoaded=true;el('settings-load-state').hidden=true;render();
     }catch{settingsLoaded=false;el('settings-load-state').textContent='Event settings could not be loaded. Please reload before reviewing a booking.';refreshReadiness();}
   }

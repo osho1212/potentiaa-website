@@ -47,7 +47,7 @@ export function calculateBooking(
       throw new Error('Choose a valid pass type.');
     }
     if (guest.pass === 'alcohol' && guest.age !== '21plus') {
-      throw new Error('Alcohol-inclusive passes require age 21 or over.');
+      throw new Error('Gold passes require age 21 or over.');
     }
     if (guest.pass === 'normal') normal++;
     else alcohol++;
@@ -193,7 +193,7 @@ export function validateBookingInput(input: any, settings: EventSettings) {
     }
     if (!['normal', 'alcohol'].includes(guest.pass) || (guest.pass === 'alcohol' && age !== '21plus')) {
       throw new Error(
-        `Attendee ${i + 1} must be 21 or older on the event date for an alcohol-inclusive pass.`
+        `Attendee ${i + 1} must be 21 or older on the event date for a Gold pass.`
       );
     }
     const guestEmail = typeof guest.email === 'string' ? guest.email.trim().toLowerCase() : '';
