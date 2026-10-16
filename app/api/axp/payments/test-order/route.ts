@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { saveBooking } from '@/lib/axp/storage-adapter';
+import { saveBooking, getEventSettings } from '@/lib/axp/storage-adapter';
 import { createRazorpayOrder, getRazorpayCredentials } from '@/lib/axp/payment-core';
+import { DEFAULT_SETTINGS } from '@/lib/axp/event-settings';
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,6 +49,17 @@ export async function POST(request: NextRequest) {
 
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
+    const { settings: currentSettings } = await getEventSettings();
+    const settings = {
+      ...DEFAULT_SETTINGS,
+      ...currentSettings,
+      eventName: 'Aagaz · AxP Social (Live Test)',
+      normalPrice: 1,
+      alcoholPrice: 1,
+      chargesConfirmed: true,
+      salesOpen: true,
+    };
+
     const bookingRecord = {
       id: bookingId,
       mode: 'live' as const,
@@ -78,13 +90,7 @@ export async function POST(request: NextRequest) {
       expiresAt,
       createdAt: new Date().toISOString(),
       snapshot: {
-        settings: {
-          eventName: 'AxP Social (₹1 Live Test)',
-          normalPrice: 1,
-          alcoholPrice: 1,
-          chargesConfirmed: true,
-          salesOpen: true,
-        },
+        settings,
         termsVersion: '1.0-test',
         termsAcceptedAt: new Date().toISOString(),
       },

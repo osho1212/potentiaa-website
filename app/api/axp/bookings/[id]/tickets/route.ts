@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findBookingById } from '@/lib/axp/storage-adapter';
-import { generateQrDataUrl } from '@/lib/axp/confirmation-image';
+import { generateQrDataUrl, generateQrSvg } from '@/lib/axp/confirmation-image';
 import { bookingEntryCode } from '@/lib/axp/payment-core';
+import { DEFAULT_SETTINGS } from '@/lib/axp/event-settings';
 
 export async function GET(
   request: NextRequest,
@@ -22,12 +23,18 @@ export async function GET(
     }
 
     const secret = process.env.TICKET_SIGNING_SECRET || 'axp-secret-key-2026';
-    const settings = booking.snapshot?.settings || {};
+    const settings = {
+      ...DEFAULT_SETTINGS,
+      ...(booking.snapshot?.settings || {}),
+    };
 
     const attendeeTickets = await Promise.all(
       booking.attendees.map(async (attendee, idx) => {
         const entryCode = await bookingEntryCode(secret, `${booking.id}:${attendee.id}`);
-        const qrDataUrl = await generateQrDataUrl(entryCode);
+        const [qrDataUrl, svg] = await Promise.all([
+          generateQrDataUrl(entryCode),
+          generateQrSvg(entryCode),
+        ]);
         return {
           id: attendee.id,
           position: idx + 1,
@@ -37,7 +44,9 @@ export async function GET(
           pass: attendee.pass,
           ageGroup: attendee.age,
           entryCode,
+          code: entryCode,
           qrDataUrl,
+          svg,
         };
       })
     );

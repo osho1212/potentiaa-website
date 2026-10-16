@@ -96,14 +96,90 @@ async function startPolling(){if(polling)return;polling=true;for(let i=0;i<12&&p
 async function downloadTickets(){
  try{
   const data=await request('/api/bookings/'+attempt.id+'/tickets');tickets.replaceChildren();
-  const doc=document.implementation.createHTMLDocument('Aagaz tickets');doc.documentElement.lang='en';
-  const style=doc.createElement('style');style.textContent='body{font:16px Arial;max-width:800px;margin:30px auto;padding:20px}article{border:1px solid #bbb;padding:24px;margin:20px 0;break-inside:avoid}img{width:220px;height:220px}code{font-size:10px;overflow-wrap:anywhere}';doc.head.append(style);
-  const title=doc.createElement('h1');title.textContent=(data.mode==='test'?'TEST — NOT VALID FOR EVENT ENTRY · ':'')+data.event.eventName;doc.body.append(title);
-  const previewTitle=document.createElement('p');previewTitle.textContent=title.textContent;tickets.append(previewTitle);
-  const details=doc.createElement('p');details.textContent=`${data.event.eventDate} · ${data.event.startTime} IST · ${data.event.venueName} · Booking ${data.bookingId}. Named passes; ID required at the venue.`;doc.body.append(details);
-  for(const ticket of data.tickets){const article=doc.createElement('article'),name=doc.createElement('h2'),pass=doc.createElement('p'),image=doc.createElement('img'),code=doc.createElement('code');name.textContent=ticket.name;pass.textContent=ticket.pass==='alcohol'?'Alcohol-inclusive · 21+':'Non-alcoholic';image.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(ticket.svg);image.alt='Entry QR for '+ticket.name;code.textContent=ticket.code;article.append(name,pass,image,doc.createElement('br'),code);doc.body.append(article);const preview=document.importNode(article,true);preview.className='ticket-preview';preview.setAttribute('aria-label','Ticket for '+ticket.name);tickets.append(preview);}
+  const eventName=data.event?.eventName||'Aagaz · AxP Social';
+  const eventDate=data.event?.eventDate||'6 November 2026';
+  const startTime=data.event?.startTime||'3 pm';
+  const venueName=data.event?.venueName||'Sukh Saklana Haveli: Royalty, Rishikesh';
+
+  const doc=document.implementation.createHTMLDocument('Aagaz passes · '+data.bookingId);
+  doc.documentElement.lang='en';
+  const style=doc.createElement('style');
+  style.textContent=`
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0c120e; color: #f4ede2; padding: 40px 20px; line-height: 1.5; }
+    .ticket-container { max-width: 680px; margin: 0 auto; }
+    header.ticket-header { text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid rgba(197, 160, 89, 0.3); }
+    .brand { font-size: 13px; font-weight: 700; letter-spacing: 3px; color: #c5a059; text-transform: uppercase; margin-bottom: 8px; }
+    h1 { font-family: "Times New Roman", Times, Georgia, serif; font-size: 38px; font-weight: 400; color: #fdfbf7; margin-bottom: 10px; letter-spacing: 1px; }
+    .event-meta { font-size: 14px; color: #b8c4bc; line-height: 1.6; }
+    article.pass-card { background: #15221b; border: 1px solid #c5a059; border-radius: 14px; padding: 28px; margin: 24px 0; display: flex; flex-direction: column; align-items: center; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); page-break-inside: avoid; }
+    .pass-type { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #c5a059; background: rgba(197, 160, 89, 0.12); padding: 5px 14px; border-radius: 20px; margin-bottom: 14px; }
+    h2.guest-name { font-size: 26px; font-weight: 600; color: #fff; margin-bottom: 18px; }
+    .qr-wrap { background: #ffffff; padding: 14px; border-radius: 12px; margin-bottom: 16px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+    .qr-wrap img { width: 220px; height: 220px; display: block; image-rendering: pixelated; }
+    code.pass-code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 10px; color: #8a9a8f; background: rgba(0,0,0,0.4); padding: 6px 12px; border-radius: 6px; word-break: break-all; max-width: 100%; display: block; }
+    .notice { font-size: 12px; color: #8a9a8f; text-align: center; margin-top: 30px; line-height: 1.6; }
+    @media print {
+      body { background: #fff; color: #000; padding: 0; }
+      article.pass-card { border: 2px solid #222; background: #fff; color: #000; box-shadow: none; }
+      h1, h2.guest-name { color: #000; }
+      .brand, .pass-type { color: #333; }
+      .event-meta, .notice, code.pass-code { color: #555; }
+    }
+  `;
+  doc.head.append(style);
+
+  const container=doc.createElement('div');container.className='ticket-container';
+  const header=doc.createElement('header');header.className='ticket-header';
+  const brand=doc.createElement('p');brand.className='brand';brand.textContent='AxP Social · Official Event Pass';
+  const title=doc.createElement('h1');title.textContent=(data.mode==='test'?'[TEST PASS] ':'')+eventName;
+  const details=doc.createElement('p');details.className='event-meta';
+  details.textContent=`${eventDate} · ${startTime} IST · ${venueName} · Booking #${data.bookingId.slice(0, 8)}`;
+  header.append(brand,title,details);
+  container.append(header);
+
+  const previewTitle=document.createElement('p');
+  previewTitle.textContent=`${eventName} · ${eventDate} · ${venueName}`;
+  tickets.append(previewTitle);
+
+  for(const ticket of data.tickets){
+    const article=doc.createElement('article');article.className='pass-card';
+    const tag=doc.createElement('span');tag.className='pass-type';
+    tag.textContent=ticket.pass==='alcohol'?'Alcohol-inclusive Pass · 21+':'Classic Pass · Non-alcoholic';
+    const name=doc.createElement('h2');name.className='guest-name';name.textContent=ticket.name;
+    const qrWrap=doc.createElement('div');qrWrap.className='qr-wrap';
+    const image=doc.createElement('img');
+    const qrSrc=ticket.qrDataUrl||(ticket.svg?'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(ticket.svg):'');
+    image.src=qrSrc;
+    image.alt='Entry QR for '+ticket.name;
+    qrWrap.append(image);
+
+    const code=doc.createElement('code');code.className='pass-code';
+    code.textContent=ticket.code||ticket.entryCode||'';
+    article.append(tag,name,qrWrap,code);
+    container.append(article);
+
+    const preview=document.importNode(article,true);
+    preview.className='ticket-preview';
+    preview.setAttribute('aria-label','Ticket for '+ticket.name);
+    tickets.append(preview);
+  }
+
+  const notice=doc.createElement('p');notice.className='notice';
+  notice.textContent='Named passes are non-transferable. Please present this QR code along with original photo ID at the venue gate for check-in.';
+  container.append(notice);
+  doc.body.append(container);
+
   if(ticketFileUrl)URL.revokeObjectURL(ticketFileUrl);
-  const blob=new Blob(['<!doctype html>'+doc.documentElement.outerHTML],{type:'text/html;charset=utf-8'}),link=document.createElement('a');ticketFileUrl=URL.createObjectURL(blob);link.href=ticketFileUrl;link.download=`aagaz-${data.bookingId}-tickets.html`;link.textContent='Save tickets file';tickets.append(link);link.click();message.textContent='Your named tickets are shown below. If the download did not start, use Save tickets file. Keep your QRs private; the saved file can be printed or saved as PDF.';
+  const blob=new Blob(['<!doctype html>\n'+doc.documentElement.outerHTML],{type:'text/html;charset=utf-8'});
+  const link=document.createElement('a');
+  ticketFileUrl=URL.createObjectURL(blob);
+  link.href=ticketFileUrl;
+  link.download=`axp-pass-${data.bookingId}.html`;
+  link.textContent='Save passes file';
+  tickets.append(link);
+  link.click();
+  message.textContent='Your official named pass is ready! The pass file has been downloaded with your entry QR code.';
  }catch(error){message.textContent=error.message;}
 }
 
