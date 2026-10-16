@@ -453,7 +453,7 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 .axp-edition .hero { padding-top: 30px; }
 
 /* ---------- The running total moved into the payment step ---------- */
-.axp-edition .layout { grid-template-columns: minmax(0, 1fr); max-width: 840px; }
+.axp-edition .layout { grid-template-columns: minmax(0, 1fr); max-width: none; }
 .axp-edition .payment-summary { border: 1px solid var(--line); border-radius: 8px; padding: 20px 18px; margin-bottom: 24px; background: rgba(255, 253, 249, .55); }
 .axp-edition .payment-summary > .eyebrow { display: block; text-align: center; color: #77604e; font: 500 12px/1.4 var(--display); letter-spacing: 2.6px; }
 .axp-edition .payment-summary h2 { font: 500 20px/1.2 var(--display); margin: 6px 0 16px; text-align: center; }
@@ -470,3 +470,84 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
   .axp-edition .hero { padding-top: 22px; }
   .axp-edition .payment-summary { padding: 16px 14px; }
 }
+
+/* ================= Round 5: width, pass cards, motion ================= */
+
+/* The form owns the full column now that nothing sits beside it. */
+.axp-edition .form-column { max-width: none; }
+
+/* WHEN and WHERE are two equal cards, so one does not tower over the other. */
+.axp-edition .event-meta { display: grid; grid-template-columns: 1fr 1fr; align-items: stretch; gap: 14px; }
+.axp-edition .event-meta > div { max-width: none; padding: 12px 16px; border-radius: 6px; border: 1px solid rgba(180, 154, 125, .45); }
+.axp-edition .event-meta > div + div { border-left: 1px solid rgba(180, 154, 125, .45); padding-left: 16px; }
+
+/* Silver and Gold sit side by side wherever there is room for them. */
+.axp-edition .pass-types .pass-options { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.axp-edition .pass-types .pass-options article {
+  position: relative; display: flex; flex-direction: column; padding: 24px 22px 22px;
+  border-radius: 10px; overflow: hidden; transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+/* A tier stripe along the top edge, instead of saying the word twice. */
+.axp-edition .pass-types .pass-options article::before {
+  content: ""; position: absolute; inset: 0 0 auto; height: 3px;
+  background: linear-gradient(90deg, #c9c4cc, #9a94a1);
+}
+.axp-edition .pass-types .pass-options article:last-child::before {
+  background: linear-gradient(90deg, #c8a24e, #8a6a2f);
+}
+.axp-edition .pass-types .pass-options article:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(64, 35, 71, .10); }
+.axp-edition .pass-types .pass-options .pass-tag { display: inline-block; align-self: flex-start; padding: 5px 11px; border-radius: 999px; background: rgba(120, 89, 133, .10); letter-spacing: 1.8px; }
+.axp-edition .pass-types .pass-options article:last-child .pass-tag { background: rgba(176, 137, 60, .14); color: #7d5f24; }
+.axp-edition .pass-types .pass-options h3 { margin: 14px 0 8px; }
+.axp-edition .pass-types .pass-options p { margin-bottom: 20px; }
+.axp-edition .pass-types .pass-options strong { margin-top: auto; padding-top: 14px; border-top: 1px solid rgba(180, 154, 125, .35); }
+
+.axp-edition .highlight-grid li { transition: transform .2s ease, border-color .2s ease; }
+.axp-edition .highlight-grid li:hover { transform: translateY(-2px); border-color: #b49a7d; }
+
+/* ---- Motion: a short rise as things arrive, nothing that loops ---- */
+@keyframes axp-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes axp-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.axp-edition .step-panel.is-entering { animation: axp-rise .42s cubic-bezier(.22, .61, .36, 1) both; }
+.axp-edition .hero-brand { animation: axp-fade .7s both; }
+.axp-edition .axp-presenter { animation: axp-rise .6s .05s both; }
+.axp-edition .hero h1 { animation: axp-rise .7s .1s both; }
+.axp-edition .event-subtitle { animation: axp-rise .6s .18s both; }
+.axp-edition .intro { animation: axp-rise .6s .24s both; }
+.axp-edition .event-meta { animation: axp-rise .6s .3s both; }
+.axp-edition .event-fine { animation: axp-rise .6s .36s both; }
+.axp-edition .axp-steps { animation: axp-fade .8s .2s both; }
+
+/* A soft wash behind the hero so the type sits on something. */
+.axp-edition .hero { position: relative; }
+.axp-edition .hero::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(60% 70% at 30% 45%, rgba(255, 253, 249, .55), rgba(255, 253, 249, 0) 70%);
+}
+.axp-edition .hero > * { position: relative; z-index: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .axp-edition .step-panel.is-entering,
+  .axp-edition .hero-brand, .axp-edition .axp-presenter, .axp-edition .hero h1,
+  .axp-edition .event-subtitle, .axp-edition .intro, .axp-edition .event-meta,
+  .axp-edition .event-fine, .axp-edition .axp-steps { animation: none; }
+  .axp-edition .pass-types .pass-options article,
+  .axp-edition .highlight-grid li { transition: none; }
+  .axp-edition .pass-types .pass-options article:hover,
+  .axp-edition .highlight-grid li:hover { transform: none; }
+}
+
+@media (max-width: 620px) {
+  .axp-edition .pass-types .pass-options { grid-template-columns: 1fr; gap: 14px; }
+}
+@media (max-width: 480px) {
+  .axp-edition .event-meta { grid-template-columns: 1fr; gap: 10px; }
+  .axp-edition .event-meta > div + div { border-left: 1px solid rgba(180, 154, 125, .45); padding-left: 16px; }
+}
+
+/* Styling the confirmation screen used to set inline styles from JS, which the
+   page's own style-src blocked, so these arrived unstyled. */
+.axp-edition .email-confirmation-status { font-size: 13px; color: #2e1533; background: #f3e8f7; border: 1px solid #d4bee0; padding: 14px 18px; border-radius: 10px; margin: 18px 0; line-height: 1.6; font-weight: 500; box-shadow: 0 2px 8px rgba(64, 35, 71, .08); }
+.axp-edition .ticket-list-title { font-size: 15px; font-weight: 600; margin: 18px 0 10px; }
+.axp-edition .ticket-download-link { display: inline-block; margin: 12px 0; }

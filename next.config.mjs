@@ -23,7 +23,7 @@ import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
 function contentSecurityPolicy(isDev) {
   const directives = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", ...(isDev ? ["'unsafe-eval'"] : [])],
+    "script-src": ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://cdn.razorpay.com", ...(isDev ? ["'unsafe-eval'"] : [])],
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "blob:", "https://*.razorpay.com"],
     "font-src": ["'self'", "data:"],

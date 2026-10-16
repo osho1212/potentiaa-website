@@ -138,7 +138,10 @@ function person(value: any, label: string, options: { requirePhone?: boolean } =
   if (!value || typeof value !== 'object') throw new Error(`Enter ${label}.`);
   const name = clean(value.name, `${label} full name`, 100);
   const instagram = cleanOptional(value.instagram, `${label} Instagram username`, 31);
-  const phone = cleanOptional(value.phone, `${label} phone number`, 20);
+  let phone = cleanOptional(value.phone, `${label} phone number`, 20);
+  // The form pre-fills a dial code, so a field left untouched arrives as '+91'.
+  // Too few digits to be a number at all means the field was never filled in.
+  if (phone && phone.replace(/\D/g, '').length <= 3) phone = '';
 
   if (instagram && !/^@?[A-Za-z0-9._]{1,30}$/.test(instagram)) {
     throw new Error(`Check ${label} Instagram username.`);

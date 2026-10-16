@@ -5,7 +5,7 @@ const button=el('payment-button');
 const card=document.createElement('section');card.className='panel booking-confirmation';card.hidden=true;card.setAttribute('aria-label','Booking status');el('booking-form').after(card);
 const heading=document.createElement('h2');heading.textContent='Your booking';const message=document.createElement('p');message.setAttribute('role','status');const tickets=document.createElement('div');tickets.className='ticket-list';
 const savedDetails=document.createElement('div');
-const emailStatus=document.createElement('div');emailStatus.className='email-confirmation-status';emailStatus.hidden=true;emailStatus.style.cssText='font-size:13px;color:#2e1533;background:#f3e8f7;border:1px solid #d4bee0;padding:14px 18px;border-radius:10px;margin:18px 0;line-height:1.6;font-weight:500;box-shadow:0 2px 8px rgba(64,35,71,0.08);';
+const emailStatus=document.createElement('div');emailStatus.className='email-confirmation-status';emailStatus.hidden=true;
 const refresh=document.createElement('button');refresh.type='button';refresh.className='secondary';refresh.textContent='Check payment status';refresh.addEventListener('click',poll);
 const download=document.createElement('button');download.type='button';download.className='primary';download.textContent='Download passes (.html)';download.hidden=true;download.addEventListener('click',()=>renderTickets(true));
 const resendEmailBtn=document.createElement('button');resendEmailBtn.type='button';resendEmailBtn.className='secondary';resendEmailBtn.textContent='Resend passes to email';resendEmailBtn.hidden=true;
@@ -255,7 +255,7 @@ async function renderTickets(triggerDownload=false){
   container.append(header);
 
   const previewTitle=document.createElement('p');
-  previewTitle.style.cssText='font-size:15px;font-weight:600;margin:18px 0 10px;color:var(--text, inherit);';
+  previewTitle.className='ticket-list-title';
   previewTitle.textContent=`Official Entry Passes (${data.tickets.length})`;
   tickets.append(previewTitle);
 
@@ -295,7 +295,7 @@ async function renderTickets(triggerDownload=false){
   link.download=`axp-pass-${data.bookingId}.html`;
   link.textContent='Save passes file (.html)';
   link.className='secondary';
-  link.style.cssText='display:inline-block;margin:12px 0;';
+  link.className='ticket-download-link';
   tickets.append(link);
 
   if(triggerDownload){

@@ -22,6 +22,10 @@ if(typeof document!=='undefined'){
   const instagram=v=>/^@?[A-Za-z0-9._]{1,30}$/.test(v.trim());
   const phone=v=>/^\+?[0-9 ()-]{8,20}$/.test(v.trim())&&v.replace(/\D/g,'').length>=8&&v.replace(/\D/g,'').length<=15;
   let mirrorBuyer=true;
+  const DIAL='+91 ';
+  // A field holding nothing but the dial code is empty as far as the guest is
+  // concerned, so an untouched optional number must not block the step.
+  const phoneEmpty=v=>{const d=String(v||'').replace(/\D/g,'');return d===''||d.length<=3;};
   // Mirrors ageBracketFromDob on the server: the bracket as it will stand on
   // the night. Entry is 20+, so anything younger is not a valid attendee.
   const ageBracket=dob=>{
@@ -37,7 +41,7 @@ if(typeof document!=='undefined'){
   function fieldError(field){
     field.setCustomValidity('');
     let message='';
-    const empty=!String(field.value||'').trim();
+    const empty=field.id.endsWith('-phone')?phoneEmpty(field.value):!String(field.value||'').trim();
     if(field.type==='checkbox'){if(!field.checked)message='Please acknowledge the attendee details and terms.';}
     else if(empty){if(field.required)message=field.tagName==='SELECT'?'Please choose an option.':'Please fill in this required field.';}
     else if(field.id.endsWith('-instagram')&&!instagram(field.value))message='Enter a valid Instagram username, such as @yourusername.';
@@ -95,7 +99,9 @@ if(typeof document!=='undefined'){
   }
   function input(labelText,property,index,{type='text',placeholder='',maxLength=100,required=true}={}){
     const label=required?requiredLabel(labelText):optionalLabel(labelText);
-    const field=document.createElement('input');field.id=`guest-${index}-${property}`;field.name=`attendees[${index}][${property}]`;field.type=type;field.value=state[index][property];field.required=required;field.maxLength=maxLength;field.placeholder=placeholder;
+    const field=document.createElement('input');field.id=`guest-${index}-${property}`;field.name=`attendees[${index}][${property}]`;field.type=type;field.required=required;field.maxLength=maxLength;field.placeholder=placeholder;
+    if(property==='phone'&&!state[index].phone)state[index].phone=DIAL;
+    field.value=state[index][property];
     field.addEventListener('input',()=>{state[index][property]=field.value;if(index===0)mirrorBuyer=false;});label.append(field,describeField(field,`Attendee ${index+1}: ${labelText.toLowerCase()}`));return label;
   }
   function render(){
@@ -134,6 +140,7 @@ if(typeof document!=='undefined'){
     summary();
   }
   for(const key of ['name','email','instagram','phone'])el('buyer-'+key).addEventListener('input',syncBuyerToAttendee);
+  if(!el('buyer-phone').value.trim())el('buyer-phone').value=DIAL;
   // The review step shows everything that was entered, so it is rebuilt every
   // time the step opens rather than only when a button is pressed.
   function detailLine(label,value){return value&&String(value).trim()?`${label}: ${String(value).trim()}`:'';}
@@ -243,6 +250,8 @@ if(typeof document!=='undefined'){
       if(back)back.hidden=stepIndex===0;
       if(next)next.hidden=stepIndex===steps.length-1;
     }
+    const entering=el(steps[stepIndex]);
+    if(entering){entering.classList.remove('is-entering');void entering.offsetWidth;entering.classList.add('is-entering');}
     if(steps[stepIndex]==='booking-review')renderReview();
     // Five labelled steps do not fit a phone, so there the nav shrinks to
     // numbers and this caption carries the wording.
