@@ -31,7 +31,7 @@ function contentSecurityPolicy(isDev) {
     "connect-src": ["'self'", "https://api.emailjs.com", "https://*.razorpay.com", "https://api.razorpay.com", ...(isDev ? ["ws:"] : [])],
     "worker-src": ["'self'", "blob:"],
     "manifest-src": ["'self'"],
-    "frame-src": ["'self'", "https://*.razorpay.com", "https://api.razorpay.com"],
+    "frame-src": ["'self'", "https://*.razorpay.com", "https://api.razorpay.com", "https://maps.google.com", "https://www.google.com"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
     "form-action": ["'self'", "https://api.razorpay.com"],
