@@ -9,11 +9,16 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get('x-razorpay-signature');
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
-    if (secret && signature) {
-      const expected = hmac(secret, rawBody);
-      if (!safeEqual(expected, signature)) {
-        return NextResponse.json({ error: 'Invalid webhook signature.' }, { status: 400 });
-      }
+    // This route confirms bookings, so an event it cannot prove came from
+    // Razorpay is refused, never processed. A missing secret or a missing
+    // signature header is a refusal too: anyone can POST a "payment.captured"
+    // body here, and skipping the check for them would issue free passes.
+    if (!secret) {
+      console.error('[Webhook] RAZORPAY_WEBHOOK_SECRET is not set; refusing the event.');
+      return NextResponse.json({ error: 'Webhook is not configured.' }, { status: 503 });
+    }
+    if (!signature || !safeEqual(hmac(secret, rawBody), signature)) {
+      return NextResponse.json({ error: 'Invalid webhook signature.' }, { status: 400 });
     }
 
     const event = JSON.parse(rawBody);
@@ -21,12 +26,17 @@ export async function POST(request: NextRequest) {
 
     if (eventType === 'payment.captured' || eventType === 'order.paid') {
       const payment = event.payload?.payment?.entity;
-      const notes = payment?.notes || {};
-      const bookingId = notes.bookingId;
+      const order = event.payload?.order?.entity;
+      // The booking id is on the order's notes; a payment only carries it when
+      // Razorpay copies them across, so look at both.
+      const bookingId = payment?.notes?.bookingId || order?.notes?.bookingId;
 
-      if (bookingId) {
+      if (bookingId && payment?.id) {
         const booking = await findBookingById(bookingId);
-        if (booking && booking.status !== 'confirmed') {
+        const paidOrder = payment.order_id || order?.id;
+        if (booking && booking.orderId && paidOrder && paidOrder !== booking.orderId) {
+          console.error(`[Webhook] Payment ${payment.id} is for order ${paidOrder}, not booking ${bookingId}'s order; ignored.`);
+        } else if (booking && booking.status !== 'confirmed' && booking.status !== 'refunded') {
           booking.status = 'confirmed';
           booking.paymentId = payment.id;
           await saveBooking(booking);
