@@ -38,6 +38,23 @@ if(typeof document!=='undefined'){
     if(years<20||years>120)return null;
     return years>=21?'21plus':'20';
   };
+  // One pass per person: two attendees may not share a phone number or email.
+  // Mirrors lib/axp/contact-guard.ts, which also checks other bookings.
+  const phoneKey=value=>{const d=String(value||'').replace(/\D/g,'');return d.length<=3?'':d.length>10?d.slice(-10):d;};
+  const emailKey=value=>{const v=String(value||'').trim().toLowerCase(),at=v.lastIndexOf('@');if(at<1)return '';const domain=v.slice(at+1);let local=v.slice(0,at);if(domain==='gmail.com'||domain==='googlemail.com'){local=local.split('+')[0].replace(/\./g,'');return local+'@gmail.com';}return local+'@'+domain;};
+  // Attendee 1's pass goes to the booking email when their own is left blank.
+  const contactOf=(i,property)=>property==='email'&&i===0?(state[0]?.email||el('buyer-email').value):state[i]?.[property];
+  function sharedContactError(field){
+    const match=field.id.match(/^guest-(\d+)-(phone|email)$/);
+    if(!match)return '';
+    const index=Number(match[1]),property=match[2],key=property==='phone'?phoneKey:emailKey,own=key(contactOf(index,property));
+    if(!own)return '';
+    for(let i=0;i<index;i++){
+      if(key(contactOf(i,property))!==own)continue;
+      return property==='phone'?`Attendee ${i+1} already uses this phone number. Each person needs their own.`:`Attendee ${i+1} already uses this email address. Use a different one, or leave it blank.`;
+    }
+    return '';
+  }
   function fieldError(field){
     field.setCustomValidity('');
     let message='';
@@ -49,6 +66,7 @@ if(typeof document!=='undefined'){
     else if(field.id.endsWith('-dob')&&!ageBracket(field.value))message=`Attendees must be 20 or older on ${dateLabel()}.`;
     else if(field.type==='email'&&field.validity.typeMismatch)message='Enter a valid email address, such as name@example.com.';
     else if(field.id.endsWith('-pass')&&field.value==='alcohol'&&ageBracket((el(field.id.replace(/-pass$/,'-dob'))||{}).value)!=='21plus')message='Gold passes need age 21 or over on the event date.';
+    else if(sharedContactError(field))message=sharedContactError(field);
     else if(!field.validity.valid)message=field.validationMessage;
     field.setCustomValidity(message);return message;
   }
