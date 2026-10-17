@@ -6,6 +6,7 @@ import {
   createRazorpayOrder,
   sha256,
 } from '@/lib/axp/payment-core';
+import { capacityShortfall } from '@/lib/axp/capacity';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,6 +31,11 @@ export async function POST(request: NextRequest) {
     const bookingId = crypto.randomUUID();
     const amountPaise = Math.round(validated.total.total! * 100);
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+    const full = await capacityShortfall(settings, mode === 'live' ? 'live' : 'test', validated.attendees.length);
+    if (full) {
+      return NextResponse.json({ error: full }, { status: 409 });
+    }
 
     // Create Razorpay order
     const order = await createRazorpayOrder({
