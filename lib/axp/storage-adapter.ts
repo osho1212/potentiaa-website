@@ -140,15 +140,24 @@ export async function updateEventSettings(newSettings: any): Promise<{ settings:
   return { settings: data.settings, revision: data.revision };
 }
 
+/**
+ * Firestore is the record; the local copy is only a fallback for when it
+ * cannot be reached. Whenever Firestore answers, its answer stands, including
+ * "no such booking": a booking deleted there (the organiser clearing test
+ * bookings) must not live on in a warm server's cache, where the gate could
+ * still admit it and the guest list could still count it.
+ */
 export async function findBookingById(id: string): Promise<BookingRecord | null> {
-  // Check Cloud Firestore first for live real-time status updates across terminals
   try {
     const cloudBooking = await getBookingFirestore(id);
+    const data = initLocalData();
     if (cloudBooking) {
-      const data = initLocalData();
       data.bookings[id] = cloudBooking;
-      return cloudBooking;
+    } else {
+      delete data.bookings[id];
     }
+    saveLocalData(data);
+    return cloudBooking;
   } catch {}
 
   const data = initLocalData();
@@ -156,23 +165,13 @@ export async function findBookingById(id: string): Promise<BookingRecord | null>
 }
 
 export async function findBookingByIdempotency(key: string): Promise<BookingRecord | null> {
-  const data = initLocalData();
-  for (const booking of Object.values(data.bookings)) {
-    if (booking.idempotencyKey === key) return booking;
-  }
-
-  // Check cloud bookings
+  let candidates: BookingRecord[];
   try {
-    const cloudBookings = await getAllBookingsFirestore();
-    for (const booking of Object.values(cloudBookings)) {
-      if (booking.idempotencyKey === key) {
-        data.bookings[booking.id] = booking;
-        return booking;
-      }
-    }
-  } catch {}
-
-  return null;
+    candidates = await listAllBookingsFirestore();
+  } catch {
+    candidates = Object.values(initLocalData().bookings);
+  }
+  return candidates.find((booking) => booking.idempotencyKey === key) || null;
 }
 
 /**
@@ -211,20 +210,25 @@ export async function saveBooking(booking: BookingRecord): Promise<BookingRecord
   return booking;
 }
 
-export async function listAllBookings(): Promise<BookingRecord[]> {
+/** Every booking in Firestore, which then replaces the local copy. Throws when Firestore cannot be read. */
+async function listAllBookingsFirestore(): Promise<BookingRecord[]> {
+  const cloudBookings = await getAllBookingsFirestore();
   const data = initLocalData();
-  let merged: Record<string, BookingRecord> = { ...data.bookings };
+  data.bookings = { ...cloudBookings };
+  saveLocalData(data);
+  return Object.values(cloudBookings);
+}
 
+export async function listAllBookings(): Promise<BookingRecord[]> {
+  let bookings: BookingRecord[];
   try {
-    const cloudBookings = await getAllBookingsFirestore();
-    merged = { ...merged, ...cloudBookings };
-    // Update local cache
-    data.bookings = merged;
+    bookings = await listAllBookingsFirestore();
   } catch (err) {
     console.error('[Storage] Error listing bookings from Firestore:', err);
+    bookings = Object.values(initLocalData().bookings);
   }
 
-  return Object.values(merged).sort(
+  return bookings.sort(
     (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
   );
 }
