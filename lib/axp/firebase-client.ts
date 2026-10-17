@@ -68,7 +68,8 @@ export async function saveBookingFieldsFirestore(id: string, fields: Record<stri
 }
 
 /**
- * Fetch a single booking by ID from Firestore
+ * Fetch a single booking by ID from Firestore. Null means Firestore has no such
+ * booking; a failed read throws, so callers can tell the two apart.
  */
 export async function getBookingFirestore(id: string): Promise<BookingRecord | null> {
   try {
@@ -81,12 +82,13 @@ export async function getBookingFirestore(id: string): Promise<BookingRecord | n
     return snap.data() as BookingRecord;
   } catch (error) {
     console.error(`[Firebase] Failed to fetch booking ${id}:`, error);
-    return null;
+    throw error;
   }
 }
 
 /**
- * Fetch all bookings from Firestore for the Admin and Check-in rosters
+ * Fetch all bookings from Firestore for the Admin and Check-in rosters. A
+ * failed read throws rather than looking like an empty guest list.
  */
 export async function getAllBookingsFirestore(): Promise<Record<string, BookingRecord>> {
   try {
@@ -100,7 +102,7 @@ export async function getAllBookingsFirestore(): Promise<Record<string, BookingR
     return result;
   } catch (error) {
     console.error('[Firebase] Failed to fetch all bookings:', error);
-    return {};
+    throw error;
   }
 }
 

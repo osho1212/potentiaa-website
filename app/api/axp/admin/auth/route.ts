@@ -3,6 +3,7 @@ import {
   validatePin,
   createAdminSessionToken,
   verifyAdminAuth,
+  isAdminAuthConfigured,
   ADMIN_SESSION_COOKIE,
 } from '@/lib/axp/admin-auth';
 
@@ -18,6 +19,13 @@ export async function POST(request: NextRequest) {
 
     if (!pin || typeof pin !== 'string') {
       return NextResponse.json({ error: 'Please enter the organiser PIN.' }, { status: 400 });
+    }
+
+    if (!isAdminAuthConfigured()) {
+      return NextResponse.json(
+        { error: 'Organiser sign-in is not set up on this server. Set AXP_ADMIN_PIN and TICKET_SIGNING_SECRET.' },
+        { status: 503 }
+      );
     }
 
     if (!validatePin(pin)) {
