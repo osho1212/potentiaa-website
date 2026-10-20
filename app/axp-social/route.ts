@@ -27,6 +27,7 @@ export function GET() {
     // Keeps the arrow with "Maps" when the link wraps in a narrow box.
     .replaceAll('Open in Google Maps ↗', 'Open in Google Maps ↗')
     .replace('Choose up to five passes. Mixing pass types is welcome.', 'Entry is for guests aged 20 and over. Choose up to 5 passes per booking; mixing pass types is welcome.')
+    .replace('</article></div></section><section id="what-is-on"', '</article></div><p class="pass-selection-note">You\u2019ll choose a Silver or Gold pass for each attendee during booking, after entering your details.</p></section><section id="what-is-on"')
     .replace('<div class="layout">', '<nav class="axp-steps" aria-label="Booking steps"><a href="#event-info-step"><span>01</span> The event</a><i aria-hidden="true"></i><a href="#your-details"><span>02</span> Your details</a><i aria-hidden="true"></i><a href="#your-guests"><span>03</span> Attendees</a><i aria-hidden="true"></i><a href="#booking-review"><span>04</span> Review</a><i aria-hidden="true"></i><a href="#payment-step"><span>05</span> Payment</a></nav><div class="layout">')
     .replace('<section class="panel"><div class="section-top"><span class="step">02', '<section id="your-details" class="panel step-panel"><div class="section-top"><span class="step">02')
     .replace('<section class="panel"><div class="section-top"><span class="step">03', '<section id="your-guests" class="panel step-panel"><div class="section-top"><span class="step">03')
