@@ -65,7 +65,7 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 .axp-edition .pass-options p { font-size: 12px; line-height: 1.6; color: #716770; margin-bottom: 18px; }
 .axp-edition .pass-options strong { font: 600 28px/1 var(--display); color: #43224c; }
 .axp-edition .pass-options strong small { display: block; font: 400 10px/1.3 'DM Sans', sans-serif; color: var(--muted); margin-top: 6px; }
-.axp-edition .guest-count { margin-top: 22px; padding-top: 20px; }
+.axp-edition .guest-count { margin-top: 22px; padding-top: 20px; margin-bottom: 24px; }
 .axp-edition .guest-count strong { font-weight: 500; font-size: 13px; }
 .axp-edition .guest-count p { font-size: 11px; }
 .axp-edition .stepper { gap: 10px; }
@@ -996,7 +996,7 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 /* A pre-booking's balance, on the booking's page. */
 .axp-edition .balance-due { margin: 18px 0; padding: 16px 18px; border: 1px solid #d4bee0; border-radius: 10px; background: #f8f3f9; }
 .axp-edition .balance-due p { margin: 0 0 14px; font-size: 13px; line-height: 1.65; color: #2e1533; }
-.axp-edition .balance-due .pay-balance { width: auto; display: inline-flex; justify-content: center; padding: 12px 24px; }
+.axp-edition .balance-due .pay-balance { width: 100%; display: inline-flex; justify-content: center; padding: 14px 24px; }
 
 @media (max-width: 560px) {
   .axp-edition .plan-option { grid-template-columns: auto 1fr; }
@@ -1078,4 +1078,60 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
   .axp-edition .booking-offer h3 { min-height: 0; margin-bottom: 10px; }
   .axp-edition .booking-offer-status { margin-bottom: 10px; }
   .axp-edition .booking-offer-price { margin-bottom: 12px; }
+}
+
+/* Once a booking is showing, the form's step nav and its "Step 1 of 5"
+   caption describe a form that is no longer there. */
+.has-booking .axp-steps, .has-booking .step-caption { display: none !important; }
+
+/* Each pass's QR saves as an image, for showing at the gate. */
+.axp-edition .qr-save-link { display: inline-block; margin-top: 12px; font-size: 13px; font-weight: 500; color: #48274e; text-underline-offset: 3px; }
+.axp-edition .booking-confirmation .booking-ref { font-family: 'DM Sans', sans-serif; font-size: 0.8em; font-weight: 500; letter-spacing: 1px; }
+
+/* ---------- Three-step booking ---------- */
+
+/* The event, now part of the page above the booking steps. */
+.axp-edition .event-layout { margin-bottom: 8px; }
+.axp-edition .event-cta-row { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line); }
+.axp-edition .event-cta-row .hero-cta { width: 100%; justify-content: center; }
+/* Someone looking at their booking has already booked. */
+.has-booking .event-cta-row { display: none; }
+
+/* Step 1: who is coming and which pass. */
+.axp-edition .attending-toggle { margin: 0 0 22px; }
+.axp-edition .pass-choice { margin-bottom: 10px; }
+.axp-edition .pass-choice-quote { margin: 0 0 4px; padding: 12px 15px; border-radius: 8px; background: rgba(244, 237, 245, .55); font-size: 13px; line-height: 1.6; color: #3c3036; }
+.axp-edition .pass-choice-quote:empty { display: none; }
+.axp-edition #booking-pass-normal-error { display: block; margin: 0 0 12px; }
+
+/* Step 2: the booking contact, when booking for others, and the guest cards. */
+.axp-edition .booking-contact { margin: 4px 0 8px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+.axp-edition .booking-contact h3 { font: 600 22px/1.2 var(--display); margin: 0 0 4px; }
+.axp-edition .booking-contact .helper { margin: 0 0 16px; }
+.axp-edition .attendee-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.axp-edition .attendee-head h3 { margin-bottom: 14px; }
+.axp-edition .attendee-line { flex: 1 1 160px; margin: 0; font-size: 13px; color: #4f434b; }
+.axp-edition .attendee-line:empty { display: none; }
+.axp-edition .attendee-edit { margin: 0; min-height: 36px; font-size: 13px; }
+.axp-edition .attendee-note { margin: -6px 0 16px; }
+.axp-edition .attendee-done { display: block; width: 100%; margin-top: 18px; min-height: 46px; background: none; border: 1px solid var(--line); border-radius: 5px; font-size: 13px; font-weight: 500; color: var(--ink); }
+.axp-edition .attendee.is-collapsed { padding-bottom: 16px; }
+.axp-edition .attendee.is-collapsed h3 { margin-bottom: 4px; font-size: 19px; }
+.axp-edition .attendee.is-collapsed > :not(.attendee-head) { display: none; }
+.axp-edition .attendee.is-complete .attendee-line::before { content: "✓ "; color: var(--green); }
+.axp-edition .pass-note { display: block; margin: -8px 0 0; }
+
+/* Step 3: the review's edit links, side by side. */
+.axp-edition .review-edits { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 4px 0 18px; }
+.axp-edition .review-edits .review-edit { margin: 0; }
+
+/* The phone's bar: the total and the next action, at the foot of the screen. */
+.booking-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: flex; align-items: center; gap: 12px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: #fffdf9; border-top: 1px solid #e3d6c6; box-shadow: 0 -8px 22px rgba(46, 21, 51, .10); }
+.booking-bar[hidden] { display: none !important; }
+.booking-bar-total { flex: 1 1 auto; min-width: 0; font: 500 13px/1.35 'DM Sans', sans-serif; color: #3c3033; }
+.booking-bar .booking-bar-action { flex: 0 0 auto; width: auto; min-height: 46px; padding: 0 20px; justify-content: center; align-items: center; border-radius: 6px; font-size: 14px; }
+body.has-booking-bar { padding-bottom: 76px; }
+@media (min-width: 761px) {
+  .booking-bar { display: none !important; }
+  body.has-booking-bar { padding-bottom: 0; }
 }
