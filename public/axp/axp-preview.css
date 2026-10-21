@@ -29,7 +29,7 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 .axp-header nav a:hover { text-decoration: underline; }
 .axp-header nav .axp-original { font: 11px/1.4 'DM Sans', sans-serif; color: var(--muted); border-left: 1px solid var(--line); padding-left: 24px; }
 .axp-edition main { max-width: 1320px; padding: 0 42px; }
-.axp-edition .hero { max-width: none; min-height: 420px; margin: 0 -42px; padding: 38px 54px 24px; background: url('/axp/ivory-plum-gathering.png') center center / cover; border-bottom: 1px solid var(--line); }
+.axp-edition .hero { max-width: none; min-height: 420px; margin: 0 -42px; padding: 38px 54px 24px; background: url('/axp/ivory-plum-gathering.webp') center center / cover; border-bottom: 1px solid var(--line); }
 .axp-presenter { width: 59%; text-align: center; font: 500 17px/1.2 var(--display); letter-spacing: 3px; margin: 0 0 12px; }
 .axp-edition #event-kicker { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .axp-edition .hero h1 { width: 59%; margin: 0 0 12px; text-align: center; font: 400 clamp(80px, 8.9vw, 132px)/.9 var(--display); text-transform: uppercase; letter-spacing: -5px; color: #3c3033; }
@@ -151,7 +151,7 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
   .axp-header nav a:first-child, .axp-header nav .axp-original { display: none; }
   .axp-edition main { padding: 0 18px; }
   .axp-edition .hero { margin: 0 -18px; padding: 28px 24px 0; min-height: 0; background: #f4eee5; }
-  .axp-hero-art { display: block; aspect-ratio: 2 / 1; margin: 22px -24px 0; background: url('/axp/ivory-plum-gathering.png') right center / cover no-repeat; }
+  .axp-hero-art { display: block; aspect-ratio: 2 / 1; margin: 22px -24px 0; background: url('/axp/ivory-plum-gathering.webp') right center / cover no-repeat; }
   .axp-presenter, .axp-edition .hero h1, .axp-edition .intro, .axp-edition .event-meta, .axp-edition .event-fine { position: relative; width: 100%; max-width: none; }
   .axp-presenter { font-size: 15px; letter-spacing: 2px; }
   .axp-edition .hero h1 { font-size: clamp(64px, 18vw, 126px); letter-spacing: -3px; margin-bottom: 14px; }
@@ -554,7 +554,7 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 @media (max-width: 760px) {
   .axp-hero-art { display: none; }
   .axp-edition .hero {
-    background: url('/axp/ivory-plum-gathering.png') 64% center / cover no-repeat;
+    background: url('/axp/ivory-plum-gathering.webp') 64% center / cover no-repeat;
     padding: 24px 20px 30px;
     min-height: 0;
   }
@@ -606,7 +606,7 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 }
 
 /* ---------- Stall page hero: same photograph, type on the soft wall side ---------- */
-.axp-edition .stall-hero { background: url('/axp/ivory-plum-gathering.png') 60% center / cover no-repeat; min-height: 340px; padding: 44px 54px 36px; }
+.axp-edition .stall-hero { background: url('/axp/ivory-plum-gathering.webp') 60% center / cover no-repeat; min-height: 340px; padding: 44px 54px 36px; }
 .axp-edition .stall-hero::after {
   background: linear-gradient(90deg,
     rgba(245, 241, 233, .95) 0%, rgba(245, 241, 233, .86) 42%,
@@ -1232,3 +1232,144 @@ body.has-booking-bar { padding-bottom: 76px; }
 .axp-edition .ticket-fold { border: 1px solid var(--line); border-radius: 8px; margin: 10px 0; background: rgba(255, 253, 249, .6); }
 .axp-edition .ticket-fold summary { cursor: pointer; padding: 14px 16px; font-size: 14px; font-weight: 500; color: #3c3033; }
 .axp-edition .ticket-fold .ticket-preview { margin: 0; border: 0; border-top: 1px solid var(--line); }
+
+/* ======================= Screens: phones and laptops ======================= */
+
+/* The strip above the hero stays one line. On a phone it reads "Bookings
+   open · Early bird till 27 Oct" (payment.js and app.js fill the parts). */
+.axp-edition .preview:has(.preview-open) { text-align: center; }
+.axp-edition .preview :is(.preview-open, .preview-detail, .preview-secure, .preview-early) { display: inline; margin: 0; font-size: inherit; line-height: inherit; color: inherit; letter-spacing: inherit; font-weight: 400; }
+.axp-edition .preview .preview-open { font-weight: 600; }
+@media (max-width: 620px) {
+  .axp-edition .preview:has(.preview-open) { padding: 9px 14px; font-size: 10px; letter-spacing: 1.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .axp-edition .preview .preview-detail { display: none; }
+  .axp-edition .preview:has(.preview-early:not(:empty)) .preview-secure { display: none; }
+}
+
+/* The hero fills the first screen, below that strip, on a phone and on a
+   laptop alike, with its content centred top to bottom. */
+.axp-edition #event-details.hero {
+  display: flex; flex-direction: column; justify-content: center;
+  min-height: calc(100vh - 34px); min-height: calc(100svh - 34px);
+}
+@media (min-width: 761px) {
+  .axp-edition #event-details.hero { min-height: min(calc(100svh - 34px), 1000px); padding-top: 34px; padding-bottom: 34px; }
+}
+.axp-edition .hero-early { width: 59%; margin: 16px 0 0; text-align: center; font-size: 13px; line-height: 1.5; color: #4b3550; }
+.axp-edition .hero-early strong { font-weight: 600; color: var(--green); }
+.axp-edition .hero-early[hidden] { display: none; }
+@media (max-width: 760px) {
+  .axp-edition #event-details.hero { padding-top: 22px; padding-bottom: 26px; }
+  .axp-edition .hero-early { width: 100%; margin-top: 12px; padding: 9px 12px; border-radius: 10px; background: rgba(255, 253, 249, .82); backdrop-filter: blur(6px); font-size: 12.5px; }
+}
+/* The stall page's hero fills a phone's screen too, with its way to the form. */
+.axp-edition .stall-hero-cta { margin-top: 22px; align-self: flex-start; }
+@media (max-width: 760px) {
+  .axp-edition .stall-hero { display: flex; flex-direction: column; justify-content: center; min-height: 100vh; min-height: 100svh; }
+}
+
+/* Offers: the same three, in less height. On a phone they sit in one row
+   that scrolls sideways, the next card's edge showing. */
+@media (min-width: 761px) {
+  .axp-edition .booking-offers-grid { padding: 20px 0; }
+  .axp-edition .booking-offer h3 { min-height: 0; font-size: 25px; margin-bottom: 8px; }
+  .axp-edition .booking-offer-status { margin-bottom: 10px; }
+  .axp-edition .booking-offer-price { margin-bottom: 10px; }
+  .axp-edition .booking-offer-detail { margin-bottom: 12px; }
+}
+@media (max-width: 760px) {
+  .axp-edition .booking-offers { margin: 22px 0 4px; }
+  .axp-edition .booking-offers-heading { margin-bottom: 12px; }
+  .axp-edition .booking-offers-heading h2 { font-size: 29px; }
+  .axp-edition .booking-offers-grid {
+    display: flex; gap: 12px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory;
+    margin: 0 -18px; padding: 2px 18px 14px; background: none; scrollbar-width: none;
+  }
+  .axp-edition .booking-offers-grid::-webkit-scrollbar { display: none; }
+  .axp-edition .booking-offer { flex: 0 0 82%; scroll-snap-align: center; padding: 18px; border: 1px solid #e7ddea; border-radius: 10px; background: #fff; }
+  .axp-edition .booking-offer + .booking-offer { border-left: 1px solid #e7ddea; }
+  .axp-edition .booking-offer h3 { min-height: 0; font-size: 23px; margin-bottom: 8px; }
+  .axp-edition .booking-offer-status { margin-bottom: 10px; }
+  .axp-edition .booking-offer-price { margin-bottom: 10px; }
+  .axp-edition .booking-offer-price strong { font-size: 28px; }
+  .axp-edition .booking-offer-detail { margin-bottom: 10px; font-size: 12.5px; }
+}
+@media (max-width: 360px) {
+  .axp-edition .booking-offers-grid { margin: 0 -12px; padding-inline: 12px; }
+}
+
+/* The stall promo now follows the booking form. */
+.axp-edition .layout + .stall-spotlight { margin-top: 10px; }
+
+/* "Find my booking": a quiet link above the steps, and its dialog. */
+.axp-edition .find-booking-link { margin: 26px 0 -14px; text-align: right; }
+.axp-edition .find-booking-link .text-button { font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+.has-booking .find-booking-link { display: none; }
+.axp-edition .find-booking { width: min(440px, calc(100vw - 32px)); padding: 26px 24px 22px; border: 1px solid #bca180; border-radius: 12px; background: var(--paper); color: var(--ink); }
+.axp-edition .find-booking::backdrop { background: rgba(40, 22, 44, .45); }
+.axp-edition .find-booking h2 { margin: 0 0 6px; font: 500 30px/1.1 var(--display); }
+.axp-edition .find-booking label { display: grid; gap: 6px; margin-top: 14px; font-size: 12.5px; font-weight: 500; }
+.axp-edition .find-booking-message { margin: 12px 0 0; color: #a8412f; font-size: 12.5px; line-height: 1.5; }
+.axp-edition .find-booking-message[hidden] { display: none; }
+.axp-edition .find-booking-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.axp-edition .find-booking-actions button { flex: 1 1 auto; width: auto; min-height: 46px; padding: 12px 18px; font-size: 13px; justify-content: center; }
+
+/* On a laptop each step has a second column kept in view: the booking so
+   far on the guests step, the invitation and its prices on Review & pay. */
+.axp-edition .booking-aside { display: none; }
+@media (min-width: 1100px) {
+  .axp-edition :is(#your-guests, #payment-step):not([hidden]) { display: grid; column-gap: 40px; align-items: start; }
+  .axp-edition #your-guests:not([hidden]) { grid-template-columns: minmax(0, 1fr) 300px; }
+  .axp-edition #payment-step:not([hidden]) { grid-template-columns: minmax(0, 1fr) 340px; }
+  .axp-edition :is(#your-guests, #payment-step) > * { grid-column: 1; min-width: 0; }
+  .axp-edition #your-guests > .booking-aside,
+  .axp-edition #payment-step > .payment-summary { grid-column: 2; grid-row: 1 / span 40; align-self: start; position: sticky; top: 24px; margin: 0; }
+  .axp-edition #your-guests > .booking-aside { display: grid; gap: 12px; padding: 22px 20px; border: 1px solid #d9c7b0; border-radius: 10px; background: rgba(255, 253, 249, .92); }
+}
+.axp-edition .booking-aside .eyebrow { font-size: 10px; letter-spacing: 2px; color: #785985; }
+.axp-edition .booking-aside-event { display: grid; gap: 2px; margin: 0; }
+.axp-edition .booking-aside-event strong { font: 600 26px/1.1 var(--display); color: #3c3033; }
+.axp-edition .booking-aside-event span { font-size: 12px; color: var(--muted); }
+.axp-edition .booking-aside-lines { display: grid; gap: 6px; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.axp-edition .booking-aside-lines p { display: flex; justify-content: space-between; gap: 10px; margin: 0; font-size: 12.5px; }
+.axp-edition .booking-aside-total { display: flex; justify-content: space-between; align-items: baseline; margin: 0; font-size: 13px; }
+.axp-edition .booking-aside-total strong { font: 600 26px/1 var(--display); color: var(--green); }
+.axp-edition .booking-aside-saving { margin: -4px 0 0; font-size: 12px; color: #4b3550; }
+.axp-edition .booking-aside-saving[hidden] { display: none; }
+.axp-edition .booking-aside-action { width: 100%; min-height: 48px; justify-content: center; }
+.axp-edition .booking-aside-note { margin: 0; font-size: 11px; line-height: 1.5; color: var(--muted); }
+
+/* Review & pay: one line a guest; what else was typed opens beneath it. */
+.axp-edition details.review-person { display: block; }
+.axp-edition details.review-person > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; cursor: pointer; list-style: none; }
+.axp-edition details.review-person > summary::-webkit-details-marker { display: none; }
+.axp-edition details.review-person > summary > strong { grid-column: 1; }
+.axp-edition details.review-person > summary > span { grid-column: 1; }
+.axp-edition details.review-person > summary::after { content: 'Details'; grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 12px; color: #68436e; text-decoration: underline; text-underline-offset: 3px; }
+.axp-edition details.review-person[open] > summary::after { content: 'Hide'; }
+.axp-edition details.review-person > span { display: block; margin-top: 6px; }
+
+/* After booking: before you come, and the calendar and WhatsApp. */
+.axp-edition .before-you-come { margin: 22px 0 0; padding: 18px 20px; border: 1px solid #d9c7b0; border-radius: 10px; background: rgba(255, 253, 249, .75); }
+.axp-edition .before-you-come[hidden], .axp-edition .after-booking-actions[hidden] { display: none; }
+.axp-edition .before-you-come h3 { margin: 0 0 8px; font: 500 25px/1.2 var(--display); color: #3c3033; }
+.axp-edition .before-you-come ul { display: grid; gap: 7px; margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.55; color: #4f434b; }
+.axp-edition .before-you-come a { color: #48274e; text-underline-offset: 3px; }
+.axp-edition .after-booking-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 18px; margin: 16px 0 4px; }
+.axp-edition .add-to-calendar { margin: 0; font-size: 13px; }
+.axp-edition .add-to-calendar a { color: #48274e; text-underline-offset: 3px; }
+.axp-edition .share-whatsapp { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 20px; border-radius: 999px; background: #1f7a4d; color: #fff; text-decoration: none; font-size: 13.5px; font-weight: 500; }
+.axp-edition .share-whatsapp:hover { background: #18663f; }
+@media (max-width: 620px) {
+  .axp-edition .after-booking-actions { flex-direction: column; align-items: stretch; }
+  .axp-edition .share-whatsapp { width: 100%; }
+}
+
+/* Policy pages: the price table fits a phone, benefits listed below it. */
+.axp-edition .policy-main .price-table { display: table; table-layout: fixed; width: 100%; overflow: visible; }
+.axp-edition .policy-main .price-table :is(th, td):not(:first-child) { text-align: right; white-space: nowrap; }
+.axp-edition .policy-main .price-table th:first-child { width: 46%; }
+.axp-edition .policy-main .pass-benefits { margin: 0 0 16px; padding-left: 18px; }
+@media (max-width: 760px) {
+  .axp-edition .policy-main .price-table :is(th, td) { padding: 9px 6px; font-size: 12.5px; }
+}

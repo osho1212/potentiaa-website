@@ -6,7 +6,7 @@ export function renderPasscodeGateHtml(targetName: string, returnPath: string): 
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Organiser Verification · AxP Social</title>
   <link rel="stylesheet" href="/axp/style.css">
-  <link rel="stylesheet" href="/axp/fonts/fonts.css">
+  <link rel="stylesheet" href="/axp/fonts/fonts.css?v=2">
   <link rel="stylesheet" href="/axp/axp-preview.css">
   <style>
     body {
@@ -136,7 +136,7 @@ export function renderPasscodeGateHtml(targetName: string, returnPath: string): 
 </head>
 <body>
   <div class="auth-card">
-    <img src="/axp/emblem.png" alt="AxP Social" class="auth-logo">
+    <img src="/axp/emblem-256.png" alt="AxP Social" class="auth-logo">
     <div class="auth-eyebrow">AXP SOCIAL · AAGAZ</div>
     <h1 class="auth-title">${targetName}</h1>
     <p class="auth-desc">Enter the organiser PIN to access event management, attendee records, and gate admission tools.</p>

@@ -21,6 +21,13 @@ if(typeof document!=='undefined'){
   const el=id=>document.getElementById(id);
   const money=n=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',minimumFractionDigits:n%1?2:0,maximumFractionDigits:2}).format(n);
   const dateLabel=()=>new Intl.DateTimeFormat('en-IN',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(settings.eventDate+'T00:00:00Z'));
+  const clock=t=>new Intl.DateTimeFormat('en-IN',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'UTC'}).format(new Date('2000-01-01T'+(t||'00:00')+':00Z'));
+  // Dates of birth are typed as DD/MM/YYYY on the number keypad, quicker than
+  // scrolling a date picker back twenty-five years. The guest's record keeps
+  // the ISO date the server reads; the field shows the typed form.
+  const dobFromTyped=text=>{const m=String(text||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(!m)return '';const iso=`${m[3]}-${m[2]}-${m[1]}`,day=new Date(iso+'T00:00:00Z');return !Number.isNaN(day.getTime())&&day.toISOString().slice(0,10)===iso?iso:'';};
+  const dobToTyped=iso=>/^\d{4}-\d{2}-\d{2}$/.test(iso||'')?`${iso.slice(8,10)}/${iso.slice(5,7)}/${iso.slice(0,4)}`:'';
+  const typeDob=text=>{if(/^\d{4}-\d{2}-\d{2}$/.test(text))return dobToTyped(text);const d=String(text||'').replace(/\D/g,'').slice(0,8);return d.length>4?`${d.slice(0,2)}/${d.slice(2,4)}/${d.slice(4)}`:d.length>2?`${d.slice(0,2)}/${d.slice(2)}`:d;};
   const instagram=v=>/^@?[A-Za-z0-9._]{1,30}$/.test(v.trim());
   const phone=v=>/^\+?[0-9 ()-]{8,20}$/.test(v.trim())&&v.replace(/\D/g,'').length>=8&&v.replace(/\D/g,'').length<=15;
   const DIAL='+91 ';
@@ -75,10 +82,11 @@ if(typeof document!=='undefined'){
     else if(empty){if(field.required)message=field.tagName==='SELECT'?'Please choose an option.':'Please fill in this required field.';}
     else if(field.id.endsWith('-instagram')&&!instagram(field.value))message='Enter a valid Instagram username, such as @yourusername.';
     else if(field.id.endsWith('-phone')&&!phone(field.value))message='Enter a valid phone number with country code.';
-    else if(field.id.endsWith('-dob')&&!ageBracket(field.value))message=`Attendees must be 20 or older on ${dateLabel()}.`;
+    else if(field.id.endsWith('-dob')&&!dobFromTyped(field.value))message='Enter the date as DD/MM/YYYY, such as 14/03/1995.';
+    else if(field.id.endsWith('-dob')&&!ageBracket(dobFromTyped(field.value)))message=`Attendees must be 20 or older on ${dateLabel()}.`;
     else if(field.type==='email'&&field.validity.typeMismatch)message='Enter a valid email address, such as name@example.com.';
     // Until a date of birth is in, its own field says so; Gold waits for it.
-    else if(field.id.endsWith('-pass-alcohol')&&field.checked&&(el(field.id.replace(/-pass-alcohol$/,'-dob'))||{}).value&&ageBracket((el(field.id.replace(/-pass-alcohol$/,'-dob'))||{}).value)!=='21plus')message='Gold passes need age 21 or over on the event date.';
+    else if(field.id.endsWith('-pass-alcohol')&&field.checked&&dobFromTyped((el(field.id.replace(/-pass-alcohol$/,'-dob'))||{}).value)&&ageBracket(dobFromTyped((el(field.id.replace(/-pass-alcohol$/,'-dob'))||{}).value))!=='21plus')message='Gold passes need age 21 or over on the event date.';
     else if(sharedContactError(field))message=sharedContactError(field);
     else if(!field.validity.valid)message=field.validationMessage;
     field.setCustomValidity(message);return message;
@@ -233,10 +241,24 @@ if(typeof document!=='undefined'){
     const shown=unsure?lowestQuote():q,amount=(shown.totalPaise??shown.subtotalPaise)/100;
     const count=`${passes} ${passes===1?'pass':'passes'}`;
     document.querySelectorAll('.step-total').forEach(node=>{node.textContent=`${count} · ${unsure?'from ':''}${money(amount)}`;});
+    renderAside(shown,unsure);
     renderEarlyBird();
     renderOffers();
     renderGuestNotes();
     updateBar();
+  }
+  // The guests step's second column on a laptop: what this booking costs so
+  // far, and the way on. Until every pass and gender is in, a starting price.
+  function renderAside(shown,unsure){
+    if(!el('booking-aside'))return;
+    el('aside-event').textContent=settings.eventName||'AAGAZ';
+    el('aside-when').textContent=settingsLoaded?`${dateLabel()} · ${clock(settings.startTime)}`:'';
+    const n=state.length,total=(shown.totalPaise??shown.subtotalPaise)/100;
+    el('aside-lines').replaceChildren(...(unsure?[summaryLine(`${n} ${n===1?'guest':'guests'}`,'Pass to choose')]:priceLines(shown.lines)));
+    el('aside-total').textContent=`${unsure?'from ':''}${money(total)}`;
+    const saving=!unsure&&shown.savingPaise>0;
+    el('aside-saving').hidden=!saving;
+    if(saving)el('aside-saving').textContent=`${shown.priceList==='early'?'Early-bird prices: ':''}you save ${money(shown.savingPaise/100)}`;
   }
   function updateBar(){
     if(!bar)return;
@@ -306,6 +328,7 @@ if(typeof document!=='undefined'){
   }
   // While the early bird is open: how long is left. It
   // refreshes every minute, so prices switch back as soon as it ends.
+  // The hero and the top banner carry it too: it is the reason to book today.
   function renderEarlyBird(){
     const hint=el('pass-limit-hint');if(!hint)return;
     let banner=el('early-bird-banner');
@@ -313,11 +336,28 @@ if(typeof document!=='undefined'){
     const ends=earlyBird&&earlyBird.endsAt?Date.parse(earlyBird.endsAt):NaN;
     const open=!!(earlyBird&&earlyBird.open&&ends>Date.now());
     banner.hidden=!open;
+    const hero=el('hero-early');if(hero)hero.hidden=!open||!settingsLoaded;
+    renderBanner(open);
     if(!open){clearInterval(earlyTimer);earlyTimer=null;return;}
     const left=ends-Date.now(),days=Math.floor(left/864e5),hours=Math.floor(left%864e5/36e5),minutes=Math.floor(left%36e5/6e4);
-    banner.textContent=`Early-bird prices end in ${days>0?`${days}d ${hours}h`:`${hours}h ${minutes}m`}. For bookings paid in full; pre-bookings pay regular prices.`;
+    const span=days>0?`${days}d ${hours}h`:`${hours}h ${minutes}m`;
+    banner.textContent=`Early-bird prices end in ${span}. For bookings paid in full; pre-bookings pay regular prices.`;
+    if(hero&&settingsLoaded){
+      const from=Math.min(unitPrice(settings,'early','normal','single'),unitPrice(settings,'early','alcohol','single'));
+      const strong=document.createElement('strong');strong.textContent=`Early bird ends in ${span}`;
+      // The count shows once some have sold: "60 of 60 left" says nothing.
+      const passes=Number.isFinite(earlyBird.left)&&Number.isFinite(earlyBird.cap)&&earlyBird.left<earlyBird.cap?` · ${earlyBird.left} of ${earlyBird.cap} early-bird passes left`:'';
+      hero.replaceChildren(strong,`${passes} · from ${money(from)}`);
+    }
     if(!earlyTimer)earlyTimer=setInterval(()=>{summary();passCardPrices();},60000);
   }
+  // The strip above the hero, once payment.js has said sales are open: on a
+  // phone it shrinks to "Bookings open · Early bird till 27 Oct".
+  function renderBanner(open=!!(earlyBird&&earlyBird.open)){
+    const early=document.querySelector('.preview .preview-early');if(!early)return;
+    early.textContent=open&&earlyEndLabel()?` · Early bird till ${earlyEndLabel()}`:'';
+  }
+  window.addEventListener('axp-banner-ready',()=>renderBanner());
   // ---------- Offers ----------
   // Lead with offers below the hero. Later steps explain what is applied
   // and what one more guest would change. All prices use server settings.
@@ -517,7 +557,7 @@ if(typeof document!=='undefined'){
         input('Instagram username','instagram',index,{placeholder:'@username',maxLength:31,required:false})
       );
       const dobLabel=requiredLabel('Date of birth');
-      const dob=document.createElement('input');dob.type='date';dob.id=`guest-${index}-dob`;dob.name=`attendees[${index}][dob]`;dob.required=true;dob.value=guest.dob;{const day=String(settings.eventDate||'');if(/^\d{4}-\d{2}-\d{2}$/.test(day)){const y=Number(day.slice(0,4)),md=day.slice(4);dob.max=(y-20)+md;dob.min=(y-100)+md;}}
+      const dob=document.createElement('input');dob.type='text';dob.inputMode='numeric';dob.autocomplete='bday';dob.placeholder='DD/MM/YYYY';dob.maxLength=10;dob.id=`guest-${index}-dob`;dob.name=`attendees[${index}][dob]`;dob.required=true;dob.value=dobToTyped(guest.dob);dob.dataset.iso=guest.dob||'';
       dobLabel.append(dob,describeField(dob,`Attendee ${index+1}: date of birth`));grid.append(dobLabel);
       // Gender decides couple pricing, and the gate checks it against photo ID.
       const genderLabel=requiredLabel('Gender');const gender=document.createElement('select');gender.id=`guest-${index}-gender`;gender.name=`attendees[${index}][gender]`;gender.required=true;
@@ -527,7 +567,7 @@ if(typeof document!=='undefined'){
       // Each guest's own pass, picked on a ticket (see passPick). A date of
       // birth that makes them 20 moves them to Silver; refreshPassPicks says why.
       const passPicker=passPick(index,guest,()=>summary());
-      dob.addEventListener('input',()=>{guest.dob=dob.value;const bracket=ageBracket(dob.value);guest.age=bracket||'';if(bracket==='20'&&guest.pass==='alcohol')guest.pass='normal';summary();});
+      dob.addEventListener('input',()=>{const typed=typeDob(dob.value);if(typed!==dob.value)dob.value=typed;guest.dob=dobFromTyped(typed);dob.dataset.iso=guest.dob;const bracket=ageBracket(guest.dob);guest.age=bracket||'';if(bracket==='20'&&guest.pass==='alcohol')guest.pass='normal';summary();});
       grid.append(passPicker);
       const done=document.createElement('button');done.type='button';done.className='secondary attendee-done';done.addEventListener('click',()=>finishCard(index));
       section.append(grid,done);el('attendees').append(section);
@@ -590,21 +630,25 @@ if(typeof document!=='undefined'){
       detailLine('Phone',el('buyer-phone').value),
       detailLine('Instagram',el('buyer-instagram').value),
     ].filter(Boolean).join('  \u00b7  ');
+    // One line a guest, with the rest of what was typed folded under it, so a
+    // booking of ten stays short. A booking of one shows it open.
     el('review-guests').replaceChildren(...state.map((guest,i)=>{
-      const row=document.createElement('div');row.className='review-person';
+      const row=document.createElement('details');row.className='review-person';row.open=state.length===1;
+      const line=document.createElement('summary');
       const name=document.createElement('strong');
       name.textContent=`${i+1}. ${guest.name.trim()||'Attendee '+(i+1)}`;
       const pass=document.createElement('span');
       pass.textContent=`${passLabel(guest.pass,q.lines[i].fare)} · ${money(q.lines[i].unitPaise/100)}`;
+      line.append(name,pass);
       const extra=document.createElement('span');
       extra.textContent=[
-        detailLine('Date of birth',guest.dob),
+        detailLine('Date of birth',dobToTyped(guest.dob)),
         detailLine('Gender',GENDER_LABELS[guest.gender]),
         detailLine('Email',guest.email),
         detailLine('Phone',guest.phone),
         detailLine('Instagram',guest.instagram),
       ].filter(Boolean).join('  \u00b7  ');
-      row.append(name,pass);if(extra.textContent)row.append(extra);
+      row.append(line);if(extra.textContent)row.append(extra);
       return row;
     }));
     if(el('review-total'))el('review-total').textContent=money((q.totalPaise??q.subtotalPaise)/100);
@@ -626,7 +670,7 @@ if(typeof document!=='undefined'){
   // Leaving an empty field shows its error, which pushes the buttons below it
   // down between press and release, so the click would land on nothing. These
   // buttons keep focus where it is when pressed; their click checks the step.
-  document.addEventListener('mousedown',event=>{if(event.target.closest('.step-next,.attendee-done,.booking-bar-action'))event.preventDefault();});
+  document.addEventListener('mousedown',event=>{if(event.target.closest('.step-next,.attendee-done,.booking-bar-action,#aside-action'))event.preventDefault();});
   el('check-required-fields').addEventListener('click',showMissingFields);
 
   // A refresh, a dropped connection or an accidental swipe should not cost a
@@ -746,6 +790,8 @@ if(typeof document!=='undefined'){
       el('instagram-link').hidden=!handle;
       if(handle){el('instagram-link').textContent='@'+handle+' \u2197';el('instagram-link').href='https://instagram.com/'+encodeURIComponent(handle);}
       document.documentElement.dataset.mapEmbed=mapQuery?`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&hl=en&output=embed`:'';
+      // payment.js builds "Add to calendar" and "Before you come" from this.
+      document.documentElement.dataset.event=JSON.stringify({name:settings.eventName,date:settings.eventDate,start:settings.startTime,end:settings.endTime,barClose:settings.barCloseTime,venue:settings.venueName,location:settings.venueLocation||'',maps:directions,support:settings.supportPhone});
       window.dispatchEvent(new Event('axp-settings-loaded'));
       el('footer-copyright').textContent=`© ${new Date().getFullYear()} Potentiaa. All rights reserved.`;
       applyBrand('potentiaa',settings.potentiaaLogo,settings.potentiaaPhone);
@@ -881,6 +927,7 @@ if(typeof document!=='undefined'){
   const barTotal=document.createElement('span');barTotal.className='booking-bar-total';barTotal.setAttribute('aria-live','polite');
   const barAction=document.createElement('button');barAction.type='button';barAction.className='primary booking-bar-action';
   bar.append(barTotal,barAction);document.body.append(bar);
+  el('aside-action')?.addEventListener('click',goForward);
   barAction.addEventListener('click',()=>{
     if(steps[stepIndex]!=='payment-step'){goForward();return;}
     if(el('booking-form').dataset.ready!=='1'){const first=liveFields(el('booking-form')).find(field=>fieldError(field));showMissingFields();if(first)revealField(first);return;}

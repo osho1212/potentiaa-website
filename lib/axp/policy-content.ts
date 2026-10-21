@@ -1,6 +1,6 @@
 import { EventSettings } from './event-settings';
 
-export const POLICY_VERSION = 'aagaz-2026-04';
+export const POLICY_VERSION = 'aagaz-2026-05';
 
 export const POLICY_PAGES: Record<string, string> = {
   about: 'About us',
@@ -19,10 +19,12 @@ const escape = (value: any) =>
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 
+// Whole rupees show as ₹2,699, not ₹2,699.00; paise only when there are some.
 const money = (value: number | null | undefined) =>
   new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
+    minimumFractionDigits: Number.isInteger(value ?? 0) ? 0 : 2,
     maximumFractionDigits: 2,
   }).format(value ?? 0);
 
@@ -69,15 +71,17 @@ export function getPolicyContent(settings: EventSettings, slug: string): { title
     contact: `<p>For booking questions, attendee corrections, ticket access and payment concerns, contact the event organiser. Quote your booking reference and, for a payment concern, the payment reference when available.</p>${contact}${merchant}<p>Venue: ${e(
       s.venueName
     )}, ${e(s.venueLocation)}.</p>`,
-    pricing: `<p>${event}.</p><table class="booking-table"><thead><tr><th>Pass</th><th>Early bird</th><th>Regular</th><th>Benefits</th></tr></thead><tbody><tr><td>Silver, single</td><td>${e(
+    // Three columns, so the table fits a phone; what each pass includes
+    // follows it as a list.
+    pricing: `<p>${event}.</p><table class="booking-table price-table"><thead><tr><th>Pass, per person</th><th>Early bird</th><th>Regular</th></tr></thead><tbody><tr><td>Silver</td><td>${e(
       money(s.earlyNormalPrice)
-    )}</td><td>${e(money(s.normalPrice))}</td><td>${e(s.normalDescription)}</td></tr><tr><td>Silver, couple or group (each)</td><td>${e(
+    )}</td><td>${e(money(s.normalPrice))}</td></tr><tr><td>Silver, couple or group</td><td>${e(
       money(s.earlyNormalGroupPrice)
-    )}</td><td>${e(money(s.normalGroupPrice))}</td><td>${e(s.normalDescription)}</td></tr><tr><td>Gold · 21+, single</td><td>${e(
+    )}</td><td>${e(money(s.normalGroupPrice))}</td></tr><tr><td>Gold · 21+</td><td>${e(
       money(s.earlyAlcoholPrice)
-    )}</td><td>${e(money(s.alcoholPrice))}</td><td>${e(s.alcoholDescription)}</td></tr><tr><td>Gold · 21+, couple or group (each)</td><td>${e(
+    )}</td><td>${e(money(s.alcoholPrice))}</td></tr><tr><td>Gold · 21+, couple or group</td><td>${e(
       money(s.earlyAlcoholGroupPrice)
-    )}</td><td>${e(money(s.alcoholGroupPrice))}</td><td>${e(s.alcoholDescription)}</td></tr></tbody></table><p>Prices are per person. Couple prices apply to two people of different genders in a booking of two or three, on any pass types. Group prices apply to everyone in a booking of four or more people, whatever their pass types. Couples and groups each pay the couple or group price of their own pass.</p><p>${
+    )}</td><td>${e(money(s.alcoholGroupPrice))}</td></tr></tbody></table><ul class="pass-benefits"><li><strong>Silver:</strong> ${e(s.normalDescription)}</li><li><strong>Gold · 21+:</strong> ${e(s.alcoholDescription)}</li></ul><p>Prices are per person. Couple prices apply to two people of different genders in a booking of two or three, on any pass types. Group prices apply to everyone in a booking of four or more people, whatever their pass types. Couples and groups each pay the couple or group price of their own pass.</p><p>${
       s.earlyBirdEnabled
         ? `Early-bird prices apply to bookings paid in full until ${e(
             new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(s.earlyBirdEndDate + 'T00:00:00Z'))
@@ -90,12 +94,14 @@ export function getPolicyContent(settings: EventSettings, slug: string): { title
           )} per person and pay the balance later, by UPI on your booking page or in cash at the venue. Pre-bookings pay regular prices; early-bird prices do not apply. Entry is by QR pass only, and a pre-booking gets its QR passes once it is paid in full.</p>`
         : ''
     }<p>${
-      s.chargesConfirmed
-        ? `Additional charge per person: ${e(money(s.extraPerPerson))}. Additional charge per booking: ${e(
-            money(s.extraPerBooking)
-          )}. These are the organiser-confirmed final additional charges, including applicable taxes.`
-        : 'Additional charges are not yet confirmed. Guest payment cannot open until final charges are confirmed.'
-    }</p><p>Mixed pass types are allowed. Your full payable amount is calculated and shown before payment. A saved booking retains its agreed prices.</p><p>Only the listed pass benefits are included. Any drinks menu or serving details still marked as unconfirmed must be finalised before sales open.</p>${merchant}${contact}`,
+      !s.chargesConfirmed
+        ? 'Additional charges are not yet confirmed. Guest payment cannot open until final charges are confirmed.'
+        : !s.extraPerPerson && !s.extraPerBooking
+          ? 'The prices above include applicable taxes. There are no additional charges.'
+          : `Additional charge per person: ${e(money(s.extraPerPerson))}. Additional charge per booking: ${e(
+              money(s.extraPerBooking)
+            )}. These are the organiser-confirmed final additional charges, including applicable taxes.`
+    }</p><p>Mixed pass types are allowed. Your full payable amount is calculated and shown before payment. A saved booking retains its agreed prices.</p><p>Only the listed pass benefits are included.</p>${merchant}${contact}`,
     terms: `<p>${event}. Last service is at ${e(time(s.barCloseTime))} IST.</p><ol><li>Passes are issued to named attendees and are non-transferable. Provide accurate buyer and attendee details. Contact support for corrections.</li><li>General entry is for attendees aged 20 or older. Gold passes are for attendees aged 21 or older. Organisers check photo ID and eligibility at the venue; this website does not request an ID-document upload.</li><li>A booking may contain up to ${s.maxPerBooking} attendees; larger groups should contact the organisers. Places are subject to availability. An unpaid checkout hold lasts 15 minutes.</li><li>Couple prices are for two people of different genders, on any pass types. Organisers check each person's gender against photo ID at the venue; if the details do not match, the difference to the single price is payable before entry.</li>${
       s.prebookEnabled
         ? `<li>A pre-booking holds places with a non-refundable deposit of ${e(money(s.depositPerPerson))} per person. The balance can be paid at any time by UPI on the booking page, or in cash at the venue. Pre-bookings pay regular prices. Entry is by QR pass only, and QR passes are issued only once a booking is paid in full. A guest paying the balance at the venue is admitted once the organisers have recorded the payment and issued the passes.</li>`

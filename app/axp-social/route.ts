@@ -1,4 +1,6 @@
 import { rawBookingHtml } from '@/lib/axp/templates/booking-html';
+import { site } from '@/lib/site';
+import { shareTags } from '@/lib/axp/share-tags';
 
 const lotus = `<svg class="axp-lotus" viewBox="0 0 64 64" fill="none" aria-hidden="true"><g stroke="currentColor" stroke-width="1.1"><path d="M32 47C19 38 21 24 32 13c11 11 13 25 0 34Z"/><path d="M32 47C15 45 10 33 11 23c14 0 24 9 21 24Zm0 0c17-2 22-14 21-24-14 0-24 9-21 24Z"/><path d="M32 47C16 51 8 44 4 35c12-5 25-1 28 12Zm0 0c16 4 24-3 28-12-12-5-25-1-28 12Z"/><path d="m22 51 10 7 10-7M32 47v11"/></g></svg>`;
 
@@ -22,19 +24,55 @@ const stallSpotlight = `<section id="business-stalls" class="stall-spotlight" ar
   </div>
 </section>`;
 
+// For guests who have lost their confirmation page or email: the booking
+// reference plus the email or phone they booked with. find-booking.js runs it.
+const findBooking = `<dialog id="find-booking" class="find-booking" aria-labelledby="find-booking-title">
+  <form id="find-booking-form" novalidate>
+    <h2 id="find-booking-title">Find your booking</h2>
+    <p class="helper">Enter the booking reference from your confirmation or email, and the email address or phone number you booked with.</p>
+    <label><span>Booking reference</span><input id="find-ref" name="ref" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="For example 4795D474" required></label>
+    <label><span>Email or phone</span><input id="find-contact" name="contact" autocomplete="email" maxlength="150" placeholder="you@example.com or +91 98765 43210" required></label>
+    <p id="find-booking-message" class="find-booking-message" role="alert" hidden></p>
+    <div class="find-booking-actions"><button type="submit" class="primary" id="find-booking-submit">Find booking</button><button type="button" class="secondary" id="find-booking-close">Close</button></div>
+  </form>
+</dialog>`;
+
+// On a laptop the guests step has a second column: what the booking costs so
+// far and the way on, kept in view while the cards are filled in. app.js
+// fills it; on a phone the bar at the foot of the screen does this job.
+const bookingAside = `<aside id="booking-aside" class="booking-aside" aria-label="Your booking so far">
+  <span class="eyebrow">YOUR BOOKING</span>
+  <p class="booking-aside-event"><strong id="aside-event">AAGAZ</strong><span id="aside-when"></span></p>
+  <div id="aside-lines" class="booking-aside-lines"></div>
+  <p class="booking-aside-total"><span>Total</span><strong id="aside-total"></strong></p>
+  <p id="aside-saving" class="booking-aside-saving" hidden></p>
+  <button type="button" id="aside-action" class="primary booking-aside-action">Review &amp; pay <span aria-hidden="true">→</span></button>
+  <p class="booking-aside-note">Secure payment by Razorpay. A named QR pass for every guest.</p>
+</aside>`;
+
 export function GET() {
   const html = rawBookingHtml
-    .replace('<title>Aagaz · AXP Social</title>', '<title>AAGAZ · AxP Social · Invitation edition</title>')
+    .replace('<title>Aagaz · AXP Social</title>', '<title>AAGAZ · Diwali Sundowner · 6 Nov, Rishikesh · AxP Social</title>')
+    .replace(
+      /<meta name="description" content="[^"]*">/,
+      shareTags({
+        title: 'AAGAZ · A private Diwali sundowner by AxP Social',
+        description: 'Friday 6 November, 3 pm to midnight, at Sukh Saklana Haveli, Rishikesh. Named passes, early-bird, couple and group prices.',
+        url: `${site.url}/axp-social`,
+        image: `${site.url}/axp/share-aagaz.jpg`,
+        imageAlt: 'AAGAZ, a private Diwali sundowner by AxP Social, Friday 6 November at Sukh Saklana Haveli, Rishikesh',
+      })
+    )
     .replace('href="style.css"', 'href="/axp/style.css?v=2"')
-    .replace('src="app.js"', 'src="/axp/app.js?v=13"')
-    .replace('src="payment.js"', 'src="/axp/payment.js?v=8"')
+    .replace('src="app.js"', 'src="/axp/app.js?v=14"')
+    .replace('src="payment.js"', 'src="/axp/payment.js?v=9"></script><script type="module" src="/axp/find-booking.js?v=1"')
     .replace('width=device-width, initial-scale=1', 'width=device-width, initial-scale=1, viewport-fit=cover')
-    .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/axp-preview.css?v=19"><link rel="preload" as="image" href="/axp/ivory-plum-gathering.png"><script type="module" src="/axp/reveal.js"></script></head>')
+    .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css?v=2"><link rel="stylesheet" href="/axp/axp-preview.css?v=20"><link rel="preload" as="image" type="image/webp" href="/axp/ivory-plum-gathering.webp" fetchpriority="high"><script type="module" src="/axp/reveal.js"></script></head>')
     .replace('<body>', '<body class="axp-edition"><a class="axp-skip" href="#your-guests">Skip to booking form</a>')
     .replace(/<header>[\s\S]*?<\/header>/, '')
     .replace('<section class="hero"', '<section id="event-details" class="hero"')
-    .replace('<div id="event-rules"', '<div class="hero-actions"><a id="hero-cta" class="hero-cta" href="#your-guests">Book your passes <span aria-hidden="true">→</span></a><div id="event-countdown" class="event-countdown" hidden><span class="cd-label">Doors open in</span><span id="event-countdown-units" class="cd-units"></span></div></div><ul id="hero-offers" class="hero-offers" aria-label="Offers" hidden></ul><div id="event-rules"')
-    .replace('<div id="event-kicker"', '<p class="axp-presenter"><img src="/axp/emblem.png" alt="" width="34" height="34"><span>AxP Social presents</span></p><div id="event-kicker"')
+    .replace('<div id="event-rules"', '<div class="hero-actions"><a id="hero-cta" class="hero-cta" href="#your-guests">Book your passes <span aria-hidden="true">→</span></a><div id="event-countdown" class="event-countdown" hidden><span class="cd-label">Doors open in</span><span id="event-countdown-units" class="cd-units"></span></div></div><p id="hero-early" class="hero-early" role="status" hidden></p><ul id="hero-offers" class="hero-offers" aria-label="Offers" hidden></ul><div id="event-rules"')
+    .replace('<div id="event-kicker"', '<p class="axp-presenter"><img src="/axp/emblem-256.png" alt="" width="34" height="34"><span>AxP Social presents</span></p><div id="event-kicker"')
     .replace('<ul id="hero-offers" class="hero-offers" aria-label="Offers" hidden></ul>', '')
     .replace('It starts with us.', 'A new circle. A beautiful beginning.')
     .replace('The first gathering of AXP Social. A new circle, a beautiful haveli, and an afternoon that turns into a night to remember.', 'An afternoon that becomes an evening to remember. Join us for the first gathering of AxP Social.')
@@ -49,9 +87,9 @@ export function GET() {
     .replaceAll('Open in Google Maps ↗', 'Open in Google Maps ↗')
     .replace('Choose up to five passes. Mixing pass types is welcome.', 'Entry is for guests aged 20 and over. Choose up to 5 passes per booking; mixing pass types is welcome.')
     .replace('</article></div></section><section id="what-is-on"', '</article></div><p class="pass-selection-note">You choose Silver or Gold for each guest when you book.</p></section><section id="what-is-on"')
-    .replace('<div class="layout">', bookingOffers + stallSpotlight + '<div class="layout">')
-    .replace('<a id="stall-link" href="/axp-social/stalls">Apply for a stall ↗</a>', '<a id="stall-link" href="#business-stalls">Explore stall opportunities &#8593;</a>')
-    .replace('<div class="layout">', '<nav class="axp-steps" aria-label="Booking steps"><a href="#your-guests"><span>01</span> Guests</a><i aria-hidden="true"></i><a href="#payment-step"><span>02</span> Review &amp; pay</a></nav><div class="layout">')
+    .replace('<div class="layout">', bookingOffers + '<div class="layout">')
+    .replace('<a id="stall-link" href="/axp-social/stalls">Apply for a stall ↗</a>', '<a id="stall-link" href="#business-stalls">Explore stall opportunities &#8595;</a>')
+    .replace('<div class="layout">', '<p class="find-booking-link"><button type="button" class="text-button" data-find-booking>Already booked? Find your booking</button></p><nav class="axp-steps" aria-label="Booking steps"><a href="#your-guests"><span>01</span> Guests</a><i aria-hidden="true"></i><a href="#payment-step"><span>02</span> Review &amp; pay</a></nav><div class="layout booking-layout">')
     .replace('<section class="panel"><div class="section-top"><span class="step">02', '<section id="your-details" class="panel step-panel"><div class="section-top"><span class="step">02')
     .replace('<section class="panel"><div class="section-top"><span class="step">03', '<section id="your-guests" class="panel step-panel"><div class="section-top"><span class="step">03')
     .replace('<section class="panel"><div class="section-top"><span class="step">04', '<section id="booking-review" class="panel step-panel"><div class="section-top"><span class="step">04')
@@ -63,6 +101,7 @@ export function GET() {
     .replace('<span>Base subtotal</span><strong id="review-total">', '<span>Total</span><strong id="review-total">')
     // The policy links move into the footer, above the copyright line.
     .replace(/(<nav class="policy-nav"[^>]*>[\s\S]*?<\/nav>)\s*<footer>[\s\S]*?<\/footer>/, '<footer class="axp-footer">$1<div class="footer-meta"><span>AxP SOCIAL · AAGAZ / THE FIRST CHAPTER</span><span id="footer-copyright" class="footer-copyright"></span></div></footer>')
+    .replace('<a href="/policies/about">About us</a>', '<a href="#find-booking" data-find-booking>Find my booking</a> · <a href="/policies/about">About us</a>')
     .replaceAll('href="/policies/', 'href="/axp-social/policies/')
     // How to pay: in full now, or a deposit now and the balance later. app.js
     // fills in the amounts and hides the choice when pre-booking is off.
@@ -192,5 +231,10 @@ function twoStepBooking(input: string): string {
   html = swap(html, '<p id="ticket-delivery-note"', `${card.piece}<p id="ticket-delivery-note"`);
   // Terms, the box to tick and what is still missing sit just above Pay.
   html = swap(html, '<div class="payment-status">', `${termsBox}${tick}${readiness}<p id="form-message" class="message" role="status"></p><div class="payment-status">`);
+  // The guests step's summary column, shown on a laptop, before its buttons.
+  html = swap(html, /(<section id="your-guests"[\s\S]*?)(<div class="step-nav">)/, `$1${bookingAside}$2`);
+  // The stall promo follows the booking form: it is for businesses, not
+  // guests, so it no longer stands between the offers and the event.
+  html = swap(html, '</form></div>\n</div><section class="brand-strip"', `</form></div>\n</div>${stallSpotlight}${findBooking}<section class="brand-strip"`);
   return html;
 }
