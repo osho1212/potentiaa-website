@@ -29,7 +29,7 @@ async function request(url,body){
 function rows(){
   const query=el('booking-search').value.toLowerCase();el('booking-rows').replaceChildren();
   const filtered=entries.filter(e=>[e.name,e.email,e.instagram,e.buyer_name,e.buyer_email,e.id,e.gateway_payment].join(' ').toLowerCase().includes(query));
-  const imageBookings=new Set(),balanceBookings=new Set();
+  const imageBookings=new Set(),balanceBookings=new Set(),deleteBookings=new Set();
   for(const item of filtered){
     const row=document.createElement('tr'),whatsapp=whatsappCell(item);
     const pass=[passName(item.pass_type),item.fare&&item.fare!=='Single'?item.fare:'',typeof item.price==='number'?rupees(item.price):''].filter(Boolean).join(' · ');
@@ -70,6 +70,68 @@ function rows(){
       });
       wrap.append(method,record);row.children[1].append(wrap);
     }
+
+    // Actions column (Check-in / Reset entry + Delete booking)
+    const actionsCell=document.createElement('td');actionsCell.className='action-cell';
+    const actionGroup=document.createElement('div');actionGroup.className='action-group';
+    const isEntered=!!(item.checked_in||item.checked_in_at);
+    const checkinBtn=document.createElement('button');checkinBtn.type='button';
+    checkinBtn.className=isEntered?'btn-action btn-checkin-reset':'btn-action btn-checkin-toggle';
+    checkinBtn.textContent=isEntered?'Reset entry':'Check in';
+    checkinBtn.title=isEntered?`Reset entry check-in for ${item.name}`:`Mark ${item.name} as checked in`;
+    checkinBtn.addEventListener('click',async()=>{
+      const action=isEntered?'reset':'checkin';
+      const promptMsg=isEntered
+        ?`Reset entry for ${item.name} (${item.buyer_name})? They will be marked as not entered.`
+        :`Manually check in ${item.name} (${item.buyer_name}) without scanning QR?`;
+      if(!window.confirm(promptMsg))return;
+      checkinBtn.disabled=true;checkinBtn.textContent='Updating…';
+      try{
+        const response=await fetch('/api/admin/bookings/'+encodeURIComponent(item.id)+'/check-in',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({attendeeId:item.attendee_id,action}),
+        });
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(data.error||'Failed to update entry status.');
+        el('dashboard-message').textContent=data.message||`Entry updated for ${item.name}.`;
+        await load();
+      }catch(err){
+        el('dashboard-message').textContent='Entry toggle error: '+err.message;
+        checkinBtn.disabled=false;checkinBtn.textContent=isEntered?'Reset entry':'Check in';
+      }
+    });
+    actionGroup.append(checkinBtn);
+
+    if(!deleteBookings.has(item.id)){
+      deleteBookings.add(item.id);
+      const deleteBtn=document.createElement('button');deleteBtn.type='button';
+      deleteBtn.className='btn-action btn-delete-booking';
+      deleteBtn.textContent='Delete booking';
+      deleteBtn.title=`Permanently delete booking for ${item.buyer_name}`;
+      deleteBtn.addEventListener('click',async()=>{
+        const shortId=(item.id||'').slice(0,8);
+        const confirmMsg=`⚠️ Delete booking ${shortId} for ${item.buyer_name}?\n\nThis will permanently remove the booking, all ${item.guest_count||1} attendee records, and payment records from Firestore.\n\nClick OK to confirm deletion.`;
+        if(!window.confirm(confirmMsg))return;
+        deleteBtn.disabled=true;deleteBtn.textContent='Deleting…';
+        try{
+          const response=await fetch('/api/admin/bookings/'+encodeURIComponent(item.id),{
+            method:'DELETE',
+          });
+          const data=await response.json().catch(()=>({}));
+          if(!response.ok)throw new Error(data.error||'The booking could not be deleted.');
+          el('dashboard-message').textContent=`Booking ${shortId} (${item.buyer_name}) deleted.`;
+          await load();
+        }catch(err){
+          el('dashboard-message').textContent='Delete error: '+err.message;
+          deleteBtn.disabled=false;deleteBtn.textContent='Delete booking';
+        }
+      });
+      actionGroup.append(deleteBtn);
+    }
+    actionsCell.append(actionGroup);
+    row.append(actionsCell);
+
     el('booking-rows').append(row);
   }
   el('booking-row-count').textContent=`Showing ${filtered.length} of ${entries.length} attendee rows (latest 2,000 maximum).`;

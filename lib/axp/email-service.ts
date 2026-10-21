@@ -112,7 +112,11 @@ export async function sendBookingReceivedEmail(
   balancePaise: number,
   { reminder = false }: { reminder?: boolean } = {}
 ): Promise<EmailDeliveryResult> {
-  const templateId = process.env.NEXT_PUBLIC_EMAILJS_AXP_BOOKED_TEMPLATE_ID;
+  const templateId =
+    process.env.NEXT_PUBLIC_EMAILJS_AXP_BOOKED_TEMPLATE_ID ||
+    process.env.EMAILJS_AXP_BOOKED_TEMPLATE_ID ||
+    process.env.NEXT_PUBLIC_EMAILJS_BOOKED_TEMPLATE_ID ||
+    process.env.EMAILJS_BOOKED_TEMPLATE_ID;
   const params = bookedEmailParams(booking, balancePaise, { reminder });
   const to = params.to_email;
   if (!templateId) {

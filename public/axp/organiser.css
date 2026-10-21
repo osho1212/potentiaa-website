@@ -140,3 +140,39 @@
 .organiser-ui .couple-check-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .organiser-ui .couple-check-actions select { width: auto; min-height: 36px; }
 .organiser-ui .couple-check-actions button { min-height: 36px; }
+
+/* Attendee row action controls & delete booking */
+.organiser-ui .action-cell { min-width: 130px; }
+.organiser-ui .action-group { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.organiser-ui .btn-action {
+  display: inline-flex; align-items: center; justify-content: center;
+  font: 500 11.5px/1 'DM Sans', sans-serif; border-radius: 6px; padding: 6px 11px;
+  cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--ink);
+  transition: all .15s ease; white-space: nowrap; text-decoration: none;
+}
+.organiser-ui .btn-action:disabled { opacity: 0.55; cursor: not-allowed; }
+.organiser-ui .btn-action:hover:not(:disabled) { border-color: #b79a77; background: #faf5ee; }
+
+.organiser-ui .btn-checkin-toggle {
+  border-color: #bad3c3; color: #1e5e3a; background: #f3f9f5;
+}
+.organiser-ui .btn-checkin-toggle:hover:not(:disabled) {
+  border-color: #1e5e3a; background: #e6f3eb; color: #15452a;
+  box-shadow: 0 2px 6px rgba(30, 94, 58, .12);
+}
+
+.organiser-ui .btn-checkin-reset {
+  border-color: #ecd5b8; color: #844c12; background: #fdf8f2;
+}
+.organiser-ui .btn-checkin-reset:hover:not(:disabled) {
+  border-color: #844c12; background: #fbf0e2; color: #62360b;
+  box-shadow: 0 2px 6px rgba(132, 76, 18, .12);
+}
+
+.organiser-ui .btn-delete-booking {
+  border-color: #f3cdc8; color: #9c2424; background: #fff8f7; margin-top: 2px;
+}
+.organiser-ui .btn-delete-booking:hover:not(:disabled) {
+  border-color: #9c2424; background: #fdeeee; color: #791818;
+  box-shadow: 0 2px 6px rgba(156, 36, 36, .14);
+}

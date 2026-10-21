@@ -8,9 +8,11 @@ import type { EmailDeliveryResult } from './email-service';
 import {
   saveBookingFieldsFirestore,
   saveBookingFirestore,
+  deleteBookingFirestore,
   getBookingFirestore,
   getAllBookingsFirestore,
   updateCheckInFirestore,
+  resetCheckInFirestore,
   saveSettingsFirestore,
   getSettingsFirestore,
 } from './firebase-client';
@@ -284,6 +286,27 @@ export async function saveBooking(booking: BookingRecord): Promise<BookingRecord
   return booking;
 }
 
+/**
+ * Permanently delete a booking from both local storage and Firestore.
+ */
+export async function deleteBooking(id: string): Promise<boolean> {
+  const data = initLocalData();
+  const existedLocally = !!data.bookings[id];
+  delete data.bookings[id];
+  saveLocalData(data);
+
+  try {
+    await deleteBookingFirestore(id);
+    return true;
+  } catch (err) {
+    console.error(`[Storage] Failed to delete booking ${id} from Firestore:`, err);
+    if (!LOCAL_COPY_IS_DURABLE && !existedLocally) {
+      throw new Error('Could not delete booking from the database.');
+    }
+    return true;
+  }
+}
+
 /** Every booking in Firestore, which then replaces the local copy. Throws when Firestore cannot be read. */
 async function listAllBookingsFirestore(): Promise<BookingRecord[]> {
   const cloudBookings = await getAllBookingsFirestore();
@@ -309,13 +332,14 @@ export async function listAllBookings(): Promise<BookingRecord[]> {
 
 export async function checkInAttendee(
   bookingId: string,
-  attendeeIdOrPosition: string
+  attendeeIdOrPosition: string,
+  options: { force?: boolean } = {}
 ): Promise<{ success: boolean; message: string; booking?: BookingRecord }> {
   let booking = await findBookingById(bookingId);
   if (!booking) {
     return { success: false, message: 'Booking not found.' };
   }
-  if (booking.status !== 'confirmed') {
+  if (!options.force && booking.status !== 'confirmed') {
     return { success: false, message: 'Booking is not confirmed.' };
   }
 
@@ -350,4 +374,39 @@ export async function checkInAttendee(
   });
 
   return { success: true, message: `Checked in ${attendee.name}.`, booking };
+}
+
+export async function resetAttendeeCheckIn(
+  bookingId: string,
+  attendeeIdOrPosition: string
+): Promise<{ success: boolean; message: string; booking?: BookingRecord }> {
+  let booking = await findBookingById(bookingId);
+  if (!booking) {
+    return { success: false, message: 'Booking not found.' };
+  }
+
+  booking.checkedInAttendees = booking.checkedInAttendees || [];
+  const attendee = booking.attendees.find(
+    (a, idx) => a.id === attendeeIdOrPosition || String(idx + 1) === attendeeIdOrPosition
+  );
+
+  if (!attendee) {
+    return { success: false, message: 'Attendee not found.' };
+  }
+
+  attendee.checkedIn = false;
+  delete attendee.checkedInAt;
+  booking.checkedInAttendees = booking.checkedInAttendees.filter((id) => id !== attendee.id);
+
+  // Update local memory and file
+  const data = initLocalData();
+  data.bookings[bookingId] = booking;
+  saveLocalData(data);
+
+  // Sync to Firestore atomically
+  resetCheckInFirestore(bookingId, attendee.id).catch(err => {
+    console.error(`[Storage] Check-in reset to Firestore failed for ${attendee.id}:`, err);
+  });
+
+  return { success: true, message: `Reset check-in for ${attendee.name}.`, booking };
 }

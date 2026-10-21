@@ -39,9 +39,9 @@ export function GET(request: NextRequest) {
   }
 
   const html = rawDashboardHtml
-    .replace('href="/style.css"', 'href="/axp/style.css"><link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/organiser.css?v=2"')
+    .replace('href="/style.css"', 'href="/axp/style.css"><link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/organiser.css?v=3"')
     .replace('<body class="organiser-dashboard">', '<body class="organiser-dashboard organiser-ui">')
-    .replace('src="/dashboard.js"', 'src="/axp/dashboard.js?v=4"></script><script type="module" src="/axp/manual-booking.js"')
+    .replace('src="/dashboard.js"', 'src="/axp/dashboard.js?v=5"></script><script type="module" src="/axp/manual-booking.js"')
     // Bookings entered by organisers, for guests paying cash or UPI outside
     // Razorpay. public/axp/manual-booking.js builds the attendee rows and
     // prices the booking as it is typed.
