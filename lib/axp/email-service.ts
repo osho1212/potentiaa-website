@@ -1,5 +1,6 @@
 import { bookingEntryCode } from '@/lib/axp/payment-core';
 import { passQrUrl } from '@/lib/axp/whatsapp-service';
+import { DEFAULT_SETTINGS } from '@/lib/axp/event-settings';
 
 export interface EmailDeliveryResult {
   success: boolean;
@@ -36,6 +37,65 @@ function siteUrl(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL || 'https://potentiaa.com').replace(/\/+$/, '');
 }
 
+/** "Friday, 6 November 2026 · 3:00 pm to midnight IST", from the booking's own settings. */
+function eventWhen(settings: any): string {
+  const day = new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+    .format(new Date(`${settings.eventDate}T00:00:00Z`));
+  const time = (value: string) =>
+    new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' })
+      .format(new Date(`2000-01-01T${value}:00Z`))
+      .toLowerCase();
+  const end = settings.endTime === '00:00' ? 'midnight' : time(settings.endTime);
+  return `${day} · ${time(settings.startTime)} to ${end} IST`;
+}
+
+/**
+ * Everything the "booked" EmailJS template shows, for the deposit
+ * confirmation or (reminder: true) a balance reminder. One template serves
+ * both, so the wording that differs travels in these fields: subject,
+ * inbox preview line, badge, heading, opening paragraph and button label.
+ */
+export function bookedEmailParams(booking: any, balancePaise: number, { reminder = false }: { reminder?: boolean } = {}) {
+  const settings = { ...DEFAULT_SETTINGS, ...(booking.snapshot?.settings || {}) };
+  const attendees: any[] = Array.isArray(booking.attendees) ? booking.attendees : [];
+  const people = booking.guestCount || attendees.length || 1;
+  const paid = rupees(booking.amountPaise - balancePaise);
+  const balance = rupees(balancePaise);
+  const name = settings.eventName || 'Aagaz';
+  return {
+    to_name: booking.buyer?.name?.trim() || 'Guest',
+    to_email: booking.buyer?.email?.trim().toLowerCase() || '',
+    booking_id: booking.id,
+    booking_id_short: String(booking.id).slice(0, 8).toUpperCase(),
+    guest_count: String(people),
+    amount_paid: paid,
+    balance_due: balance,
+    total: rupees(booking.amountPaise),
+    attendees_list: attendees.map((a, i) => `${i + 1}. ${a.name} — ${passLabel(a)}`).join('\n'),
+    balance_link: `${siteUrl()}/axp-social?booking=${encodeURIComponent(booking.id)}#balance`,
+    event_name: name,
+    event_when: eventWhen(settings),
+    event_where: [settings.venueName, settings.venueLocation].filter(Boolean).join(', '),
+    ...(reminder
+      ? {
+          subject_line: `Reminder: ${balance} still due for ${name}`,
+          preview_line: `Pay your ${balance} balance by UPI in a minute, or in cash at the venue.`,
+          email_badge: 'Balance reminder',
+          email_heading: 'Your balance is still due',
+          email_intro: `Just a reminder: ${balance} is still due on your ${name} booking for ${people} ${people === 1 ? 'guest' : 'guests'}. Pay it online by UPI in a minute, or in cash at the venue. Your QR passes are emailed the moment it is paid in full.`,
+          cta_label: 'Pay the balance',
+        }
+      : {
+          subject_line: `Your places at ${name} are held · ${balance} to pay`,
+          preview_line: `Deposit received. Pay the ${balance} balance any time to get your QR passes.`,
+          email_badge: 'Pre-booking confirmed',
+          email_heading: 'Your places are held',
+          email_intro: `We have received your deposit of ${paid}, and ${people === 1 ? 'your place' : `${people} places`} at ${name} ${people === 1 ? 'is' : 'are'} held for you. Pay the remaining ${balance} whenever you like: online by UPI from your booking page, or in cash at the venue.`,
+          cta_label: 'Pay the balance now',
+        }),
+  };
+}
+
 /**
  * The confirmation a pre-booking gets once its deposit is paid: what was
  * received, the balance still due, and a link to the booking's page to pay it.
@@ -43,9 +103,9 @@ function siteUrl(): string {
  * With { reminder: true } the same email reminds a guest of the balance.
  *
  * Both use one EmailJS template (docs/emailjs-booked-template.html), set in
- * NEXT_PUBLIC_EMAILJS_AXP_BOOKED_TEMPLATE_ID; the heading and opening line
- * come from here. Without it nothing is sent and the failure is recorded; the
- * guest still sees the same details on the booking page.
+ * NEXT_PUBLIC_EMAILJS_AXP_BOOKED_TEMPLATE_ID; the wording that differs comes
+ * from bookedEmailParams. Without the template nothing is sent and the
+ * failure is recorded; the guest still sees the same details on the booking page.
  */
 export async function sendBookingReceivedEmail(
   booking: any,
@@ -53,42 +113,19 @@ export async function sendBookingReceivedEmail(
   { reminder = false }: { reminder?: boolean } = {}
 ): Promise<EmailDeliveryResult> {
   const templateId = process.env.NEXT_PUBLIC_EMAILJS_AXP_BOOKED_TEMPLATE_ID;
-  const to = booking.buyer?.email?.trim().toLowerCase();
+  const params = bookedEmailParams(booking, balancePaise, { reminder });
+  const to = params.to_email;
   if (!templateId) {
     return { success: false, recipients: [], errors: ['NEXT_PUBLIC_EMAILJS_AXP_BOOKED_TEMPLATE_ID is not set.'] };
   }
   if (!to) return { success: false, recipients: [], errors: ['The booking has no contact email.'] };
 
   const { serviceId, publicKey } = emailJsAccount();
-  const attendees: any[] = Array.isArray(booking.attendees) ? booking.attendees : [];
   try {
     const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Origin: 'https://potentiaa.com' },
-      body: JSON.stringify({
-        service_id: serviceId,
-        template_id: templateId,
-        user_id: publicKey,
-        template_params: {
-          to_name: booking.buyer?.name?.trim() || 'Guest',
-          to_email: to,
-          booking_id: booking.id,
-          booking_id_short: String(booking.id).slice(0, 8),
-          guest_count: String(booking.guestCount || attendees.length || 1),
-          amount_paid: rupees(booking.amountPaise - balancePaise),
-          balance_due: rupees(balancePaise),
-          total: rupees(booking.amountPaise),
-          attendees_list: attendees.map((a, i) => `${i + 1}. ${a.name} — ${passLabel(a)}`).join('\n'),
-          balance_link: `${siteUrl()}/axp-social?booking=${encodeURIComponent(booking.id)}#balance`,
-          subject_line: reminder
-            ? `Reminder: ${rupees(balancePaise)} due on your Aagaz booking`
-            : `Your Aagaz booking is held · balance ${rupees(balancePaise)}`,
-          email_badge: reminder ? 'Reminder · balance due' : 'Booked · balance due',
-          email_intro: reminder
-            ? `A reminder that ${rupees(balancePaise)} is still due on your Aagaz booking. Entry is by QR pass only, and your QR passes are issued once the booking is paid in full. Pay online by UPI whenever you like, or in cash at the venue.`
-            : 'Your deposit is received and your places at Aagaz are held. Pay the balance whenever you like, online by UPI or in cash at the venue. Entry is by QR pass only, and your QR passes are emailed as soon as the booking is paid in full.',
-        },
-      }),
+      body: JSON.stringify({ service_id: serviceId, template_id: templateId, user_id: publicKey, template_params: params }),
     });
     const text = await res.text();
     if (res.ok && text.includes('OK')) return { success: true, recipients: [to], errors: [] };

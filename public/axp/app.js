@@ -111,6 +111,11 @@ if(typeof document!=='undefined'){
     box.hidden=!settings.prebookEnabled;
     if(!settings.prebookEnabled)plan='full';
     for(const option of box.querySelectorAll('input[name="booking-plan"]'))option.checked=option.value===plan;
+    // A deposit brings a booking confirmation, not passes; say so at the top of the step.
+    const note=el('ticket-delivery-note');
+    if(note)note.textContent=plan==='prebook'
+      ?'After your deposit we email you a booking confirmation. Your named QR passes, one for each guest, are emailed once the booking is paid in full. Entry is by QR pass only.'
+      :'Your named passes are emailed to you, with a scannable QR for each guest, as soon as payment is verified. You can download them here too.';
     const full=currentQuote('full'),pre=currentQuote('prebook');
     if(full.totalPaise!==null){
       el('plan-full-amount').textContent=money(full.totalPaise/100);
