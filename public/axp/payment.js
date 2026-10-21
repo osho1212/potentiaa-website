@@ -8,7 +8,10 @@ const heading=document.createElement('h2');heading.textContent='Your booking';co
 const savedDetails=document.createElement('div');
 const emailStatus=document.createElement('div');emailStatus.className='email-confirmation-status';emailStatus.hidden=true;
 const refresh=document.createElement('button');refresh.type='button';refresh.className='secondary';refresh.textContent='Check payment status';refresh.addEventListener('click',poll);
-const download=document.createElement('button');download.type='button';download.className='primary';download.textContent='Download passes (.html)';download.hidden=true;download.addEventListener('click',()=>renderTickets(true));
+// The reference guests see everywhere, emails included: the id's first eight characters.
+const bookingRef=id=>String(id||'').slice(0,8).toUpperCase();
+// Each pass's QR saves as its own image; this one file holds them all, to print.
+const download=document.createElement('button');download.type='button';download.className='secondary';download.textContent='Download all passes (printable)';download.hidden=true;download.addEventListener('click',()=>renderTickets(true));
 const resendEmailBtn=document.createElement('button');resendEmailBtn.type='button';resendEmailBtn.className='secondary';resendEmailBtn.textContent='Resend passes to email';resendEmailBtn.hidden=true;
 resendEmailBtn.addEventListener('click',async()=>{if(!savedBooking)return;resendEmailBtn.disabled=true;resendEmailBtn.textContent='Sending passes…';await sendConfirmationEmail(savedBooking,true);resendEmailBtn.disabled=false;resendEmailBtn.textContent='Resend passes to email';});
 const resume=document.createElement('button');resume.type='button';resume.className='secondary';resume.textContent='Resume this checkout';resume.hidden=true;resume.addEventListener('click',async()=>{try{await loadCheckout();openGateway(await request('/api/bookings/'+attempt.id+'/checkout'));}catch(error){message.textContent=error.message;}});
@@ -122,21 +125,23 @@ function openGateway(booking){
   resume.hidden=false;
   const rupees=value=>'₹'+Number(value).toLocaleString('en-IN');
   const amounts=booking.plan==='prebook'?`Deposit now: ${rupees(booking.payNow)}. Balance later: ${rupees(booking.total-booking.payNow)}.`:`Total payable: ${rupees(booking.total)}.`;
-  message.textContent=`${testMode?'TEST · ':''}Booking ${booking.id}. ${amounts} Your checkout hold lasts until ${new Date(booking.expiresAt).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'})} IST.`;
+  message.textContent=`${testMode?'TEST · ':''}Booking ref ${bookingRef(booking.id)}. ${amounts} Your checkout hold lasts until ${new Date(booking.expiresAt).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'})} IST.`;
   openRazorpay(booking.checkout,'Verifying your payment. Keep this page open…');
 }
 function openRazorpay(options,verifying){
   const checkout=new window.Razorpay({key:options.key,amount:options.amount,currency:options.currency,name:options.name,description:options.description,order_id:options.orderId,prefill:{name:options.prefill.name,email:options.prefill.email,contact:options.prefill.phone},theme:{color:'#294f3c'},handler:async response=>{
    message.textContent=verifying;
-   try{showBooking(await request('/api/bookings/'+attempt.id+'/verify',{body:response}));if(['confirmed','booked'].includes(savedBooking?.status))return;startPolling();}catch(error){message.textContent=error.message+' Do not pay again; use Check payment status or contact support.';}
-  },modal:{ondismiss:()=>{message.textContent='Checkout closed. Use Check payment status before paying again.';}}});
-  checkout.on('payment.failed',()=>{message.textContent='The payment was not completed. Check payment status before retrying; contact support if money was deducted.';});checkout.open();
+   try{showBooking(await request('/api/bookings/'+attempt.id+'/verify',{body:response}));if(['confirmed','booked'].includes(savedBooking?.status))return;startPolling();}catch(error){message.textContent=error.message+' Do not pay again; use Check payment status or contact support.';refresh.hidden=false;}
+  },modal:{ondismiss:()=>{message.textContent='Checkout closed. Use Check payment status before paying again.';refresh.hidden=false;}}});
+  checkout.on('payment.failed',()=>{message.textContent='The payment was not completed. Check payment status before retrying; contact support if money was deducted.';refresh.hidden=false;});checkout.open();
 }
 function showBooking(booking){
  savedBooking=booking;renderSavedSummary(booking);
- heading.textContent=(booking.mode==='test'?'TEST · ':'')+'Booking '+booking.id;
+ // The reference is read out to support, so it is set in the plain body face.
+ const ref=document.createElement('span');ref.className='booking-ref';ref.textContent=bookingRef(booking.id);
+ heading.replaceChildren((booking.mode==='test'?'TEST · ':'')+'Booking ref ',ref);
  const labels={confirmed:'Paid in full. Your named passes are ready below.',booked:'Booked. Your deposit is received. Entry is by QR pass only, and you get your QR passes once you pay the balance below.',pending:'Awaiting verified payment. Do not make another payment if money was deducted.',creating:'Payment order is still being prepared.',order_uncertain:'Payment order needs a support check. Contact the organiser before retrying.',paid_review:'Payment needs organiser review. No valid ticket has been issued. Contact event support.',refunded:'This payment was refunded. Its tickets are invalid.'};
- message.textContent=labels[booking.status]||'Contact event support to check this booking.';refresh.hidden=['confirmed','refunded'].includes(booking.status);confirmationMap.hidden=booking.status!=='confirmed';download.hidden=booking.status!=='confirmed';resume.hidden=booking.status!=='pending'||booking.expiresAt<=new Date().toISOString();another.hidden=!['confirmed','refunded','booked'].includes(booking.status);
+ message.textContent=labels[booking.status]||'Contact event support to check this booking.';refresh.hidden=['confirmed','refunded','booked'].includes(booking.status);confirmationMap.hidden=booking.status!=='confirmed';download.hidden=booking.status!=='confirmed';resume.hidden=booking.status!=='pending'||booking.expiresAt<=new Date().toISOString();another.hidden=!['confirmed','refunded','booked'].includes(booking.status);
  balanceBox.hidden=booking.status!=='booked';
  if(booking.status==='booked'){
   const rupees=value=>'₹'+Number(value||0).toLocaleString('en-IN');
@@ -158,8 +163,10 @@ function showBooking(booking){
 }
 function renderSavedSummary(booking){
  if(!booking.attendees)return;
- const money=value=>new Intl.NumberFormat('en-IN',{style:'currency',currency:booking.currency||'INR',maximumFractionDigits:2}).format(value);
+ const money=value=>new Intl.NumberFormat('en-IN',{style:'currency',currency:booking.currency||'INR',minimumFractionDigits:value%1?2:0,maximumFractionDigits:2}).format(value);
  button.hidden=true;el('booking-form').hidden=true;const stepsNav=document.querySelector('.axp-steps');if(stepsNav)stepsNav.hidden=true;
+ // The step nav and its "Step 1 of 5" caption describe the form, which is gone.
+ document.body.classList.add('has-booking');
  const testBox=document.querySelector('.axp-test-payment-box');if(testBox)testBox.hidden=true;
  const summary=document.createElement('p');
  summary.textContent=`${booking.people} named ${booking.people===1?'pass':'passes'} · Total: ${money(booking.total)}`+(booking.plan==='prebook'?` · Paid: ${money(booking.paid||0)} · Balance due: ${money(booking.balanceDue||0)}`:'');
@@ -173,7 +180,7 @@ function renderSavedSummary(booking){
 function releaseStaleAttempt(){
  attempt=null;polling=false;
  try{sessionStorage.removeItem('axp-last-booking');}catch{}
- card.hidden=true;
+ card.hidden=true;document.body.classList.remove('has-booking');
  el('booking-form').inert=false;
  const nav=document.querySelector('.axp-steps');if(nav)nav.inert=false;
  el('plus').disabled=false;el('minus').disabled=document.querySelectorAll('.attendee').length<=1;
@@ -252,6 +259,16 @@ async function renderTickets(triggerDownload=false){
     const preview=document.importNode(article,true);
     preview.className='ticket-preview';
     preview.setAttribute('aria-label','Ticket for '+ticket.name);
+    // Guests show the QR from their phone at the gate, so each one saves as an
+    // image. The PNG comes from the server, same origin, so the name sticks.
+    const entry=ticket.entryCode||ticket.code;
+    if(entry){
+     const save=document.createElement('a');save.className='qr-save-link';
+     save.href='/api/axp/pass-qr?code='+encodeURIComponent(entry);
+     save.download=`aagaz-pass-${String(ticket.name||'guest').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'guest'}.png`;
+     save.textContent='Save QR image';
+     preview.append(save);
+    }
     tickets.append(preview);
   }
 
@@ -265,10 +282,9 @@ async function renderTickets(triggerDownload=false){
   const link=document.createElement('a');
   ticketFileUrl=URL.createObjectURL(blob);
   link.href=ticketFileUrl;
-  link.download=`axp-pass-${data.bookingId}.html`;
-  link.textContent='Save passes file (.html)';
-  link.className='secondary';
-  link.className='ticket-download-link';
+  link.download=`aagaz-passes-${bookingRef(data.bookingId)}.html`;
+  // The visible button is "Download all passes"; this link only carries the file.
+  link.hidden=true;
   tickets.append(link);
 
   if(triggerDownload){

@@ -26,10 +26,10 @@ export function GET() {
   const html = rawBookingHtml
     .replace('<title>Aagaz · AXP Social</title>', '<title>AAGAZ · AxP Social · Invitation edition</title>')
     .replace('href="style.css"', 'href="/axp/style.css?v=2"')
-    .replace('src="app.js"', 'src="/axp/app.js?v=8"')
-    .replace('src="payment.js"', 'src="/axp/payment.js?v=4"')
+    .replace('src="app.js"', 'src="/axp/app.js?v=9"')
+    .replace('src="payment.js"', 'src="/axp/payment.js?v=5"')
     .replace('width=device-width, initial-scale=1', 'width=device-width, initial-scale=1, viewport-fit=cover')
-    .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/axp-preview.css?v=12"><link rel="preload" as="image" href="/axp/ivory-plum-gathering.png"><script type="module" src="/axp/reveal.js"></script></head>')
+    .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/axp-preview.css?v=13"><link rel="preload" as="image" href="/axp/ivory-plum-gathering.png"><script type="module" src="/axp/reveal.js"></script></head>')
     .replace('<body>', '<body class="axp-edition"><a class="axp-skip" href="#your-details">Skip to booking form</a>')
     .replace(/<header>[\s\S]*?<\/header>/, '')
     .replace('<section class="hero"', '<section id="event-details" class="hero"')
@@ -59,6 +59,8 @@ export function GET() {
     .replace('<input id="buyer-email"', '<input placeholder="you@example.com" id="buyer-email"')
     .replace('<span class="eyebrow">YOUR EVENING</span>', `${lotus}<span class="eyebrow">YOUR EVENING</span>`)
     .replace('<h2 id="summary-title">Booking summary</h2>', '<h2 id="summary-title">Your invitation</h2>')
+    // The review shows the final amount, not a subtotal before charges.
+    .replace('<span>Base subtotal</span><strong id="review-total">', '<span>Total</span><strong id="review-total">')
     // The policy links move into the footer, above the copyright line.
     .replace(/(<nav class="policy-nav"[^>]*>[\s\S]*?<\/nav>)\s*<footer>[\s\S]*?<\/footer>/, '<footer class="axp-footer">$1<div class="footer-meta"><span>AxP SOCIAL · AAGAZ / THE FIRST CHAPTER</span><span id="footer-copyright" class="footer-copyright"></span></div></footer>')
     .replaceAll('href="/policies/', 'href="/axp-social/policies/')

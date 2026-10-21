@@ -75,9 +75,11 @@ if(typeof document!=='undefined'){
     }
     const ready=settingsLoaded&&missing.length===0;
     el('review-booking-button').disabled=!ready;
-    el('form-readiness').textContent=missing.length?`Complete or correct ${missing.length} required ${missing.length===1?'detail':'details'} to continue.`:settingsLoaded?'Required details complete. You can review your booking.':'Waiting for event settings before you can continue.';
+    // With everything else filled in, the box is the one thing left: say so.
+    const onlyTerms=missing.length===1&&missing[0].field.id==='booking-terms';
+    el('form-readiness').textContent=onlyTerms?'Tick the box above to agree to the terms and continue.':missing.length?`Complete or correct ${missing.length} required ${missing.length===1?'detail':'details'} to continue.`:settingsLoaded?'Required details complete. You can review your booking.':'Waiting for event settings before you can continue.';
     el('payment-form-state').textContent=missing.length?'Complete all required fields and acknowledge the terms before continuing to payment.':'Required details complete. Payments are still unavailable in this preview.';
-    el('check-required-fields').hidden=missing.length===0;
+    el('check-required-fields').hidden=missing.length===0||onlyTerms;
     el('validation-summary').hidden=!showAllErrors||missing.length===0;
     el('missing-fields').replaceChildren();
     if(showAllErrors)for(const {field,message} of missing){
@@ -148,7 +150,13 @@ if(typeof document!=='undefined'){
     el('charges-pending').hidden=q.totalPaise!==null;
     renderPlanChoice();
     const passes=state.length,amount=q.totalPaise!==null?q.totalPaise/100:q.subtotalPaise/100;
-    document.querySelectorAll('.step-total').forEach(node=>{node.textContent=`${passes} ${passes===1?'pass':'passes'} · ${money(amount)}`;});
+    // Passes are chosen on the attendee step, so before it the total can only
+    // be a starting price: what this many people pay at the lowest prices.
+    const lowest=quoteBooking(Array.from({length:passes},(_,i)=>({pass:'normal',gender:i%2?'man':'woman'})),settings,{plan:'full',earlyBird:earlyBirdAvailable(passes)});
+    const count=`${passes} ${passes===1?'pass':'passes'}`;
+    document.querySelectorAll('.step-total').forEach(node=>{
+      node.textContent=node.closest('#your-details')&&lowest.totalPaise!==null?`${count} · from ${money(lowest.totalPaise/100)}`:`${count} · ${money(amount)}`;
+    });
     renderEarlyBird();
     renderOffers();
   }
@@ -195,11 +203,26 @@ if(typeof document!=='undefined'){
   }
   // One suggestion at a time, Gold first: what one or two more people on the
   // same pass would change, priced exactly as the booking would be.
+  const firstName=name=>String(name||'').trim().split(/\s+/)[0]||'';
   function upsell(){
     const q=currentQuote();
     if(q.totalPaise===null)return null;
     const room=settings.maxPerBooking-state.length;
     const priceWith=extra=>quoteBooking([...state,...extra],settings,{plan,earlyBird:earlyBirdAvailable(state.length+extra.length)});
+    // A couple split across passes pays single prices: the couple price needs
+    // both on the same pass. Offer to move the Silver guest up to Gold when
+    // they are old enough for it; a downgrade is never suggested.
+    for(const i of state.keys()){
+      if(state[i].pass!=='alcohol'||!state[i].gender||q.lines[i].fare!=='single')continue;
+      for(const j of state.keys()){
+        const guest=state[j];
+        if(guest.pass!=='normal'||!guest.gender||guest.gender===state[i].gender||q.lines[j].fare!=='single'||ageBracket(guest.dob)!=='21plus')continue;
+        const after=quoteBooking(state.map((g,k)=>k===j?{...g,pass:'alcohol'}:g),settings,{plan,earlyBird:earlyBirdAvailable()});
+        if(after.lines[i].fare!=='couple'||after.totalPaise===null)continue;
+        const who=firstName(guest.name)||`attendee ${j+1}`,more=after.totalPaise-q.totalPaise;
+        return {pass:'alcohol',move:j,action:`Move ${who} to Gold`,text:`Put ${who} on Gold too and you both get the couple price of ${money(after.lines[i].unitPaise/100)} each${more>0?`, for ${money(more/100)} more in total`:more<0?`, saving ${money(-more/100)}`:''}.`};
+      }
+    }
     for(const pass of ['alcohol','normal']){
       const idx=[];state.forEach((guest,i)=>{if(guest.pass===pass)idx.push(i);});
       const tier=tierName(pass);
@@ -212,7 +235,9 @@ if(typeof document!=='undefined'){
         const each=priceWith([{pass,gender:''},{pass,gender:''}]).lines[idx[0]].unitPaise;
         if(each<q.lines[idx[0]].unitPaise)return {pass,action:'Add a guest',text:`Two more on ${tier} make a group of 4, and everyone on ${tier} pays ${money(each/100)} each instead of ${money(q.lines[idx[0]].unitPaise/100)}.`};
       }
-      if(idx.length===1&&room>=1){
+      // Their partner may already be in the booking on the other pass.
+      const partnerHere=idx.length===1&&state.some((g,k)=>k!==idx[0]&&q.lines[k].fare==='single'&&g.gender&&state[idx[0]].gender&&g.gender!==state[idx[0]].gender);
+      if(idx.length===1&&room>=1&&!partnerHere){
         const partner=state[idx[0]].gender==='woman'?'man':'woman';
         const each=priceWith([{pass,gender:partner}]).lines[idx[0]].unitPaise,single=q.lines[idx[0]].unitPaise;
         if(each<single)return {pass,action:'Add a partner',text:`Coming with a partner? Two people of different genders on ${tier} pay ${money(each/100)} each instead of ${money(single/100)}.`};
@@ -231,13 +256,23 @@ if(typeof document!=='undefined'){
     if(!box&&anchor){box=document.createElement('div');box.id=id;box.className='offer-hint';box.setAttribute('aria-live','polite');anchor[where](box);}
     return box;
   }
+  // A hint either adds a guest or moves one to another pass.
+  function applyHint(hint,{toAttendees=false}={}){
+    if(Number.isInteger(hint.move)&&state[hint.move]){
+      state[hint.move].pass=hint.pass;render();saveDraft();
+      if(steps[stepIndex]==='booking-review')renderReview();
+      return;
+    }
+    addGuest(hint.pass);
+    if(toAttendees)showStep(2);
+  }
   function fillOfferBox(box,lines,hint,onAction){
     if(!box)return;
     const rows=lines.filter(Boolean).map(text=>{const row=document.createElement('p');row.textContent=text;return row;});
     if(hint){
       const row=document.createElement('p');row.textContent=hint.text+' ';
       const action=document.createElement('button');action.type='button';action.className='offer-action';action.textContent=hint.action;
-      action.addEventListener('click',()=>onAction(hint.pass));row.append(action);rows.push(row);
+      action.addEventListener('click',()=>onAction(hint));row.append(action);rows.push(row);
     }
     box.replaceChildren(...rows);box.hidden=rows.length===0;
   }
@@ -285,8 +320,8 @@ if(typeof document!=='undefined'){
     }
     // Attendees and review: what is applied, and what one more guest would change.
     const q=currentQuote(),applied=appliedOffer(q),hint=upsell();
-    const goAdd=pass=>{addGuest(pass);showStep(2);};
-    fillOfferBox(offerBox('guests-offer',el('your-guests')?.querySelector('.step-nav'),'before'),[applied],hint,addGuest);
+    const goAdd=h=>applyHint(h,{toAttendees:true});
+    fillOfferBox(offerBox('guests-offer',el('your-guests')?.querySelector('.step-nav'),'before'),[applied],hint,h=>applyHint(h));
     fillOfferBox(offerBox('review-offer',el('review-total')?.closest('.subtotal'),'after'),[applied],hint,goAdd);
     // Payment: what paying in full keeps while the early bird is open.
     const full=currentQuote('full'),pre=currentQuote('prebook');
