@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/axp/cron/balance-reminders",
+      "schedule": "30 3 * * *"
+    }
+  ]
+}

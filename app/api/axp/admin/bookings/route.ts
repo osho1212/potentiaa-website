@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { listAllBookings } from '@/lib/axp/storage-adapter';
 import { verifyAdminAuth } from '@/lib/axp/admin-auth';
 import { toE164, WhatsAppDeliveryResult } from '@/lib/axp/whatsapp-service';
+import { balanceDue, paidSoFar } from '@/lib/axp/booking-payments';
+import { FARE_LABELS, GENDER_LABELS } from '@/public/axp/pricing.js';
+
+const METHOD_LABELS: Record<string, string> = { razorpay: 'Razorpay', cash: 'Cash', upi: 'UPI' };
 
 function spreadsheetCell(value: any) {
   const text = String(value ?? '');
@@ -49,18 +53,24 @@ export async function GET(request: NextRequest) {
       new Date(b.expiresAt).getTime() > Date.now()
     );
     const needsReviewBookings = modeBookings.filter((b) => b.status === 'paid_review');
+    const depositBookings = modeBookings.filter((b) => b.status === 'booked');
 
     let totalConfirmedAttendees = 0;
     let checkedInAttendees = 0;
     let totalCollectedPaise = 0;
+    let outstandingPaise = 0;
 
     const entries: Record<string, any>[] = [];
 
     for (const booking of modeBookings) {
       if (booking.status === 'confirmed') {
         totalConfirmedAttendees += booking.guestCount || booking.attendees.length;
-        totalCollectedPaise += booking.amountPaise || 0;
       }
+      if (booking.status === 'confirmed' || booking.status === 'booked') {
+        totalCollectedPaise += paidSoFar(booking);
+        outstandingPaise += balanceDue(booking);
+      }
+      const methods = [...new Set((booking.payments || []).map((p) => METHOD_LABELS[p.method] || p.method))].join(' + ');
 
       for (const attendee of booking.attendees) {
         const isCheckedIn = !!(
@@ -80,6 +90,13 @@ export async function GET(request: NextRequest) {
           total: (booking.amountPaise || 0) / 100,
           gateway_order: booking.orderId || '',
           gateway_payment: booking.paymentId || '',
+          plan: booking.plan || 'full',
+          source: booking.source || 'online',
+          price_list: booking.priceList || 'regular',
+          paid: paidSoFar(booking) / 100,
+          balance_due: balanceDue(booking) / 100,
+          payment_methods: methods || (booking.status === 'confirmed' ? 'Razorpay' : ''),
+          reminded: (booking.reminders || []).filter((entry) => entry.success).map((entry) => entry.date).join(', '),
           buyer_name: booking.buyer?.name || '',
           buyer_instagram: booking.buyer?.instagram || '',
           buyer_phone: booking.buyer?.phone || '',
@@ -91,6 +108,9 @@ export async function GET(request: NextRequest) {
           phone: attendee.phone,
           age_group: attendee.age,
           pass_type: attendee.pass,
+          gender: attendee.gender ? (GENDER_LABELS as Record<string, string>)[attendee.gender] : '',
+          fare: attendee.fare ? (FARE_LABELS as Record<string, string>)[attendee.fare] : '',
+          price: typeof attendee.unitPaise === 'number' ? attendee.unitPaise / 100 : '',
           whatsapp_status: whatsapp.status,
           whatsapp_detail: whatsapp.detail,
           created_at: booking.createdAt,
@@ -102,9 +122,10 @@ export async function GET(request: NextRequest) {
 
     if (url.searchParams.get('export') === 'csv') {
       const fields = [
-        'id', 'mode', 'status', 'guest_count', 'total', 'gateway_order', 'gateway_payment',
+        'id', 'mode', 'status', 'plan', 'source', 'price_list', 'guest_count', 'total', 'paid', 'balance_due',
+        'payment_methods', 'reminded', 'gateway_order', 'gateway_payment',
         'buyer_name', 'buyer_instagram', 'buyer_phone', 'buyer_email', 'name', 'email', 'instagram',
-        'phone', 'age_group', 'pass_type', 'whatsapp_status', 'whatsapp_detail',
+        'phone', 'age_group', 'gender', 'pass_type', 'fare', 'price', 'whatsapp_status', 'whatsapp_detail',
         'created_at', 'confirmed_at', 'checked_in_at'
       ];
       const csv = '\uFEFF' + [
@@ -128,6 +149,8 @@ export async function GET(request: NextRequest) {
         confirmed: totalConfirmedAttendees,
         held: heldBookings.reduce((acc, b) => acc + (b.guestCount || 0), 0),
         collected: totalCollectedPaise,
+        outstanding: outstandingPaise,
+        booked_with_balance: depositBookings.reduce((acc, b) => acc + (b.guestCount || 0), 0),
         needs_review: needsReviewBookings.length,
       },
       attendance: {

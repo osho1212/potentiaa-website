@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// Only the website's server uploads files, through the Admin SDK. Any file it
+// shares goes out as a tokenised download link, which works without these
+// rules granting a read. Everyone else is refused.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

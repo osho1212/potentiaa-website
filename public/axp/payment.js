@@ -1,3 +1,4 @@
+import {PASS_LABELS,FARE_LABELS} from './pricing.js';
 const el=id=>document.getElementById(id);
 const testMode=new URLSearchParams(location.search).get('mode')==='test';
 let paymentReady=false,checkoutScript=null,attempt=null,polling=false,savedBooking=null,ticketFileUrl=null,emailDispatched=false;
@@ -11,6 +12,17 @@ const download=document.createElement('button');download.type='button';download.
 const resendEmailBtn=document.createElement('button');resendEmailBtn.type='button';resendEmailBtn.className='secondary';resendEmailBtn.textContent='Resend passes to email';resendEmailBtn.hidden=true;
 resendEmailBtn.addEventListener('click',async()=>{if(!savedBooking)return;resendEmailBtn.disabled=true;resendEmailBtn.textContent='Sending passes…';await sendConfirmationEmail(savedBooking,true);resendEmailBtn.disabled=false;resendEmailBtn.textContent='Resend passes to email';});
 const resume=document.createElement('button');resume.type='button';resume.className='secondary';resume.textContent='Resume this checkout';resume.hidden=true;resume.addEventListener('click',async()=>{try{await loadCheckout();openGateway(await request('/api/bookings/'+attempt.id+'/checkout'));}catch(error){message.textContent=error.message;}});
+// A pre-booking with only its deposit paid: what is due, and the button to pay
+// it. The page stays usable for as long as a balance is due, with no end date.
+const balanceBox=document.createElement('div');balanceBox.className='balance-due';balanceBox.id='balance';balanceBox.hidden=true;
+const balanceText=document.createElement('p');const payBalance=document.createElement('button');payBalance.type='button';payBalance.className='primary pay-balance';
+balanceBox.append(balanceText,payBalance);
+payBalance.addEventListener('click',async()=>{
+ if(!attempt?.id)return;payBalance.disabled=true;
+ try{await loadCheckout();const data=await request('/api/bookings/'+attempt.id+'/balance',{body:{}});openRazorpay(data.checkout,'Verifying your balance payment. Keep this page open…');}
+ catch(error){message.textContent=error.message;}finally{payBalance.disabled=false;}
+});
+const passLabel=guest=>`${PASS_LABELS[guest.pass]||'Silver'}${guest.pass==='alcohol'?' · 21+':''}${guest.fare&&guest.fare!=='single'?' · '+FARE_LABELS[guest.fare]:''}`;
 const another=document.createElement('button');another.type='button';another.className='secondary';another.textContent='Start another booking';another.hidden=true;another.addEventListener('click',()=>{sessionStorage.removeItem('axp-last-booking');location.reload();});
 const confirmationMap=document.createElement('section');confirmationMap.className='confirmation-map';confirmationMap.hidden=true;
 const confirmationMapTitle=document.createElement('p');confirmationMapTitle.className='confirmation-map-title';confirmationMapTitle.textContent='Getting there';
@@ -31,11 +43,13 @@ function syncConfirmationMap(){
  confirmationMap.hidden=!embed&&!href;
 }
 window.addEventListener('axp-settings-loaded',()=>{if(savedBooking&&savedBooking.status==='confirmed')syncConfirmationMap();});
-card.append(heading,message,savedDetails,emailStatus,tickets,refresh,resume,download,resendEmailBtn,another,confirmationMap);
+card.append(heading,message,savedDetails,balanceBox,emailStatus,tickets,refresh,resume,download,resendEmailBtn,another,confirmationMap);
 function freezeForm(){el('booking-form').inert=true;const nav=document.querySelector('.axp-steps');if(nav)nav.inert=true;el('plus').disabled=true;el('minus').disabled=true;}
 function updateButton(){
  button.disabled=!paymentReady||el('review-booking-button').disabled||!!attempt;
- button.classList.toggle('primary',!button.disabled);button.textContent=paymentReady?(testMode?'Start test payment':'Pay with Razorpay'):'Razorpay payment unavailable';
+ button.classList.toggle('primary',!button.disabled);
+ const prebook=document.querySelector('input[name="booking-plan"]:checked')?.value==='prebook';
+ button.textContent=paymentReady?(testMode?(prebook?'Start test deposit payment':'Start test payment'):(prebook?'Pay deposit with Razorpay':'Pay with Razorpay')):'Razorpay payment unavailable';
  if(attempt)el('payment-form-state').textContent='An existing booking is being checked. Use its payment status controls below.';
  else if(!el('review-booking-button').disabled)el('payment-form-state').textContent=paymentReady?'Required details complete. Check the booking summary before opening checkout.':'Required details complete. Payments are still unavailable in this preview.';
  if(savedBooking)renderSavedSummary(savedBooking);
@@ -89,8 +103,9 @@ function loadCheckout(){
 }
 function bookingInput(){
  const buyer={name:el('buyer-name').value,instagram:el('buyer-instagram').value,phone:el('buyer-phone').value,email:el('buyer-email').value};
- const attendees=[...document.querySelectorAll('.attendee')].map((_,i)=>Object.fromEntries(['name','email','instagram','phone','dob','pass'].map(key=>[key,el(`guest-${i}-${key}`).value])));
- return {buyer,attendees,terms:el('booking-terms').checked,mode:testMode?'test':'live',accessToken:attempt.accessToken,idempotencyKey:attempt.idempotencyKey};
+ const attendees=[...document.querySelectorAll('.attendee')].map((_,i)=>Object.fromEntries(['name','email','instagram','phone','dob','gender','pass'].map(key=>[key,el(`guest-${i}-${key}`).value])));
+ const plan=document.querySelector('input[name="booking-plan"]:checked')?.value==='prebook'?'prebook':'full';
+ return {buyer,attendees,plan,terms:el('booking-terms').checked,mode:testMode?'test':'live',accessToken:attempt.accessToken,idempotencyKey:attempt.idempotencyKey};
 }
 button.addEventListener('click',async()=>{
  if(!paymentReady)return;
@@ -104,18 +119,31 @@ button.addEventListener('click',async()=>{
 });
 function openGateway(booking){
   if(booking.pricing){savedBooking=booking;renderSavedSummary(booking);}
-  const options=booking.checkout;resume.hidden=false;message.textContent=`${testMode?'TEST · ':''}Booking ${booking.id}. Total payable: ₹${booking.total.toLocaleString('en-IN')}. Your checkout hold lasts until ${new Date(booking.expiresAt).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'})} IST.`;
+  resume.hidden=false;
+  const rupees=value=>'₹'+Number(value).toLocaleString('en-IN');
+  const amounts=booking.plan==='prebook'?`Deposit now: ${rupees(booking.payNow)}. Balance later: ${rupees(booking.total-booking.payNow)}.`:`Total payable: ${rupees(booking.total)}.`;
+  message.textContent=`${testMode?'TEST · ':''}Booking ${booking.id}. ${amounts} Your checkout hold lasts until ${new Date(booking.expiresAt).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'})} IST.`;
+  openRazorpay(booking.checkout,'Verifying your payment. Keep this page open…');
+}
+function openRazorpay(options,verifying){
   const checkout=new window.Razorpay({key:options.key,amount:options.amount,currency:options.currency,name:options.name,description:options.description,order_id:options.orderId,prefill:{name:options.prefill.name,email:options.prefill.email,contact:options.prefill.phone},theme:{color:'#294f3c'},handler:async response=>{
-   message.textContent='Verifying your payment. Keep this page open…';
-   try{showBooking(await request('/api/bookings/'+attempt.id+'/verify',{body:response}));if(!download.hidden)return;startPolling();}catch(error){message.textContent=error.message+' Do not pay again; use Check payment status or contact support.';}
-  },modal:{ondismiss:()=>{message.textContent='Checkout closed. Use Check payment status before starting another booking.';}}});
+   message.textContent=verifying;
+   try{showBooking(await request('/api/bookings/'+attempt.id+'/verify',{body:response}));if(['confirmed','booked'].includes(savedBooking?.status))return;startPolling();}catch(error){message.textContent=error.message+' Do not pay again; use Check payment status or contact support.';}
+  },modal:{ondismiss:()=>{message.textContent='Checkout closed. Use Check payment status before paying again.';}}});
   checkout.on('payment.failed',()=>{message.textContent='The payment was not completed. Check payment status before retrying; contact support if money was deducted.';});checkout.open();
 }
 function showBooking(booking){
  savedBooking=booking;renderSavedSummary(booking);
  heading.textContent=(booking.mode==='test'?'TEST · ':'')+'Booking '+booking.id;
- const labels={confirmed:'Payment verified. Your named passes are ready below.',pending:'Awaiting verified payment. Do not make another payment if money was deducted.',creating:'Payment order is still being prepared.',order_uncertain:'Payment order needs a support check. Contact the organiser before retrying.',paid_review:'Payment needs organiser review. No valid ticket has been issued. Contact event support.',refunded:'This payment was refunded. Its tickets are invalid.'};
- message.textContent=labels[booking.status]||'Contact event support to check this booking.';refresh.hidden=['confirmed','refunded'].includes(booking.status);confirmationMap.hidden=booking.status!=='confirmed';download.hidden=booking.status!=='confirmed';resume.hidden=booking.status!=='pending'||booking.expiresAt<=new Date().toISOString();another.hidden=!['confirmed','refunded'].includes(booking.status);
+ const labels={confirmed:'Paid in full. Your named passes are ready below.',booked:'Booked. Your deposit is received. Entry is by QR pass only, and you get your QR passes once you pay the balance below.',pending:'Awaiting verified payment. Do not make another payment if money was deducted.',creating:'Payment order is still being prepared.',order_uncertain:'Payment order needs a support check. Contact the organiser before retrying.',paid_review:'Payment needs organiser review. No valid ticket has been issued. Contact event support.',refunded:'This payment was refunded. Its tickets are invalid.'};
+ message.textContent=labels[booking.status]||'Contact event support to check this booking.';refresh.hidden=['confirmed','refunded'].includes(booking.status);confirmationMap.hidden=booking.status!=='confirmed';download.hidden=booking.status!=='confirmed';resume.hidden=booking.status!=='pending'||booking.expiresAt<=new Date().toISOString();another.hidden=!['confirmed','refunded','booked'].includes(booking.status);
+ balanceBox.hidden=booking.status!=='booked';
+ if(booking.status==='booked'){
+  const rupees=value=>'₹'+Number(value||0).toLocaleString('en-IN');
+  balanceText.textContent=`Paid so far: ${rupees(booking.paid)} of ${rupees(booking.total)}. Balance due: ${rupees(booking.balanceDue)}. Pay it here by UPI whenever you like, or in cash at the venue. Entry is by QR pass only: your QR passes are emailed as soon as the booking is paid in full. Paying at the venue? Our team records it and issues your passes before you enter.`;
+  payBalance.textContent=`Pay balance ${rupees(booking.balanceDue)}`;
+  try{sessionStorage.removeItem('axp-booking-draft');}catch{}
+ }
  if(booking.status==='confirmed'){
   emailStatus.textContent='Sending your passes to your email…';emailStatus.classList.remove('is-error');
   emailStatus.hidden=false;
@@ -126,18 +154,18 @@ function showBooking(booking){
   sendConfirmationEmail(booking);
  }
  if(booking.status==='pending'&&resume.hidden)message.textContent='This checkout hold has expired. Check payment status or contact event support before making another payment. No ticket has been issued.';
- if(booking.status==='confirmed'||booking.status==='refunded'||booking.status==='paid_review')polling=false;
+ if(['confirmed','refunded','paid_review','booked'].includes(booking.status))polling=false;
 }
 function renderSavedSummary(booking){
- if(!booking.pricing||!booking.attendees)return;
+ if(!booking.attendees)return;
  const money=value=>new Intl.NumberFormat('en-IN',{style:'currency',currency:booking.currency||'INR',maximumFractionDigits:2}).format(value);
- const normal=booking.attendees.filter(guest=>guest.pass==='normal').length,alcohol=booking.attendees.length-normal;
- el('normal-line').textContent=`${normal} × ${money(booking.pricing.normalPrice)}`;el('alcohol-line').textContent=`${alcohol} × ${money(booking.pricing.alcoholPrice)}`;
- el('people-line').textContent=String(booking.people);el('subtotal').textContent=money(booking.pricing.subtotal);el('extra-charge-total').textContent=money(booking.pricing.extraCharges);el('final-total').textContent=money(booking.total);
- el('confirmed-charges').hidden=false;el('charges-pending').hidden=true;button.hidden=true;el('booking-form').hidden=true;const stepsNav=document.querySelector('.axp-steps');if(stepsNav)stepsNav.hidden=true;
+ button.hidden=true;el('booking-form').hidden=true;const stepsNav=document.querySelector('.axp-steps');if(stepsNav)stepsNav.hidden=true;
  const testBox=document.querySelector('.axp-test-payment-box');if(testBox)testBox.hidden=true;
- const summary=document.createElement('p');summary.textContent=`${booking.people} named ${booking.people===1?'pass':'passes'} · Total payable: ${money(booking.total)}`;
- const list=document.createElement('ul');for(const guest of booking.attendees){const row=document.createElement('li');row.textContent=guest.name+(guest.email?` (${guest.email})`:'')+' · '+(guest.pass==='alcohol'?'Gold · 21+':'Silver');list.append(row);}savedDetails.replaceChildren(summary,list);
+ const summary=document.createElement('p');
+ summary.textContent=`${booking.people} named ${booking.people===1?'pass':'passes'} · Total: ${money(booking.total)}`+(booking.plan==='prebook'?` · Paid: ${money(booking.paid||0)} · Balance due: ${money(booking.balanceDue||0)}`:'');
+ const list=document.createElement('ul');
+ for(const guest of booking.attendees){const row=document.createElement('li');row.textContent=guest.name+(guest.email?` (${guest.email})`:'')+' · '+passLabel(guest)+(typeof guest.unitPaise==='number'?' · '+money(guest.unitPaise/100):'');list.append(row);}
+ savedDetails.replaceChildren(summary,list);
 }
 // A saved attempt the server no longer knows (expired, purged, or a bad
 // ?booking= link) must not strand the guest behind a dead card and a frozen
@@ -207,7 +235,7 @@ async function renderTickets(triggerDownload=false){
   for(const ticket of data.tickets){
     const article=doc.createElement('article');article.className='pass-card';
     const tag=doc.createElement('span');tag.className='pass-type';
-    tag.textContent=ticket.pass==='alcohol'?'Gold Pass · 21+':'Silver Pass';
+    tag.textContent=(ticket.pass==='alcohol'?'Gold Pass · 21+':'Silver Pass')+(ticket.fare&&ticket.fare!=='single'?' · '+FARE_LABELS[ticket.fare]:'');
     const name=doc.createElement('h2');name.className='guest-name';name.textContent=ticket.name;
     const qrWrap=doc.createElement('div');qrWrap.className='qr-wrap';
     const image=doc.createElement('img');

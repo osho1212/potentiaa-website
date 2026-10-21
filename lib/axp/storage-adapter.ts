@@ -15,6 +15,24 @@ import {
   getSettingsFirestore,
 } from './firebase-client';
 
+export type PaymentMethod = 'razorpay' | 'cash' | 'upi';
+
+/** One sum received against a booking. */
+export interface PaymentEntry {
+  /**
+   * full: the whole booking at once; deposit: the pre-booking deposit;
+   * balance: the rest, or part of it; adjustment: a difference taken at the
+   * gate, such as a couple whose details did not match their photo IDs.
+   */
+  kind: 'full' | 'deposit' | 'balance' | 'adjustment';
+  method: PaymentMethod;
+  amountPaise: number;
+  orderId?: string;
+  paymentId?: string;
+  at: string;
+  note?: string;
+}
+
 export interface BookingRecord {
   id: string;
   mode: 'test' | 'live';
@@ -24,9 +42,28 @@ export interface BookingRecord {
   buyer: BuyerInput;
   attendees: (AttendeeInput & { id: string; checkedIn?: boolean; checkedInAt?: string })[];
   guestCount: number;
+  /** The whole booking's price. */
   amountPaise: number;
   currency: string;
-  status: 'creating' | 'pending' | 'confirmed' | 'order_uncertain' | 'paid_review' | 'refunded';
+  /**
+   * booked: a pre-booking whose deposit is paid and whose balance is not.
+   * confirmed: paid in full; only a confirmed booking has QR passes.
+   */
+  status: 'creating' | 'pending' | 'booked' | 'confirmed' | 'order_uncertain' | 'paid_review' | 'refunded';
+  /** Absent on bookings made before pre-booking existed, which were all paid in full. */
+  plan?: 'full' | 'prebook';
+  priceList?: 'early' | 'regular';
+  source?: 'online' | 'manual';
+  /** What the first Razorpay order asks for: the total, or the deposit. */
+  payNowPaise?: number;
+  paidPaise?: number;
+  payments?: PaymentEntry[];
+  /** Razorpay orders opened for the balance, newest last. */
+  balanceOrders?: { id: string; amountPaise: number; createdAt: string }[];
+  /** Written once the deposit confirmation (no QR) has gone out. */
+  bookedEmail?: EmailDeliveryResult & { sentAt: string };
+  /** Balance reminder emails, one entry per IST date tried. */
+  reminders?: { date: string; sentAt: string; success: boolean; error?: string }[];
   orderId?: string;
   paymentId?: string;
   expiresAt: string;
@@ -45,6 +82,14 @@ export interface StorageData {
   updatedAt: string;
   bookings: Record<string, BookingRecord>;
 }
+
+/**
+ * On a serverless deployment the local copy lives in one instance's temp
+ * directory and is gone when that instance is. There a write Firestore did not
+ * take is a write that did not happen, and it must fail instead of looking
+ * saved: a guest must never pay for a booking nothing kept.
+ */
+const LOCAL_COPY_IS_DURABLE = !(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
 
 // In-memory cache fallback for instant serverless execution
 let memoryStorage: StorageData = {
@@ -132,10 +177,14 @@ export async function updateEventSettings(newSettings: any): Promise<{ settings:
   data.updatedAt = new Date().toISOString();
   saveLocalData(data);
 
-  // Sync to Firestore in background
-  saveSettingsFirestore(validated).catch(err => {
-    console.error('[Storage] Background settings sync to Firestore failed:', err);
-  });
+  if (!LOCAL_COPY_IS_DURABLE) {
+    await saveSettingsFirestore(validated);
+  } else {
+    // Sync to Firestore in background
+    saveSettingsFirestore(validated).catch(err => {
+      console.error('[Storage] Background settings sync to Firestore failed:', err);
+    });
+  }
 
   return { settings: data.settings, revision: data.revision };
 }
@@ -181,7 +230,7 @@ export async function findBookingByIdempotency(key: string): Promise<BookingReco
  */
 export async function saveBookingDelivery(
   id: string,
-  fields: Pick<BookingRecord, 'emailDelivery' | 'whatsappDelivery'>
+  fields: Partial<Pick<BookingRecord, 'emailDelivery' | 'whatsappDelivery' | 'bookedEmail'>>
 ): Promise<void> {
   const data = initLocalData();
   if (data.bookings[id]) {
@@ -195,6 +244,27 @@ export async function saveBookingDelivery(
   }
 }
 
+/**
+ * Merge only the given top-level fields into a booking, leaving the rest as
+ * Firestore has it. Like saveBooking, a failed write on a serverless
+ * deployment is an error rather than a change one instance remembers.
+ */
+export async function saveBookingFields(id: string, fields: Partial<BookingRecord>): Promise<void> {
+  const data = initLocalData();
+  if (data.bookings[id]) {
+    data.bookings[id] = { ...data.bookings[id], ...fields };
+    saveLocalData(data);
+  }
+  try {
+    await saveBookingFieldsFirestore(id, fields as Record<string, unknown>);
+  } catch (err) {
+    console.error(`[Storage] Failed to update booking ${id} in Firestore:`, err);
+    if (!LOCAL_COPY_IS_DURABLE) {
+      throw new Error('The booking system is unavailable right now.');
+    }
+  }
+}
+
 export async function saveBooking(booking: BookingRecord): Promise<BookingRecord> {
   const data = initLocalData();
   data.bookings[booking.id] = booking;
@@ -205,6 +275,10 @@ export async function saveBooking(booking: BookingRecord): Promise<BookingRecord
     await saveBookingFirestore(booking);
   } catch (err) {
     console.error(`[Storage] Failed to persist booking ${booking.id} to Firestore:`, err);
+    if (!LOCAL_COPY_IS_DURABLE) {
+      // Also raised after a payment (verification), so it must not say none was taken.
+      throw new Error('The booking system is unavailable right now.');
+    }
   }
 
   return booking;

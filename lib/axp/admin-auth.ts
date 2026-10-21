@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { hmac, safeEqual } from './payment-core';
+import { hmac, safeEqual, sha256 } from './payment-core';
 
 export const ADMIN_SESSION_COOKIE = 'axp_admin_session';
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -36,13 +36,22 @@ export function validatePin(pin: string): boolean {
 }
 
 /**
+ * What a session signature covers. The PIN is part of it, so setting a new PIN
+ * signs every organiser out at once instead of leaving week-long sessions from
+ * the old one working.
+ */
+function sessionPayload(expiresAt: string): string {
+  return `axp_admin:${sha256(getAdminPin().trim())}:${expiresAt}`;
+}
+
+/**
  * Create a cryptographically signed session token for the admin cookie
  */
 export function createAdminSessionToken(): { token: string; expires: Date } {
   const expires = new Date(Date.now() + SESSION_DURATION_MS);
   const expiresAt = String(expires.getTime());
   const secret = getSigningSecret();
-  const signature = hmac(secret, `axp_admin:${expiresAt}`);
+  const signature = hmac(secret, sessionPayload(expiresAt));
   const token = `${expiresAt}.${signature}`;
   return { token, expires };
 }
@@ -62,8 +71,8 @@ export function verifyAdminSessionToken(token?: string | null): boolean {
   }
 
   const secret = getSigningSecret();
-  if (!secret) return false;
-  const expected = hmac(secret, `axp_admin:${expiresAtStr}`);
+  if (!secret || !getAdminPin().trim()) return false;
+  const expected = hmac(secret, sessionPayload(expiresAtStr));
   return safeEqual(expected, signature);
 }
 

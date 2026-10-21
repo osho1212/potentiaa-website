@@ -2,12 +2,12 @@ import { listAllBookings, BookingRecord } from './storage-adapter';
 import type { EventSettings } from './event-settings';
 
 /**
- * Whether a booking's passes count against the event capacity: paid, held for
- * organiser review, or in a checkout that has not yet expired. Refunds and
- * abandoned checkouts give their places back.
+ * Whether a booking's passes count against the event capacity: paid, booked
+ * with a deposit, held for organiser review, or in a checkout that has not yet
+ * expired. Refunds and abandoned checkouts give their places back.
  */
-function holdsPlaces(booking: BookingRecord, now: number): boolean {
-  if (['confirmed', 'paid_review', 'order_uncertain'].includes(booking.status)) return true;
+export function holdsPlaces(booking: BookingRecord, now: number): boolean {
+  if (['confirmed', 'booked', 'paid_review', 'order_uncertain'].includes(booking.status)) return true;
   if (booking.status === 'pending' || booking.status === 'creating') {
     return !booking.expiresAt || Date.parse(booking.expiresAt) > now;
   }
@@ -22,11 +22,12 @@ function holdsPlaces(booking: BookingRecord, now: number): boolean {
 export async function capacityShortfall(
   settings: EventSettings,
   mode: 'test' | 'live',
-  people: number
+  people: number,
+  bookings?: BookingRecord[]
 ): Promise<string | null> {
   if (mode !== 'live') return null;
   const now = Date.now();
-  const taken = (await listAllBookings())
+  const taken = (bookings ?? (await listAllBookings()))
     .filter((booking) => booking.mode === 'live' && holdsPlaces(booking, now))
     .reduce((sum, booking) => sum + (booking.guestCount || booking.attendees?.length || 0), 0);
 

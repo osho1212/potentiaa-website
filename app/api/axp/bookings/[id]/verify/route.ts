@@ -1,31 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { findBookingById, saveBooking, BookingRecord } from '@/lib/axp/storage-adapter';
+import { findBookingById, saveBooking } from '@/lib/axp/storage-adapter';
 import { verifyRazorpaySignature } from '@/lib/axp/payment-core';
-import { DEFAULT_SETTINGS } from '@/lib/axp/event-settings';
-import { deliverPasses, PassDeliveryOutcome } from '@/lib/axp/pass-delivery';
-
-function bookingResponse(booking: BookingRecord, delivery: PassDeliveryOutcome | null) {
-  const settings = { ...DEFAULT_SETTINGS, ...(booking.snapshot?.settings || {}) };
-  return {
-    id: booking.id,
-    mode: booking.mode,
-    status: booking.status,
-    expiresAt: booking.expiresAt,
-    people: booking.guestCount,
-    total: booking.amountPaise / 100,
-    currency: booking.currency,
-    buyer: booking.buyer,
-    attendees: booking.attendees,
-    pricing: {
-      normalPrice: settings.normalPrice,
-      alcoholPrice: settings.alcoholPrice,
-      subtotal: booking.amountPaise / 100,
-      extraCharges: 0,
-    },
-    emailDelivery: delivery?.emailDelivery ?? booking.emailDelivery ?? null,
-    whatsappDelivery: delivery?.whatsappDelivery ?? booking.whatsappDelivery ?? null,
-  };
-}
+import { razorpayOrderFor, settlePayment } from '@/lib/axp/booking-payments';
+import { bookingView } from '@/lib/axp/booking-view';
 
 export async function POST(
   request: NextRequest,
@@ -42,16 +19,19 @@ export async function POST(
     // only ever move a paid booking into review, and a stray or forged call
     // must not be able to void someone's passes.
     if (booking.status === 'confirmed' || booking.status === 'refunded') {
-      return NextResponse.json(bookingResponse(booking, null));
+      return NextResponse.json(bookingView(booking));
     }
 
     const body = await request.json().catch(() => ({}));
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body || {};
 
     // The signature proves a payment against an order, so the order must be
-    // this booking's own. Taking it from the request would let one real
-    // payment's receipt confirm any number of other, unpaid bookings.
-    if (!booking.orderId || razorpay_order_id !== booking.orderId || !razorpay_payment_id || !razorpay_signature) {
+    // one of this booking's own: its first order (the total, or the deposit)
+    // or an order it opened for the balance. Taking the order from the
+    // request alone would let one real payment's receipt confirm any number
+    // of other, unpaid bookings.
+    const order = razorpayOrderFor(booking, razorpay_order_id);
+    if (!order || !razorpay_payment_id || !razorpay_signature) {
       return NextResponse.json(
         { error: 'This payment does not match this booking. Contact event support.' },
         { status: 400 }
@@ -59,37 +39,40 @@ export async function POST(
     }
 
     const isValid = verifyRazorpaySignature({
-      orderId: booking.orderId,
+      orderId: razorpay_order_id,
       paymentId: razorpay_payment_id,
       signature: razorpay_signature,
       mode: booking.mode,
     });
 
     if (!isValid) {
-      booking.status = 'paid_review';
-      await saveBooking(booking);
+      // A booking already holding a verified deposit keeps it; only an
+      // unpaid one is put in front of the organisers.
+      if (booking.status !== 'booked') {
+        booking.status = 'paid_review';
+        await saveBooking(booking);
+      }
       return NextResponse.json(
         { error: 'Payment signature could not be verified. Contact event support.' },
         { status: 400 }
       );
     }
 
-    booking.status = 'confirmed';
-    booking.paymentId = razorpay_payment_id;
-    // Saved before delivery, which reads the booking fresh and must see it as
-    // confirmed.
-    await saveBooking(booking);
+    // Passes (or, for a deposit, the booking confirmation) go out once,
+    // whichever of this route or the Razorpay webhook records the payment first.
+    const outcome = await settlePayment(booking.id, {
+      kind: order.kind,
+      method: 'razorpay',
+      amountPaise: order.amountPaise,
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+    });
 
-    // Passes go out once per booking, whichever of this route or the Razorpay
-    // webhook confirms it first.
-    let delivery: PassDeliveryOutcome | null = null;
-    try {
-      delivery = await deliverPasses(booking.id);
-    } catch (deliveryErr) {
-      console.error('Pass delivery failed after verification:', deliveryErr);
-    }
-
-    return NextResponse.json(bookingResponse(booking, delivery));
+    return NextResponse.json({
+      ...bookingView(outcome.booking),
+      emailDelivery: outcome.delivery?.emailDelivery ?? outcome.booking.emailDelivery ?? null,
+      whatsappDelivery: outcome.delivery?.whatsappDelivery ?? outcome.booking.whatsappDelivery ?? null,
+    });
   } catch (error: any) {
     console.error('Payment verification error:', error);
     return NextResponse.json(

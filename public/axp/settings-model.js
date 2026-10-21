@@ -11,9 +11,13 @@ export const DEFAULT_SETTINGS=Object.freeze({
   merchantName:'Potentiaa',paymentUrl:'https://razorpay.me/@avyantahotels',
   merchantLegalName:'Potentiaa',merchantAddress:'Building No. 23, Shikhupur, Devpura, Haridwar, Uttarakhand 249401',
   merchantEmail:'contact@potentiaa.com',merchantGstin:'',
-  normalPrice:2999,alcoholPrice:3999,normalDescription:'Entry, with soft drinks and mocktails through the evening.',
-  alcoholDescription:'Entry, soft drinks and mocktails through the evening, plus 8 drink coupons. Exact menu and measures to be confirmed.',
-  capacity:200,warningAt:150,maxPerBooking:5,
+  normalPrice:2999,alcoholPrice:3999,normalGroupPrice:2599,alcoholGroupPrice:3499,
+  earlyBirdEnabled:true,earlyBirdEndDate:'2026-10-27',earlyBirdEndTime:'23:59',earlyBirdCap:60,
+  earlyNormalPrice:2699,earlyAlcoholPrice:3599,earlyNormalGroupPrice:2450,earlyAlcoholGroupPrice:3250,
+  prebookEnabled:true,depositPerPerson:500,remindersEnabled:true,reminderDates:'2026-11-01, 2026-11-03',
+  normalDescription:'Entry, with soft drinks and mocktails through the evening.',
+  alcoholDescription:'Entry, with soft drinks and mocktails through the evening, and Gold benefits for guests aged 21 and over. Details to be announced.',
+  capacity:200,warningAt:150,maxPerBooking:10,
   extraPerPerson:null,extraPerBooking:null,chargesConfirmed:false,
 });
 const OPTIONAL_WITH_DEFAULTS=['eventSubtitle','eventTagline','eventDescription','eventHighlights','instagramHandle','merchantLegalName','merchantAddress','merchantEmail','merchantGstin','venueMapQuery','venueMapsUrl','potentiaaPhone','potentiaaLogo','avyantaPhone','avyantaLogo'];
@@ -51,7 +55,7 @@ export function validateSettings(input){
     if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>1000000||Math.abs(value*100-Math.round(value*100))>0.00001)throw new Error('Prices and charges must be valid rupee amounts with up to two decimals.');
     if((key==='normalPrice'||key==='alcoholPrice')&&value===0)throw new Error('Pass prices must be greater than zero.');out[key]=value;
   }
-  for(const [key,max]of [['capacity',10000],['warningAt',10000],['maxPerBooking',5]]){const v=input[key];if(!Number.isInteger(v)||v<1||v>max)throw new Error(`Check ${key}.`);out[key]=v;}
+  for(const [key,max]of [['capacity',10000],['warningAt',10000],['maxPerBooking',10]]){const v=input[key];if(!Number.isInteger(v)||v<1||v>max)throw new Error(`Check ${key}.`);out[key]=v;}
   if(out.warningAt>out.capacity)throw new Error('Early warning cannot exceed capacity.');
   out.whatsappEnabled=typeof input.whatsappEnabled==='boolean'?input.whatsappEnabled:DEFAULT_SETTINGS.whatsappEnabled;
   if(typeof input.chargesConfirmed!=='boolean')throw new Error('Check whether final charges are confirmed.');out.chargesConfirmed=input.chargesConfirmed;

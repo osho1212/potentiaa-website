@@ -66,7 +66,7 @@ export function duplicateWithinBooking(attendees: Contact[]): string | null {
 
 /** Bookings that hold their passes: paid, or being paid for right now. */
 function holdsPasses(booking: BookingRecord, now: number): boolean {
-  if (['confirmed', 'paid_review', 'order_uncertain'].includes(booking.status)) return true;
+  if (['confirmed', 'booked', 'paid_review', 'order_uncertain'].includes(booking.status)) return true;
   if (booking.status === 'pending' || booking.status === 'creating') {
     return !booking.expiresAt || Date.parse(booking.expiresAt) > now;
   }

@@ -1,9 +1,15 @@
 import jsQR from '/axp/jsqr.js';
+import {FARE_LABELS,GENDER_LABELS} from '/axp/pricing.js';
 
 const el=id=>document.getElementById(id);
 let entries=[],inspected=null,stream=null,scanning=false,inspectionVersion=0,cameraVersion=0,loading=null;
 const time=value=>value?new Date(value).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})+' IST':'Not checked in';
 const passName=value=>value==='alcohol'?'Gold · 21+':'Silver';
+// "Gold · 21+ · Couple · Woman" at the gate: the fare and gender a couple's
+// photo IDs are checked against.
+const gateLabel=guest=>[passName(guest.pass),guest.fare&&guest.fare!=='single'?FARE_LABELS[guest.fare]:'',GENDER_LABELS[guest.gender]||''].filter(Boolean).join(' · ');
+const rupees=value=>'₹'+Number(value||0).toLocaleString('en-IN');
+const STATUS_LABELS={confirmed:'Fully paid',booked:'Booked · balance due',pending:'Checkout open',creating:'Checkout opening',paid_review:'Payment needs review',order_uncertain:'Order needs a check',refunded:'Refunded'};
 // whatsapp_status is per attendee: 'sent' when their number is in the delivery
 // receipt, 'failed' when it is not, 'not_applicable' when the booking carries no
 // receipt at all — delivery was off (or the booking never got paid).
@@ -23,10 +29,12 @@ async function request(url,body){
 function rows(){
   const query=el('booking-search').value.toLowerCase();el('booking-rows').replaceChildren();
   const filtered=entries.filter(e=>[e.name,e.email,e.instagram,e.buyer_name,e.buyer_email,e.id,e.gateway_payment].join(' ').toLowerCase().includes(query));
-  const imageBookings=new Set();
+  const imageBookings=new Set(),balanceBookings=new Set();
   for(const item of filtered){
     const row=document.createElement('tr'),whatsapp=whatsappCell(item);
-    for(const lines of [[item.name,passName(item.pass_type)],[item.id,item.status,`₹${item.total.toLocaleString('en-IN')}`,item.gateway_payment||'No captured payment'],[item.buyer_name,item.buyer_email,item.buyer_phone],[item.email||'No email',item.instagram,item.phone,item.age_group==='20'?'20 years':'21+'],whatsapp.lines,[time(item.checked_in_at)]]){
+    const pass=[passName(item.pass_type),item.fare&&item.fare!=='Single'?item.fare:'',typeof item.price==='number'?rupees(item.price):''].filter(Boolean).join(' · ');
+    const payment=[item.id,STATUS_LABELS[item.status]||item.status,`Total ${rupees(item.total)} · Paid ${rupees(item.paid)}`,item.balance_due>0?`Balance due ${rupees(item.balance_due)}`:'',item.status==='booked'&&item.reminded?`Reminded: ${item.reminded}`:'',[item.source==='manual'?'Manual':'Online',item.payment_methods].filter(Boolean).join(' · '),item.gateway_payment||''];
+    for(const lines of [[item.name,pass],payment,[item.buyer_name,item.buyer_email,item.buyer_phone],[item.email||'No email',item.instagram,item.phone,[item.age_group==='20'?'20 years':'21+',item.gender].filter(Boolean).join(' · ')],whatsapp.lines,[time(item.checked_in_at)]]){
       const cell=document.createElement('td');for(const line of lines.filter(Boolean)){const div=document.createElement('div');div.textContent=line;cell.append(div);}row.append(cell);
     }
     row.children[4].className=whatsapp.cls;
@@ -42,6 +50,26 @@ function rows(){
         el('dashboard-message').textContent=data.success?`Passes emailed to: ${(data.recipients||[]).join(', ')}.`:'The passes could not be emailed. Check the EmailJS settings and try again.';
       }catch(err){el('dashboard-message').textContent='Email error: '+err.message;}finally{emailBtn.disabled=false;emailBtn.textContent='Email passes';}});row.children[1].append(emailBtn);
     }
+    if(item.status==='booked'&&!balanceBookings.has(item.id)){
+      balanceBookings.add(item.id);
+      const wrap=document.createElement('div');wrap.className='record-balance';
+      const method=document.createElement('select');method.append(new Option('Cash','cash'),new Option('UPI','upi'));method.setAttribute('aria-label','How the balance was paid');
+      const record=document.createElement('button');record.type='button';record.className='secondary';record.textContent=`Record ${rupees(item.balance_due)} received`;
+      record.addEventListener('click',async()=>{
+        if(!window.confirm(`Record ${rupees(item.balance_due)} received by ${method.value==='upi'?'UPI':'cash'} for ${item.buyer_name}? The booking becomes fully paid and its QR passes are emailed.`))return;
+        record.disabled=true;
+        try{
+          const response=await fetch('/api/admin/bookings/'+encodeURIComponent(item.id)+'/payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:method.value})});
+          const data=await response.json().catch(()=>({}));
+          if(!response.ok)throw new Error(data.error||'The payment could not be recorded.');
+          const sent=data.emailDelivery?.recipients?.length?` to ${data.emailDelivery.recipients.join(', ')}`:'';
+          // After the refresh, which rewrites this line with the mode notice.
+          await load();
+          el('dashboard-message').textContent=data.status==='confirmed'?`Balance recorded for ${item.buyer_name}. Fully paid; QR passes emailed${sent}.`:`Payment recorded for ${item.buyer_name}. ${rupees(data.balanceDue)} still due.`;
+        }catch(err){el('dashboard-message').textContent='Payment error: '+err.message;record.disabled=false;}
+      });
+      wrap.append(method,record);row.children[1].append(wrap);
+    }
     el('booking-rows').append(row);
   }
   el('booking-row-count').textContent=`Showing ${filtered.length} of ${entries.length} attendee rows (latest 2,000 maximum).`;
@@ -55,12 +83,35 @@ async function load(){
     entries=data.entries;el('dashboard-content').hidden=false;el('dashboard-signin').hidden=true;
     el('dashboard-message').textContent=mode==='test'?'TEST bookings — not valid for live event entry.':'Live event bookings';
     el('export-bookings').href='/api/admin/bookings?export=csv&mode='+mode;el('booking-totals').replaceChildren();
-    for(const [label,value] of [['Confirmed attendees',data.attendance.confirmed],['Entered',data.attendance.checked_in],['Still to arrive',data.attendance.remaining],['Places held',data.totals.held],['Confirmed booking value','₹'+(data.totals.collected/100).toLocaleString('en-IN')],['Payments needing review',data.totals.needs_review]]){
+    for(const [label,value] of [['Fully paid attendees',data.attendance.confirmed],['Entered',data.attendance.checked_in],['Still to arrive',data.attendance.remaining],['Booked, balance due',data.totals.booked_with_balance??0],['Places held in checkout',data.totals.held],['Received',rupees((data.totals.collected||0)/100)],['Balance outstanding',rupees((data.totals.outstanding||0)/100)],['Payments needing review',data.totals.needs_review]]){
       const item=document.createElement('div'),strong=document.createElement('strong'),span=document.createElement('span');strong.textContent=value;span.textContent=label;item.append(strong,span);el('booking-totals').append(item);
     }
     el('attendance-summary').textContent=`${data.attendance.checked_in} entered · ${data.attendance.remaining} still to arrive · ${data.attendance.confirmed} confirmed${mode==='test'?' · TEST ONLY':''}`;
     el('booking-notices').replaceChildren();for(const notice of data.notices){const item=document.createElement('li');item.textContent=notice.message+' · '+time(notice.created_at)+' · Email: '+notice.delivery_status;el('booking-notices').append(item);}rows();
   }catch(error){el('dashboard-message').textContent=error.message;}finally{loading=null;}})();return loading;
+}
+// A couple on the couple price whose genders do not match their photo IDs
+// pays the difference to the single price before entry; staff record it here.
+function coupleCheck(bookingId,names,attendeeId,difference){
+  const box=document.createElement('div');box.className='couple-check';
+  const text=document.createElement('p');
+  text.textContent=`${names.join(' and ')} ${names.length>1?'are':'is'} on the couple price. If their genders do not match their photo IDs, they pay ${rupees(difference)} more before entry.`;
+  const method=document.createElement('select');method.append(new Option('Cash','cash'),new Option('UPI','upi'));method.setAttribute('aria-label','How the difference was paid');
+  const record=document.createElement('button');record.type='button';record.className='secondary';record.textContent=`Record ${rupees(difference)} difference`;
+  record.addEventListener('click',async()=>{
+    if(!window.confirm(`Record ${rupees(difference)} received by ${method.value==='upi'?'UPI':'cash'}? ${names.join(' and ')} move to the single price.`))return;
+    record.disabled=true;
+    try{
+      const response=await fetch('/api/admin/bookings/'+encodeURIComponent(bookingId)+'/couple-difference',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({attendeeId,method:method.value})});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.error||'The difference could not be recorded.');
+      await inspect();
+      el('checkin-result').textContent=`${rupees(data.recorded)} recorded. ${names.join(' and ')} are now on the single price. Confirm their entry when ready.`;
+      load();
+    }catch(err){el('checkin-result').textContent=err.message;record.disabled=false;}
+  });
+  const actions=document.createElement('div');actions.className='couple-check-actions';actions.append(method,record);
+  box.append(text,actions);return box;
 }
 function showBooking(data){
   el('checkin-roster').replaceChildren();
@@ -68,7 +119,14 @@ function showBooking(data){
     const label=document.createElement('label');label.className='checkin-person';
     const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.value=guest.id;checkbox.disabled=!!guest.checkedInAt;
     checkbox.setAttribute('aria-label','Admit '+guest.name);const text=document.createElement('span'),name=document.createElement('strong'),detail=document.createElement('small');name.textContent=guest.name;
-    detail.textContent=passName(guest.pass)+' · '+(guest.checkedInAt?'Already entered: '+time(guest.checkedInAt):'Not entered');text.append(name,detail);label.append(checkbox,text);el('checkin-roster').append(label);
+    detail.textContent=gateLabel(guest)+' · '+(guest.checkedInAt?'Already entered: '+time(guest.checkedInAt):'Not entered');text.append(name,detail);label.append(checkbox,text);el('checkin-roster').append(label);
+  }
+  const seen=new Set();
+  for(const guest of data.attendees){
+    if(guest.fare!=='couple'||!(guest.coupleDifference>0)||seen.has(guest.id))continue;
+    const partner=data.attendees.find(other=>other.id===guest.partnerId);
+    seen.add(guest.id);if(partner)seen.add(partner.id);
+    el('checkin-roster').append(coupleCheck(data.bookingId,[guest.name,partner?.name].filter(Boolean),guest.id,guest.coupleDifference));
   }
   el('checkin-result').textContent=`${data.mode==='test'?'TEST — not valid for live entry. ':''}${data.buyerName} · ${data.people} ${data.people===1?'guest':'guests'} · ${data.checkedIn} entered. Select only the people arriving and check their photo ID.`;
   el('confirm-checkin').textContent='Confirm selected entries';el('confirm-checkin').hidden=data.checkedIn===data.people;
@@ -81,8 +139,9 @@ async function inspect(){
     inspected={code,mode,kind:data.kind};
     if(data.kind==='booking')showBooking(data);
     else{
-      el('checkin-result').textContent=`${data.mode==='test'?'TEST — not valid for live entry. ':''}${data.name} · ${passName(data.pass)} · ${data.checkedInAt?'Already checked in: '+time(data.checkedInAt):'Valid pass. Check photo ID before confirming entry.'}`;
+      el('checkin-result').textContent=`${data.mode==='test'?'TEST — not valid for live entry. ':''}${data.name} · ${gateLabel(data)} · ${data.checkedInAt?'Already checked in: '+time(data.checkedInAt):'Valid pass. Check photo ID before confirming entry.'}`;
       el('confirm-checkin').textContent='Confirm attendee entry';el('confirm-checkin').hidden=!!data.checkedInAt;
+      if(data.fare==='couple'&&data.coupleDifference>0)el('checkin-roster').append(coupleCheck(data.bookingId,[data.name,data.partnerName].filter(Boolean),data.attendeeId,data.coupleDifference));
     }
   }catch(error){if(version===inspectionVersion)el('checkin-result').textContent=error.message;}finally{el('inspect-ticket').disabled=false;}
 }
@@ -107,6 +166,17 @@ async function loadStalls(){
   }catch(error){el('stall-state').textContent=error.message||'Stall enquiries could not be loaded.';}
 }
 el('refresh-dashboard').addEventListener('click',()=>{load();loadStalls();});
+el('send-reminders')?.addEventListener('click',async()=>{
+  const mode=el('dashboard-mode').value,button=el('send-reminders');
+  if(!window.confirm(`Email a balance reminder to every ${mode==='test'?'TEST ':''}booking with a balance due? Anyone already reminded today is skipped.`))return;
+  button.disabled=true;
+  try{
+    const data=await request('/api/admin/reminders',{mode});
+    await load();
+    el('dashboard-message').textContent=`Balance reminders: ${data.sent} sent${data.failed?`, ${data.failed} not sent (${data.errors[0]||'check the email settings'})`:''}${data.skipped?`, ${data.skipped} already reminded today`:''}.`;
+  }catch(error){el('dashboard-message').textContent='Reminder error: '+error.message;}
+  finally{button.disabled=false;}
+});
 // Signing out lives here rather than in an onclick attribute: the page sets
 // script-src 'self', so an inline handler never runs.
 el('lock-signout')?.addEventListener('click',async()=>{el('lock-signout').disabled=true;try{await fetch('/api/axp/admin/auth',{method:'DELETE'});}finally{location.reload();}});
