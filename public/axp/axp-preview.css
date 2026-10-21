@@ -1373,3 +1373,24 @@ body.has-booking-bar { padding-bottom: 76px; }
 @media (max-width: 760px) {
   .axp-edition .policy-main .price-table :is(th, td) { padding: 9px 6px; font-size: 12.5px; }
 }
+
+/* The hero's other ways in: pre-booking with a deposit, and the stall page.
+   On a phone they sit under "Book your passes"; on a laptop, on their own
+   row beneath it and the countdown. */
+.axp-edition .hero-more { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.axp-edition .hero-more-link {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 0 18px;
+  border: 1px solid rgba(64, 35, 71, .38); border-radius: 999px; background: rgba(255, 253, 249, .82); backdrop-filter: blur(6px);
+  color: #402347; font-size: 13px; font-weight: 500; text-decoration: none; transition: background-color .2s ease, border-color .2s ease;
+}
+.axp-edition .hero-more-link:hover { background: #fff; border-color: #402347; }
+.axp-edition .hero-more-link:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+.axp-edition .hero-more-link[hidden] { display: none; }
+@media (min-width: 761px) {
+  .axp-edition .hero-actions > .hero-more { order: 2; flex-basis: 100%; }
+}
+@media (max-width: 760px) {
+  .axp-edition .hero-more { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .axp-edition .hero-more-link { min-height: 46px; padding: 8px 10px; text-align: center; font-size: 12.5px; line-height: 1.3; }
+  .axp-edition .hero-more:has(.hero-more-link[hidden]) { grid-template-columns: 1fr; }
+}

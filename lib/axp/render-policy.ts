@@ -34,7 +34,7 @@ export function renderPolicyHtml(settings: EventSettings, slug: string): string 
     content.title
   )} · ${e(
     s.eventName
-  )} · AxP Social</title><link rel="stylesheet" href="/axp/style.css?v=2"><link rel="stylesheet" href="/axp/fonts/fonts.css?v=2"><link rel="stylesheet" href="/axp/axp-preview.css?v=21"><link rel="icon" type="image/png" href="/axp/emblem-256.png"><script type="module" src="/axp/reveal.js"></script></head><body class="axp-edition policy-page"><header class="policy-header"><a class="hero-brand policy-brand" href="/axp-social" aria-label="AxP Social — ${e(
+  )} · AxP Social</title><link rel="stylesheet" href="/axp/style.css?v=2"><link rel="stylesheet" href="/axp/fonts/fonts.css?v=2"><link rel="stylesheet" href="/axp/axp-preview.css?v=22"><link rel="icon" type="image/png" href="/axp/emblem-256.png"><script type="module" src="/axp/reveal.js"></script></head><body class="axp-edition policy-page"><header class="policy-header"><a class="hero-brand policy-brand" href="/axp-social" aria-label="AxP Social — ${e(
     s.eventName
   )}"><img src="/axp/emblem-256.png" alt="" width="44" height="44"><span class="axp-wordmark">AxP <span>SOCIAL</span></span></a><a href="/axp-social" class="tracker-link">Back to the invitation ↗</a></header><main class="policy-main"><article class="panel"><h1>${e(
     content.title

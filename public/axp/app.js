@@ -292,8 +292,10 @@ if(typeof document!=='undefined'){
   // left, what to do past the booking limit, and "same pass for everyone".
   function renderGuestNotes(){
     if(!settingsLoaded)return;
-    const list=earlyBirdAvailable()?'early':'regular',price=(pass,fare)=>money(unitPrice(settings,list,pass,fare));
+    const list=plan!=='prebook'&&earlyBirdAvailable()?'early':'regular',price=(pass,fare)=>money(unitPrice(settings,list,pass,fare));
     el('pass-prices').textContent=`${list==='early'?'Early-bird prices: ':''}Silver ${price('normal','single')}, Gold (21+) ${price('alcohol','single')} each. A couple, or everyone in a booking of 4 or more, pays less: Silver ${price('normal','group')}, Gold ${price('alcohol','group')} each.`;
+    // Started from the hero's "Pre-book" button: say so here, not only at the end.
+    if(plan==='prebook'&&settings.prebookEnabled)el('pass-prices').textContent+=` You are pre-booking: ${money(settings.depositPerPerson)} a person now and the rest later, at regular prices. You can choose to pay in full on the next step.`;
     // Early-bird prices go to a whole booking or none of it, so a booking
     // bigger than what is left is told why it pays regular prices.
     const ends=earlyBird&&earlyBird.endsAt?Date.parse(earlyBird.endsAt):NaN,running=!!(earlyBird&&earlyBird.enabled&&ends>Date.now());
@@ -805,6 +807,7 @@ if(typeof document!=='undefined'){
       el('merchant-name').textContent=settings.merchantName;
       el('bar-rule').textContent=`Gold passes are for attendees aged 21 or over. Last service is at ${time(settings.barCloseTime)}.`;
       if(el('prebook-rule'))el('prebook-rule').hidden=!settings.prebookEnabled;
+      if(el('hero-prebook')){el('hero-prebook').hidden=!settings.prebookEnabled;el('hero-prebook-amount').textContent=money(settings.depositPerPerson);}
       settingsLoaded=true;el('settings-load-state').hidden=true;render();
     }catch{settingsLoaded=false;el('settings-load-state').textContent='Event settings could not be loaded. Please reload before reviewing a booking.';refreshReadiness();}
   }
@@ -960,9 +963,14 @@ if(typeof document!=='undefined'){
     }
     showStep(target,{push:false});
   });
-  // The hero's button, and the one closing the event section, start booking.
-  for(const start of [el('hero-cta'),...document.querySelectorAll('[data-start-booking]')]){
-    start?.addEventListener('click',event=>{event.preventDefault();showStep(0,{focus:false});document.querySelector('.axp-steps')?.scrollIntoView({block:'start',behavior:'smooth'});});
+  // The hero's button, and the one closing the event section, start booking;
+  // the hero's "Pre-book" button starts one with the deposit chosen.
+  for(const start of [el('hero-cta'),el('hero-prebook'),...document.querySelectorAll('[data-start-booking]')]){
+    start?.addEventListener('click',event=>{
+      event.preventDefault();
+      if(start.id==='hero-prebook'&&settings.prebookEnabled){plan='prebook';summary();}
+      showStep(0,{focus:false});document.querySelector('.axp-steps')?.scrollIntoView({block:'start',behavior:'smooth'});
+    });
   }
   try{history.replaceState({axpStep:0},'',location.pathname+location.search);}catch{}
   showStep(0,{push:false,focus:false});
