@@ -26,10 +26,10 @@ export function GET() {
   const html = rawBookingHtml
     .replace('<title>Aagaz · AXP Social</title>', '<title>AAGAZ · AxP Social · Invitation edition</title>')
     .replace('href="style.css"', 'href="/axp/style.css?v=2"')
-    .replace('src="app.js"', 'src="/axp/app.js?v=7"')
+    .replace('src="app.js"', 'src="/axp/app.js?v=8"')
     .replace('src="payment.js"', 'src="/axp/payment.js?v=4"')
     .replace('width=device-width, initial-scale=1', 'width=device-width, initial-scale=1, viewport-fit=cover')
-    .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/axp-preview.css?v=11"><link rel="preload" as="image" href="/axp/ivory-plum-gathering.png"><script type="module" src="/axp/reveal.js"></script></head>')
+    .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/axp-preview.css?v=12"><link rel="preload" as="image" href="/axp/ivory-plum-gathering.png"><script type="module" src="/axp/reveal.js"></script></head>')
     .replace('<body>', '<body class="axp-edition"><a class="axp-skip" href="#your-details">Skip to booking form</a>')
     .replace(/<header>[\s\S]*?<\/header>/, '')
     .replace('<section class="hero"', '<section id="event-details" class="hero"')
@@ -69,7 +69,10 @@ export function GET() {
       '<fieldset id="plan-choice" class="plan-choice"><legend>How would you like to pay?</legend>' +
         '<label class="plan-option"><input type="radio" name="booking-plan" value="full" checked><span class="plan-text"><strong>Pay in full</strong><small id="plan-full-note"></small></span><b id="plan-full-amount" class="plan-amount"></b></label>' +
         '<label class="plan-option"><input type="radio" name="booking-plan" value="prebook"><span class="plan-text"><strong>Pre-book with a deposit</strong><small id="plan-prebook-note"></small></span><b id="plan-prebook-amount" class="plan-amount"></b></label>' +
-        '</fieldset><div class="payment-summary">'
+        '</fieldset>' +
+        // Opened by app.js when a guest picks pre-booking while early-bird prices apply.
+        '<dialog id="prebook-notice" class="prebook-notice" aria-labelledby="prebook-notice-title" aria-describedby="prebook-notice-text"><h2 id="prebook-notice-title">Early-bird prices need full payment</h2><p id="prebook-notice-text"></p><div class="prebook-notice-actions"><button type="button" id="prebook-notice-full" class="primary">Pay in full instead</button><button type="button" id="prebook-notice-continue" class="secondary">Continue with pre-booking</button></div></dialog>' +
+        '<div class="payment-summary">'
     )
     .replace(
       /(<li id="bar-rule">[^<]*<\/li>)/,
