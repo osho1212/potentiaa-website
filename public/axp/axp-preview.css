@@ -1102,6 +1102,78 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 .axp-edition .pass-choice { margin-bottom: 10px; }
 .axp-edition .pass-choice-quote { margin: 0 0 4px; padding: 12px 15px; border-radius: 8px; background: rgba(244, 237, 245, .55); font-size: 13px; line-height: 1.6; color: #3c3036; }
 .axp-edition .pass-choice-quote:empty { display: none; }
+
+/* Pass type on the attendees step: two small tickets in the stationery of the
+   pass section and the panels. A double hairline frame, a metal rule, tracked
+   eyebrow, Cormorant name and price, and an "Admit one" stub torn off along a
+   perforation, whose seal fills with a crown when the pass is chosen. */
+.axp-edition .pass-pick { grid-column: 1 / -1; border: 0; margin: 4px 0 0; padding: 0; min-width: 0; }
+.axp-edition .pass-pick[hidden] { display: none; }
+.axp-edition .pass-pick legend { padding: 0; margin-bottom: 10px; font-size: 12px; font-weight: 500; }
+.axp-edition .pass-pick-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.axp-edition .pass-pick-option {
+  --metal: #cfd0da; --metal-edge: #6f7081; --metal-label: #626271; --frame: #bca180; --hairline: #e2d5c4; --sheet: var(--paper);
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 88px; min-height: 132px;
+  border: 1px solid var(--frame); border-radius: 2px; background: var(--sheet); cursor: pointer; font-weight: 400;
+  box-shadow: inset 0 2px 0 var(--metal), inset 0 0 0 4px var(--sheet), inset 0 0 0 5px var(--hairline);
+  transition: border-color .25s ease, background-color .25s ease, box-shadow .25s ease, transform .25s cubic-bezier(.22, .61, .36, 1);
+}
+.axp-edition .pass-pick-option[data-pass="alcohol"] { --metal: #e2c27a; --metal-edge: #8a6525; --metal-label: #775a26; }
+.axp-edition .pass-pick-option input { position: absolute; opacity: 0; width: 1px; height: 1px; min-height: 0; margin: 0; padding: 0; border: 0; pointer-events: none; }
+/* The panels' corner stars, shown on the chosen ticket. */
+.axp-edition .pass-pick-option::before, .axp-edition .pass-pick-option::after {
+  content: '✧'; position: absolute; top: -8px; z-index: 2; padding: 0 2px; background: var(--paper); color: #a48562; font-size: 12px; line-height: 1;
+  opacity: 0; transform: translateY(3px); transition: opacity .25s ease, transform .25s ease;
+}
+.axp-edition .pass-pick-option::before { left: 10px; }
+.axp-edition .pass-pick-option::after { right: 10px; }
+.axp-edition .pass-pick-body { display: flex; flex-direction: column; min-width: 0; padding: 20px 18px 16px 22px; }
+.axp-edition .pass-pick-eyebrow { font-size: 9.5px; font-weight: 500; letter-spacing: 2.4px; text-transform: uppercase; color: var(--metal-label); }
+.axp-edition .pass-pick-name { margin: 8px 0 12px; font: 600 25px/1.1 var(--display); color: #35252f; letter-spacing: -.2px; }
+.axp-edition .pass-pick-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin-top: auto; padding-top: 11px; border-top: 1px solid rgba(180, 154, 125, .35); }
+.axp-edition .pass-pick-amount { font: 600 23px/1 var(--display); color: #43224c; }
+.axp-edition .pass-pick-meta { font-size: 10px; line-height: 1.3; color: var(--muted); }
+/* The stub: perforated from the ticket, notched top and bottom. */
+.axp-edition .pass-pick-stub {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 12px 6px;
+  border-left: 1.5px dashed #cdb89a; text-align: center; transition: background-color .25s ease;
+}
+.axp-edition .pass-pick-notch { position: absolute; left: -9px; width: 16px; height: 9px; background: var(--paper); border: 1px solid var(--frame); z-index: 1; transition: border-color .25s ease; }
+.axp-edition .pass-pick-notch.is-top { top: -1px; border-top: 0; border-radius: 0 0 9px 9px; }
+.axp-edition .pass-pick-notch.is-bottom { bottom: -1px; border-bottom: 0; border-radius: 9px 9px 0 0; }
+.axp-edition .pass-pick-seal {
+  width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  border: 1px dashed #bda184; background: transparent;
+  transition: border-color .25s ease, background-color .25s ease, box-shadow .25s ease;
+}
+.axp-edition .pass-pick-seal svg { width: 24px; height: 24px; opacity: 0; transform: scale(.35) rotate(-16deg); transition: opacity .22s ease, transform .4s cubic-bezier(.34, 1.56, .64, 1); }
+.axp-edition .pass-pick-admit { font-size: 9px; font-weight: 500; letter-spacing: 1.8px; text-transform: uppercase; color: #8b7a6c; line-height: 1.2; }
+.axp-edition .pass-pick-code { font: 500 12px/1 var(--display); letter-spacing: 1.4px; color: var(--metal-label); }
+/* Hover: the frame warms a little. */
+.axp-edition .pass-pick-option:not(.is-locked):not(:has(input:checked)):hover { --frame: #a48562; transform: translateY(-1px); }
+/* Chosen: a plum frame, a faint lilac sheet, the stars, and a foil seal with the crown. */
+.axp-edition .pass-pick-option:has(input:checked) {
+  --frame: var(--green); --hairline: #cdb6d2; --sheet: #faf5f8;
+  box-shadow: inset 0 3px 0 var(--metal), inset 0 0 0 4px var(--sheet), inset 0 0 0 5px var(--hairline), 0 10px 24px -14px rgba(64, 35, 71, .45);
+}
+.axp-edition .pass-pick-option:has(input:checked)::before, .axp-edition .pass-pick-option:has(input:checked)::after { opacity: 1; transform: none; }
+.axp-edition .pass-pick-option:has(input:checked) .pass-pick-stub { background: color-mix(in srgb, var(--metal) 14%, transparent); }
+.axp-edition .pass-pick-option:has(input:checked) .pass-pick-seal { border: 1.5px solid var(--metal-edge); background: color-mix(in srgb, var(--metal) 35%, var(--paper)); box-shadow: inset 0 0 0 3px var(--paper); }
+.axp-edition .pass-pick-option:has(input:checked) .pass-pick-seal svg { opacity: 1; transform: none; }
+.axp-edition .pass-pick-option:has(input:focus-visible) { outline: 2px solid var(--green); outline-offset: 4px; }
+/* Gold before the date of birth shows 21+. */
+.axp-edition .pass-pick-option.is-locked { cursor: not-allowed; }
+.axp-edition .pass-pick-option.is-locked :is(.pass-pick-body, .pass-pick-seal, .pass-pick-admit, .pass-pick-code) { opacity: .45; }
+.axp-edition .pass-pick-hint { display: block; margin-top: 10px; font-size: 11px; line-height: 1.5; color: #746a71; }
+.axp-edition .pass-pick-hint[hidden] { display: none; }
+@media (max-width: 560px) {
+  .axp-edition .pass-pick-options { grid-template-columns: 1fr; gap: 14px; }
+  .axp-edition .pass-pick-option { min-height: 118px; grid-template-columns: minmax(0, 1fr) 82px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .axp-edition .pass-pick-option, .axp-edition .pass-pick-option::before, .axp-edition .pass-pick-option::after, .axp-edition .pass-pick-seal, .axp-edition .pass-pick-seal svg, .axp-edition .pass-pick-stub { transition: none; }
+  .axp-edition .pass-pick-option:not(.is-locked):not(:has(input:checked)):hover { transform: none; }
+}
 .axp-edition #booking-pass-normal-error { display: block; margin: 0 0 12px; }
 
 /* Step 2: the booking contact, when booking for others, and the guest cards. */
