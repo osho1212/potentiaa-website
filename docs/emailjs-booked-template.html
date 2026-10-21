@@ -1,17 +1,25 @@
 <!doctype html>
 <!--
-  EmailJS template for a pre-booking with a balance due, with no QR. The site
-  uses it twice: once when the deposit is paid ("Booked") and for each balance
-  reminder. Create it as a second template in the same EmailJS service as the
-  pass template, paste this HTML, and set its id in
-  NEXT_PUBLIC_EMAILJS_AXP_BOOKED_TEMPLATE_ID on Vercel.
+  EmailJS template: a pre-booking with a balance due. No QR.
 
-  Subject:  {{subject_line}}
-  To:       {{to_email}}
+  The site sends it twice, filling in the wording that differs:
+    - when the deposit is paid ("Pre-booking confirmed")
+    - for each balance reminder ("Balance reminder")
+
+  Set up (EmailJS dashboard, same service as the pass template):
+    Email Templates -> Create New Template -> Content: switch to the code
+    editor (<>), paste this whole file.
+    Subject:    {{subject_line}}
+    To Email:   {{to_email}}
+    From Name:  AxP Social
+    Reply To:   Contact@potentiaa.com
+  Save, copy the template ID into NEXT_PUBLIC_EMAILJS_AXP_BOOKED_TEMPLATE_ID
+  on Vercel (Production and Preview), and redeploy.
 
   Fields the site sends: to_name, to_email, booking_id, booking_id_short,
   guest_count, amount_paid, balance_due, total, attendees_list, balance_link,
-  subject_line, email_badge, email_intro.
+  event_name, event_when, event_where, subject_line, preview_line,
+  email_badge, email_heading, email_intro, cta_label.
 -->
 <html lang="en">
 <head>
@@ -19,14 +27,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light only">
   <meta name="supported-color-schemes" content="light only">
-  <title>Your Aagaz booking is held · AxP Social</title>
+  <title>{{subject_line}}</title>
 </head>
 <body style="margin:0; padding:0; background-color:#f5f1e9; -webkit-text-size-adjust:100%;">
 
   <!-- Inbox preview line: shown beside the subject, hidden in the email itself -->
-  <div style="display:none; max-height:0; overflow:hidden; opacity:0; font-size:1px; line-height:1px; color:#f5f1e9;">
-    Balance due on your Aagaz booking: {{balance_due}}. Entry is by QR pass, issued once paid in full.
-  </div>
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; font-size:1px; line-height:1px; color:#f5f1e9;">{{preview_line}}</div>
 
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f5f1e9;">
     <tr>
@@ -52,38 +58,71 @@
 
           <!-- Greeting -->
           <tr>
-            <td style="padding:28px 32px 6px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-              <p style="margin:0 0 10px; font-size:16px; color:#2f2530;">Dear <strong>{{to_name}}</strong>,</p>
+            <td style="padding:28px 32px 4px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <p style="margin:0 0 6px; font-size:15px; color:#2f2530;">Dear <strong>{{to_name}}</strong>,</p>
+              <h2 style="margin:0 0 10px; font-family:Georgia,'Times New Roman',serif; font-size:26px; font-weight:400; line-height:1.25; color:#2f2530;">{{email_heading}}</h2>
               <p style="margin:0; font-size:14px; line-height:1.7; color:#524a54;">{{email_intro}}</p>
             </td>
           </tr>
 
-          <!-- What is paid and what is due -->
+          <!-- Balance due, and the button to pay it -->
           <tr>
-            <td style="padding:20px 32px 6px;">
+            <td style="padding:22px 32px 6px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#ffffff; border:1px solid #e2d4c0; border-radius:14px; overflow:hidden;">
+                <tr>
+                  <td style="height:4px; line-height:4px; font-size:0; background-color:#402347; background-image:linear-gradient(90deg,#402347,#8b5f97,#402347);">&nbsp;</td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding:24px 24px 22px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    <p style="margin:0 0 6px; font-size:11px; font-weight:700; letter-spacing:2.6px; text-transform:uppercase; color:#96744e;">Balance due</p>
+                    <p style="margin:0 0 6px; font-family:Georgia,'Times New Roman',serif; font-size:40px; line-height:1.1; color:#402347;">{{balance_due}}</p>
+                    <p style="margin:0 0 20px; font-size:13px; color:#716970;">Paid {{amount_paid}} of {{total}}</p>
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td align="center" style="border-radius:999px; background-color:#402347;">
+                          <a href="{{balance_link}}" target="_blank" style="display:inline-block; padding:15px 34px; border-radius:999px; font-size:13px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#ffffff; text-decoration:none;">{{cta_label}} &rarr;</a>
+                        </td>
+                      </tr>
+                    </table>
+                    <p style="margin:12px 0 0; font-size:12px; color:#8d8189;">UPI, cards and net banking through Razorpay &middot; or pay in cash at the venue</p>
+                    <p style="margin:6px 0 0; font-size:11px; color:#8d8189;">Button not working? <a href="{{balance_link}}" target="_blank" style="color:#402347; text-decoration:underline;">Open your booking</a></p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Entry is by QR pass only -->
+          <tr>
+            <td style="padding:16px 32px 6px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <div style="padding:14px 18px; border-radius:10px; background-color:#f8f3f9; border:1px solid #eadff0; border-left:4px solid #402347; font-size:13px; line-height:1.7; color:#2f2530;">
+                <strong>Entry is by QR pass only.</strong> This email is not a pass. Your QR passes are emailed to every guest as soon as the booking is paid in full.
+              </div>
+            </td>
+          </tr>
+
+          <!-- Event and booking details -->
+          <tr>
+            <td style="padding:16px 32px 6px;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#faf6ee; border:1px solid #ece0cf; border-radius:12px;">
                 <tr>
                   <td style="padding:16px 20px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                       <tr>
+                        <td valign="top" style="padding:0 12px 10px 0; font-size:13px; color:#716970;">When</td>
+                        <td align="right" style="padding:0 0 10px; font-size:13px; font-weight:600; color:#2f2530;">{{event_when}}</td>
+                      </tr>
+                      <tr>
+                        <td valign="top" style="padding:0 12px 10px 0; font-size:13px; color:#716970;">Where</td>
+                        <td align="right" style="padding:0 0 10px; font-size:13px; font-weight:600; color:#402347;">{{event_where}}</td>
+                      </tr>
+                      <tr>
                         <td style="padding:0 12px 10px 0; font-size:13px; color:#716970;">Booking</td>
                         <td align="right" style="padding:0 0 10px; font-size:13px; font-weight:600; color:#2f2530; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;">#{{booking_id_short}}</td>
                       </tr>
                       <tr>
-                        <td style="padding:0 12px 10px 0; font-size:13px; color:#716970;">Guests</td>
-                        <td align="right" style="padding:0 0 10px; font-size:13px; font-weight:600; color:#2f2530;">{{guest_count}}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding:0 12px 10px 0; font-size:13px; color:#716970;">Total</td>
-                        <td align="right" style="padding:0 0 10px; font-size:13px; font-weight:600; color:#2f2530;">{{total}}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding:0 12px 10px 0; font-size:13px; color:#716970;">Paid</td>
-                        <td align="right" style="padding:0 0 10px; font-size:13px; font-weight:600; color:#2f2530;">{{amount_paid}}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding:0 12px 0 0; font-size:14px; font-weight:700; color:#402347;">Balance due</td>
-                        <td align="right" style="padding:0; font-size:16px; font-weight:700; color:#402347;">{{balance_due}}</td>
+                        <td style="padding:0 12px 0 0; font-size:13px; color:#716970;">Guests</td>
+                        <td align="right" style="padding:0; font-size:13px; font-weight:600; color:#2f2530;">{{guest_count}}</td>
                       </tr>
                     </table>
                   </td>
@@ -92,25 +131,11 @@
             </td>
           </tr>
 
-          <!-- Passes on this booking (pre-line keeps one name per line) -->
+          <!-- Guests on this booking (pre-line keeps one name per line) -->
           <tr>
             <td style="padding:20px 32px 6px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
               <p style="margin:0 0 10px; font-size:11px; font-weight:700; letter-spacing:1.8px; text-transform:uppercase; color:#96744e;">On this booking</p>
-              <div style="padding:14px 18px; border-radius:10px; background-color:#f8f3f9; border:1px solid #eadff0; border-left:4px solid #402347; font-size:13px; line-height:1.85; color:#2f2530; white-space:pre-line;">{{attendees_list}}</div>
-            </td>
-          </tr>
-
-          <!-- Call to action -->
-          <tr>
-            <td align="center" style="padding:24px 32px 6px;">
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                <tr>
-                  <td align="center" style="border-radius:999px; background-color:#402347;">
-                    <a href="{{balance_link}}" target="_blank" style="display:inline-block; padding:15px 34px; border-radius:999px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#ffffff; text-decoration:none;">Pay the balance &rarr;</a>
-                  </td>
-                </tr>
-              </table>
-              <p style="margin:12px 0 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; color:#8d8189;">Button not working? <a href="{{balance_link}}" target="_blank" style="color:#402347; text-decoration:underline;">Open your booking</a></p>
+              <div style="padding:14px 18px; border-radius:10px; background-color:#ffffff; border:1px solid #ece0cf; font-size:13px; line-height:1.85; color:#2f2530; white-space:pre-line;">{{attendees_list}}</div>
             </td>
           </tr>
 
@@ -121,15 +146,15 @@
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td valign="top" style="width:20px; padding:1px 0 10px; font-size:10px; color:#c4933a;">&#9670;</td>
-                  <td style="padding:0 0 10px; font-size:13px; line-height:1.6; color:#524a54;"><strong>Entry is by QR pass only.</strong> There is no QR yet: you get your QR passes once the booking is paid in full. Paying at the venue? Our team will take it at the gate, record it and issue your passes before you enter.</td>
+                  <td style="padding:0 0 10px; font-size:13px; line-height:1.6; color:#524a54;">Paying at the venue? Our team takes cash or UPI at the gate, records it and issues your passes before you enter.</td>
                 </tr>
                 <tr>
                   <td valign="top" style="width:20px; padding:1px 0 10px; font-size:10px; color:#c4933a;">&#9670;</td>
-                  <td style="padding:0 0 10px; font-size:13px; line-height:1.6; color:#524a54;">The deposit is non-refundable. Your booking keeps its prices.</td>
+                  <td style="padding:0 0 10px; font-size:13px; line-height:1.6; color:#524a54;">Your booking keeps the prices it was made at. The deposit is non-refundable.</td>
                 </tr>
                 <tr>
                   <td valign="top" style="width:20px; padding:1px 0 0; font-size:10px; color:#c4933a;">&#9670;</td>
-                  <td style="padding:0; font-size:13px; line-height:1.6; color:#524a54;">Bring a valid government photo ID for every guest.</td>
+                  <td style="padding:0; font-size:13px; line-height:1.6; color:#524a54;">Bring a valid government photo ID for every guest; names, ages and, for couples, genders are checked at the gate.</td>
                 </tr>
               </table>
             </td>
