@@ -10,9 +10,9 @@
  *     always pay regular prices.
  *  2. The fare, once per person. A booking of four or more is a group: every
  *     guest pays the group price of their own pass, Silver or Gold, whatever
- *     the mix. In a smaller booking, two people of different genders on the
- *     same pass make a couple and pay that same lower price; everyone else
- *     pays single.
+ *     the mix. In a booking of two or three, two people of different genders
+ *     make a couple, on any passes, and each pays that same lower price for
+ *     their own pass; everyone else pays single.
  *
  * Amounts are worked in paise so rupee prices never pick up rounding errors.
  */
@@ -64,32 +64,33 @@ export function unitPrice(settings, priceList, pass, fare) {
 /**
  * The fare for each attendee, in the same order. Attendees need `pass`
  * ('normal' | 'alcohol') and `gender`; a missing gender never makes a couple.
+ * `couplePriority` ranks a pass by what its couple price saves; with three
+ * guests the pair that saves the most is the couple, and on a tie the first.
+ * Without it, Gold ranks above Silver.
  * @param {{ pass?: string, gender?: string }[]} attendees
+ * @param {(pass: string) => number} [couplePriority]
  * @returns {Fare[]}
  */
-export function assignFares(attendees) {
+export function assignFares(attendees, couplePriority = (pass) => (pass === 'alcohol' ? 2 : 1)) {
   // Four or more in one booking: everyone is in the group, on either pass.
   if (attendees.length >= GROUP_SIZE) return attendees.map(() => 'group');
   /** @type {Fare[]} */
   const fares = attendees.map(() => 'single');
-  for (const pass of ['normal', 'alcohol']) {
-    const members = [];
-    attendees.forEach((guest, i) => {
-      if (guest.pass === pass) members.push(i);
-    });
-    // Two or three on one pass: the first pair of different genders is the
-    // couple. With three, which pair it is never changes the total.
-    pairing: for (let x = 0; x < members.length; x++) {
-      for (let y = x + 1; y < members.length; y++) {
-        const a = attendees[members[x]].gender;
-        const b = attendees[members[y]].gender;
-        if (a && b && a !== b) {
-          fares[members[x]] = 'couple';
-          fares[members[y]] = 'couple';
-          break pairing;
-        }
-      }
+  // Two or three: at most one couple, two people of different genders on
+  // any passes.
+  let best = null;
+  for (let x = 0; x < attendees.length; x++) {
+    for (let y = x + 1; y < attendees.length; y++) {
+      const a = attendees[x].gender;
+      const b = attendees[y].gender;
+      if (!a || !b || a === b) continue;
+      const value = couplePriority(attendees[x].pass) + couplePriority(attendees[y].pass);
+      if (!best || value > best.value) best = { x, y, value };
     }
+  }
+  if (best) {
+    fares[best.x] = 'couple';
+    fares[best.y] = 'couple';
   }
   return fares;
 }
@@ -121,7 +122,10 @@ export function earlyBirdEndsAt(settings) {
 export function quoteBooking(attendees, settings, { plan = 'full', earlyBird = false } = {}) {
   const prebook = plan === 'prebook';
   const priceList = !prebook && earlyBird ? 'early' : 'regular';
-  const fares = assignFares(attendees);
+  // The couple is the pair whose couple prices save the most on this list.
+  const fares = assignFares(attendees, (pass) =>
+    toPaise(unitPrice(settings, priceList, pass, 'single')) - toPaise(unitPrice(settings, priceList, pass, 'couple'))
+  );
   const lines = attendees.map((guest, i) => {
     const unitPaise = toPaise(unitPrice(settings, priceList, guest.pass, fares[i]));
     const singlePaise = toPaise(unitPrice(settings, 'regular', guest.pass, 'single'));

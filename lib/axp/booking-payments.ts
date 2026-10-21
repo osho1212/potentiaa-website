@@ -108,23 +108,26 @@ export async function sendBookedConfirmation(booking: BookingRecord): Promise<vo
 
 /**
  * The couple a couple-fare attendee belongs to: them and the other attendee
- * on the same pass who was charged the couple price. Null for anyone else.
+ * who was charged the couple price, on either pass. Bookings made when
+ * couples had to share a pass could hold one couple per pass, so a partner
+ * on the same pass comes first. Null for anyone else.
  */
 export function couplePair(booking: BookingRecord, attendeeId: string) {
   const first = booking.attendees.find((guest) => guest.id === attendeeId);
   if (!first || first.fare !== 'couple') return null;
-  const second = booking.attendees.find(
-    (guest) => guest.id !== first.id && guest.fare === 'couple' && guest.pass === first.pass
-  );
+  const others = booking.attendees.filter((guest) => guest.id !== first.id && guest.fare === 'couple');
+  const second = others.find((guest) => guest.pass === first.pass) || others[0];
   return second ? ([first, second] as const) : null;
 }
 
-/** What a couple owes at the gate if their details do not match: each moves to the single price. */
+/** What a couple owes at the gate if their details do not match: each moves to the single price of their pass. */
 export function coupleDifference(booking: BookingRecord, attendeeId: string): number {
   const pair = couplePair(booking, attendeeId);
   if (!pair) return 0;
-  const single = singlePricePaise(booking, pair[0].pass);
-  return pair.reduce((sum, guest) => sum + Math.max(0, single - (guest.unitPaise ?? single)), 0);
+  return pair.reduce((sum, guest) => {
+    const single = singlePricePaise(booking, guest.pass);
+    return sum + Math.max(0, single - (guest.unitPaise ?? single));
+  }, 0);
 }
 
 /** The single price on the price list this booking was charged from, as the booking recorded it. */
@@ -153,10 +156,9 @@ export async function recordCoupleDifference(
   const differencePaise = coupleDifference(booking, attendeeId);
   if (differencePaise <= 0) throw new Error('There is no difference to pay.');
 
-  const single = singlePricePaise(booking, pair[0].pass);
   const ids = new Set(pair.map((guest) => guest.id));
   const attendees = booking.attendees.map((guest) =>
-    ids.has(guest.id) ? { ...guest, fare: 'single' as const, unitPaise: single } : guest
+    ids.has(guest.id) ? { ...guest, fare: 'single' as const, unitPaise: singlePricePaise(booking, guest.pass) } : guest
   );
   const payments: PaymentEntry[] = [
     ...(booking.payments || []),

@@ -1,16 +1,15 @@
 import {DEFAULT_SETTINGS} from './settings-model.js';
 import {quoteBooking,unitPrice,GENDERS,GENDER_LABELS,FARE_LABELS,PASS_LABELS} from './pricing.js';
 if(typeof document!=='undefined'){
-  const state=[{name:'',email:'',instagram:'',phone:'',dob:'',age:'',gender:'',pass:'normal'}];
+  const state=[{name:'',email:'',instagram:'',phone:'',dob:'',age:'',gender:'',pass:''}];
   let settings={...DEFAULT_SETTINGS};
   let settingsLoaded=false,showAllErrors=false;
   // Where the early bird stands, as the server last reported it. The server
   // decides again when the booking is made; this only drives what is shown.
   let earlyBird=null,plan='full',earlyTimer=null;
-  // Step 1's choices: one pass for the whole booking (or a mix, chosen per
-  // person), and whether the booker is one of the guests. A booker who is
-  // coming is attendee 1, so their details are typed once.
-  let passChoice='',bookingForOthers=false;
+  // Whether the booker is one of the guests. A booker who is coming is
+  // attendee 1, so their details are typed once.
+  let bookingForOthers=false;
   // Attendee cards open one at a time; the rest show a line each.
   let openCard=0;
   // The phone's sticky bar, made once the steps exist (see updateBar).
@@ -73,7 +72,7 @@ if(typeof document!=='undefined'){
       if(field.required&&group[0]===field&&!group.some(option=>option.checked))message='Please choose a pass.';
     }
     else if(field.type==='checkbox'){if(field.required&&!field.checked)message='Please acknowledge the attendee details and terms.';}
-    else if(empty){if(field.required)message=field.tagName==='SELECT'?'Please choose an option.':'Please fill in this required field.';}
+    else if(empty){if(field.required)message=field.id.endsWith('-pass')?'Choose Silver or Gold for this guest.':field.tagName==='SELECT'?'Please choose an option.':'Please fill in this required field.';}
     else if(field.id.endsWith('-instagram')&&!instagram(field.value))message='Enter a valid Instagram username, such as @yourusername.';
     else if(field.id.endsWith('-phone')&&!phone(field.value))message='Enter a valid phone number with country code.';
     else if(field.id.endsWith('-dob')&&!ageBracket(field.value))message=`Attendees must be 20 or older on ${dateLabel()}.`;
@@ -86,7 +85,7 @@ if(typeof document!=='undefined'){
   }
   // The fields a guest must fill, in every step, whichever is on screen. Left
   // out: contact fields hidden because the booker is coming (attendee 1 fills
-  // them) and a pass picker hidden because the booking has one pass.
+  // them).
   const liveFields=root=>[...root.querySelectorAll('input,select')].filter(field=>!field.closest('[hidden]:not(.step-panel)'));
   function refreshReadiness(){
     const missing=[];
@@ -173,17 +172,15 @@ if(typeof document!=='undefined'){
     }
     el('charges-pending').hidden=q.totalPaise!==null;
     renderPlanChoice();
-    const passes=state.length,amount=q.totalPaise!==null?q.totalPaise/100:q.subtotalPaise/100;
-    // Genders are entered on the attendee step, so before it the total can only
-    // be a starting price: what this many people pay at the lowest prices.
-    const lowest=bestCase(passChoice==='alcohol'?'alcohol':'normal',passes);
+    // Until every guest's pass and gender are in, the total can only be a
+    // starting price: the least these guests could pay.
+    const passes=state.length,unsure=state.some(guest=>!guest.pass||!guest.gender);
+    const shown=unsure?lowestQuote():q,amount=(shown.totalPaise??shown.subtotalPaise)/100;
     const count=`${passes} ${passes===1?'pass':'passes'}`;
-    document.querySelectorAll('.step-total').forEach(node=>{
-      node.textContent=node.closest('#your-details')&&lowest.totalPaise!==null?`${count} · from ${money(lowest.totalPaise/100)}`:`${count} · ${money(amount)}`;
-    });
+    document.querySelectorAll('.step-total').forEach(node=>{node.textContent=`${count} · ${unsure?'from ':''}${money(amount)}`;});
     renderEarlyBird();
     renderOffers();
-    renderPassChoice();
+    renderGuestNotes();
     updateBar();
   }
   function updateBar(){
@@ -202,45 +199,47 @@ if(typeof document!=='undefined'){
       barAction.textContent=q.plan==='prebook'?`Pay deposit ${money(now/100)}`:`Pay ${money(now/100)}`;
     }else{
       barTotal.textContent=el(`${steps[stepIndex]}`)?.querySelector('.step-total')?.textContent||count;
-      barAction.textContent=stepIndex===0?'Continue':'Review & pay';
+      barAction.textContent='Review & pay';
     }
   }
-  // Step 1's prices for this many people, before anyone's details are in:
-  // `plainCase` with no couple, `bestCase` with every pair a couple.
-  const crowd=(pass,count,paired)=>Array.from({length:count},(_,i)=>({pass,gender:paired?(i%2?'man':'woman'):''}));
-  const bestCase=(pass,count)=>quoteBooking(crowd(pass,count,true),settings,{plan:'full',earlyBird:earlyBirdAvailable(count)});
-  const plainCase=(pass,count)=>quoteBooking(crowd(pass,count,false),settings,{plan:'full',earlyBird:earlyBirdAvailable(count)});
-  function renderPassChoice(){
-    const box=el('pass-choice');if(!box)return;
-    // Ticked before settings arrive, so a restored draft resumes past step 1.
-    for(const option of box.querySelectorAll('input[name="booking-pass"]'))option.checked=option.value===passChoice;
+  // The least these guests could pay: a missing pass counts as Silver, and a
+  // missing gender as whatever makes a couple.
+  function lowestQuote(){
+    const known=state.find(guest=>guest.gender)?.gender,other=known==='woman'?'man':'woman';
+    const guests=state.map((guest,i)=>({pass:guest.pass||'normal',gender:guest.gender||(known?other:(i%2?'man':'woman'))}));
+    return quoteBooking(guests,settings,{plan,earlyBird:earlyBirdAvailable()});
+  }
+  // Early-bird passes left at or below this are counted out on the guests step.
+  const EARLY_LEFT_SHOWN=20;
+  // The top of the guests step: today's prices, how many early-bird passes are
+  // left, what to do past the booking limit, and "same pass for everyone".
+  function renderGuestNotes(){
     if(!settingsLoaded)return;
-    const count=state.length,list=earlyBirdAvailable(count)?'early':'regular';
-    for(const pass of ['normal','alcohol']){
-      const note=el(`pass-choice-${pass}-note`),amount=el(`pass-choice-${pass}-amount`);
-      if(note)note.textContent=`${list==='early'?'Early bird: ':''}${money(unitPrice(settings,list,pass,'single'))} each, or ${money(unitPrice(settings,list,pass,'group'))} each for couples and groups of 4+.`;
-      const best=bestCase(pass,count),plain=plainCase(pass,count);
-      if(amount)amount.textContent=best.totalPaise===null?'':`${best.totalPaise<plain.totalPaise?'from ':''}${money(best.totalPaise/100)}`;
+    const list=earlyBirdAvailable()?'early':'regular',price=(pass,fare)=>money(unitPrice(settings,list,pass,fare));
+    el('pass-prices').textContent=`${list==='early'?'Early-bird prices: ':''}Silver ${price('normal','single')}, Gold (21+) ${price('alcohol','single')} each. A couple, or everyone in a booking of 4 or more, pays less: Silver ${price('normal','group')}, Gold ${price('alcohol','group')} each.`;
+    // Early-bird prices go to a whole booking or none of it, so a booking
+    // bigger than what is left is told why it pays regular prices.
+    const ends=earlyBird&&earlyBird.endsAt?Date.parse(earlyBird.endsAt):NaN,running=!!(earlyBird&&earlyBird.enabled&&ends>Date.now());
+    const left=running?Math.max(0,Number(earlyBird.left)||0):0,n=state.length,passWord=k=>`${k} early-bird ${k===1?'pass':'passes'}`;
+    let early='';
+    if(running&&left===0)early='Early-bird passes have sold out, so regular prices apply.';
+    else if(running&&n>left)early=`Only ${passWord(left)} ${left===1?'is':'are'} left. Early-bird prices go to a whole booking or none of it, so a booking of ${n} pays regular prices; a booking of ${left} or fewer still gets them.`;
+    else if(running&&left<=EARLY_LEFT_SHOWN)early=`Only ${passWord(left)} left.`;
+    el('early-bird-left').textContent=early;el('early-bird-left').hidden=!early;
+    // At the limit: a second booking, or the organisers, for anyone else.
+    const limit=el('booking-limit-note'),full=n>=settings.maxPerBooking;
+    limit.hidden=!full;
+    if(full){
+      const digits=String(settings.supportPhone||'').replace(/\D/g,'');
+      const call=document.createElement('a');call.href='tel:+'+digits;call.textContent=settings.supportPhone;
+      const chat=document.createElement('a');chat.href='https://wa.me/'+digits;chat.target='_blank';chat.rel='noopener noreferrer';chat.textContent='WhatsApp';
+      limit.replaceChildren(`${settings.maxPerBooking} is the most for one booking. Coming with more? Make a second booking for the rest: any booking of 4 or more gets group prices. Or call us on `,call,' or message us on ',chat,'.');
     }
-    const quote=el('pass-choice-quote');if(!quote)return;
-    const people=`${count} ${count===1?'person':'people'}`;
-    if(passChoice==='mix'){
-      const early=list==='early'?' Early-bird prices, for bookings paid in full.':'';
-      quote.textContent=count>=4
-        ?`${people} make a group, so everyone pays the group price of their own pass: Silver ${money(unitPrice(settings,list,'normal','group'))}, Gold ${money(unitPrice(settings,list,'alcohol','group'))} each.${early}`
-        :`Prices follow each person's pass. You choose them on the next step.`;
-      return;
-    }
-    if(passChoice!=='normal'&&passChoice!=='alcohol'){quote.textContent='';return;}
-    const tier=tierName(passChoice),best=bestCase(passChoice,count),plain=plainCase(passChoice,count);
-    if(best.totalPaise===null){quote.textContent='';return;}
-    const early=best.priceList==='early'?' Early-bird prices, for bookings paid in full.':'';
-    if(count>=4)quote.textContent=`${people} on ${tier} pay the group price: ${money(best.totalPaise/100)} in all, ${money(best.lines[0].unitPaise/100)} each.${early}`;
-    else if(best.totalPaise<plain.totalPaise)quote.textContent=`${people} on ${tier}: ${money(plain.totalPaise/100)}, or ${money(best.totalPaise/100)} with the couple price for two guests of different genders.${early}`;
-    else quote.textContent=`${people} on ${tier}: ${money(plain.totalPaise/100)}.${early}`;
+    const all=el('pass-all');all.hidden=n<2;
+    for(const option of all.querySelectorAll('.pass-all-option'))option.setAttribute('aria-pressed',String(state.every(guest=>guest.pass===option.dataset.pass)));
   }
-  // The pass cards in step 1 show today's single price and the couple and
-  // group price beside it.
+  // The event section's pass cards show today's single price and the couple
+  // and group price beside it.
   function passCardPrices(){
     const list=earlyBirdAvailable()?'early':'regular';
     for(const [pass,id] of [['normal','normal-price'],['alcohol','alcohol-price']]){
@@ -272,7 +271,8 @@ if(typeof document!=='undefined'){
   function earlyEndLabel(){return earlyBird&&earlyBird.endsAt?new Intl.DateTimeFormat('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'}).format(new Date(earlyBird.endsAt)):'';}
   function joinWords(words){return words.length<2?words.join(''):`${words.slice(0,-1).join(', ')} and ${words.at(-1)}`;}
   function appliedOffer(q){
-    if(q.totalPaise===null||q.savingPaise<=0)return '';
+    // A saving is only real once everyone's pass is chosen.
+    if(q.totalPaise===null||q.savingPaise<=0||state.some(guest=>!guest.pass))return '';
     const parts=[];
     if(q.priceList==='early')parts.push('early-bird prices');
     if(q.lines.some(line=>line.fare==='couple'))parts.push('the couple price');
@@ -282,42 +282,28 @@ if(typeof document!=='undefined'){
   }
   // One suggestion at a time: what one or two more people, or one guest on
   // another pass, would change, priced exactly as the booking would be.
-  const firstName=name=>String(name||'').trim().split(/\s+/)[0]||'';
   function upsell(){
     const q=currentQuote();
     if(q.totalPaise===null)return null;
     const room=settings.maxPerBooking-state.length;
     const priceWith=extra=>quoteBooking([...state,...extra],settings,{plan,earlyBird:earlyBirdAvailable(state.length+extra.length)});
-    // Four or more on any passes make a group, so the whole booking counts.
-    // A new guest starts on the last guest's pass; either pass would do.
-    const n=state.length,last=state[n-1].pass,tier=tierName(last);
+    // Four or more on any passes make a group, and any two of different
+    // genders a couple, so the whole booking counts. A new guest starts on the
+    // last guest's pass; either pass would do.
+    const n=state.length,last=state[n-1].pass,tier=tierName(last),like=last||'normal';
     const groupSaving=extra=>{const after=priceWith(extra);return after.totalPaise===null?0:state.reduce((sum,_,i)=>sum+q.lines[i].unitPaise-after.lines[i].unitPaise,0);};
     if(n===3&&room>=1){
-      const saving=groupSaving([{pass:last,gender:''}]);
+      const saving=groupSaving([{pass:like,gender:''}]);
       if(saving>0)return {pass:last,action:'Add a guest',text:`Add one more guest, on Silver or Gold, and all four of you pay the group price, saving the three of you ${money(saving/100)}.`};
     }
-    // A couple split across passes pays single prices: the couple price needs
-    // both on the same pass. Offer to move the Silver guest up to Gold when
-    // they are old enough for it; a downgrade is never suggested.
-    for(const i of state.keys()){
-      if(state[i].pass!=='alcohol'||!state[i].gender||q.lines[i].fare!=='single')continue;
-      for(const j of state.keys()){
-        const guest=state[j];
-        if(guest.pass!=='normal'||!guest.gender||guest.gender===state[i].gender||q.lines[j].fare!=='single'||ageBracket(guest.dob)!=='21plus')continue;
-        const after=quoteBooking(state.map((g,k)=>k===j?{...g,pass:'alcohol'}:g),settings,{plan,earlyBird:earlyBirdAvailable()});
-        if(after.lines[i].fare!=='couple'||after.totalPaise===null)continue;
-        const who=firstName(guest.name)||`attendee ${j+1}`,more=after.totalPaise-q.totalPaise;
-        return {pass:'alcohol',move:j,action:`Move ${who} to Gold`,text:`Put ${who} on Gold too and you both get the couple price of ${money(after.lines[i].unitPaise/100)} each${more>0?`, for ${money(more/100)} more in total`:more<0?`, saving ${money(-more/100)}`:''}.`};
-      }
-    }
     if(n===2&&room>=2&&state.every(g=>g.gender)){
-      const saving=groupSaving([{pass:last,gender:''},{pass:last,gender:''}]);
+      const saving=groupSaving([{pass:like,gender:''},{pass:like,gender:''}]);
       if(saving>0)return {pass:last,action:'Add a guest',text:`Two more guests, on any passes, make a group of 4, and everyone pays the group price: ${money(saving/100)} less for the two of you.`};
     }
     if(n===1&&room>=1&&state[0].gender){
       const partner=state[0].gender==='woman'?'man':'woman';
-      const each=priceWith([{pass:last,gender:partner}]).lines[0].unitPaise,single=q.lines[0].unitPaise;
-      if(each<single)return {pass:last,action:'Add a partner',text:`Coming with a partner? Two people of different genders on ${tier} pay ${money(each/100)} each instead of ${money(single/100)}.`};
+      const each=priceWith([{pass:like,gender:partner}]).lines[0].unitPaise,single=q.lines[0].unitPaise;
+      if(each<single)return {pass:last,action:'Add a partner',text:`Coming with a partner? Two people of different genders pay the couple price, on Silver or Gold: ${money(each/100)} on ${tier} instead of ${money(single/100)}.`};
     }
     return null;
   }
@@ -332,13 +318,8 @@ if(typeof document!=='undefined'){
     if(!box&&anchor){box=document.createElement('div');box.id=id;box.className='offer-hint';box.setAttribute('aria-live','polite');anchor[where](box);}
     return box;
   }
-  // A hint either adds a guest or moves one to another pass.
+  // A hint adds a guest; from the review it goes back to the guests step.
   function applyHint(hint,{toAttendees=false}={}){
-    if(Number.isInteger(hint.move)&&state[hint.move]){
-      state[hint.move].pass=hint.pass;render();saveDraft();
-      if(steps[stepIndex]==='payment-step')renderReview();
-      return;
-    }
     addGuest(hint.pass);
     if(toAttendees)showStep(steps.indexOf('your-guests'));
   }
@@ -382,7 +363,7 @@ if(typeof document!=='undefined'){
           kind:'together',title:'Couple & group offers',status:'Better together',
           amount:`From ${money(Math.min(unitPrice(settings,list,'normal','group'),unitPrice(settings,list,'alcohol','group')))}`,unit:'per person',
           detail:`Come together for less. Silver ${money(unitPrice(settings,list,'normal','group'))} / Gold ${money(unitPrice(settings,list,'alcohol','group'))} each.`,
-          terms:'Couples: two guests of different genders on the same pass. Groups: 4 or more guests, any mix of Silver and Gold.'+(list==='early'?' Early-bird rates require full payment.':'')
+          terms:'Couples: two guests of different genders, on any passes. Groups: 4 or more guests, any mix of Silver and Gold.'+(list==='early'?' Early-bird rates require full payment.':'')
         });
         if(settings.prebookEnabled)rows.push({
           kind:'prebook',title:'Pre-book your passes',status:'Reserve with a deposit',
@@ -407,12 +388,14 @@ if(typeof document!=='undefined'){
     }
     fillOfferBox(offerBox('payment-offer',el('plan-choice'),'after'),[compare],hint,goAdd);
   }
-  function input(labelText,property,index,{type='text',placeholder='',maxLength=100,required=true}={}){
+  function input(labelText,property,index,{type='text',placeholder='',maxLength=100,required=true,hint=''}={}){
     const label=required?requiredLabel(labelText):optionalLabel(labelText);
     const field=document.createElement('input');field.id=`guest-${index}-${property}`;field.name=`attendees[${index}][${property}]`;field.type=type;field.required=required;field.maxLength=maxLength;field.placeholder=placeholder;
     if(property==='phone'&&!state[index].phone)state[index].phone=DIAL;
     field.value=state[index][property];
-    field.addEventListener('input',()=>{state[index][property]=field.value;if(index===0&&CONTACT_KEYS.includes(property))syncContactFromFirst();});label.append(field,describeField(field,`Attendee ${index+1}: ${labelText.toLowerCase()}`));return label;
+    field.addEventListener('input',()=>{state[index][property]=field.value;if(index===0&&CONTACT_KEYS.includes(property))syncContactFromFirst();});label.append(field,describeField(field,`Attendee ${index+1}: ${labelText.toLowerCase()}`));
+    if(hint){const note=document.createElement('small');note.className='helper field-hint';note.textContent=hint;label.append(note);}
+    return label;
   }
   // ---------- Attendee cards ----------
   // One card is open at a time. A finished card folds to a line, such as
@@ -427,7 +410,7 @@ if(typeof document!=='undefined'){
   function cardLine(index){
     const guest=state[index],name=guest.name.trim();
     if(!name)return 'Details needed';
-    return [name,passLabel(guest.pass),GENDER_LABELS[guest.gender]].filter(Boolean).join(' · ');
+    return [name,guest.pass?passLabel(guest.pass):'Pass needed',GENDER_LABELS[guest.gender]].filter(Boolean).join(' · ');
   }
   function applyCards(){
     state.forEach((guest,index)=>{
@@ -456,9 +439,6 @@ if(typeof document!=='undefined'){
     if(next<0){openCard=-1;applyCards();return;}
     openCardAt(next);
   }
-  // A Gold booking keeps one pass for everyone, except a guest under 21, who
-  // can only hold Silver; their card says so and shows the pass it gave them.
-  const showsOwnPass=guest=>!passChoice||passChoice==='mix'||guest.pass!==passChoice;
   function render(){
     el('attendees').replaceChildren();
     if(openCard>=state.length)openCard=state.length-1;
@@ -473,7 +453,11 @@ if(typeof document!=='undefined'){
       const grid=document.createElement('div');grid.className='field-grid';
       grid.append(
         input('Full name','name',index,{placeholder:'Aarav Sharma'}),
-        input('Email address','email',index,{type:'email',placeholder:'aarav@example.com',maxLength:100}),
+        // The booker's own email is required: the receipt and every pass go
+        // there. A guest's is optional and brings them their own pass too.
+        index===0&&!bookingForOthers
+          ?input('Email address','email',index,{type:'email',placeholder:'aarav@example.com',maxLength:100})
+          :input('Email address','email',index,{type:'email',placeholder:'aarav@example.com',maxLength:100,required:false,hint:'Their pass goes to the booking contact. Add their email to send them their own too.'}),
         input('Phone number','phone',index,{type:'tel',placeholder:'+91 98765 43210',maxLength:20}),
         input('Instagram username','instagram',index,{placeholder:'@username',maxLength:31,required:false})
       );
@@ -485,28 +469,30 @@ if(typeof document!=='undefined'){
       gender.append(new Option('Choose…',''),...GENDERS.map(value=>new Option(GENDER_LABELS[value],value)));gender.value=guest.gender||'';
       gender.addEventListener('change',()=>{guest.gender=gender.value;summary();});
       genderLabel.append(gender,describeField(gender,`Attendee ${index+1}: gender`));grid.append(genderLabel);
-      const passLabel=requiredLabel('Pass type');const pass=document.createElement('select');pass.id=`guest-${index}-pass`;pass.name=`attendees[${index}][pass]`;pass.required=true;
-      pass.append(new Option('Silver','normal'),new Option('Gold · 21+','alcohol'));pass.value=guest.pass;pass.options[1].disabled=ageBracket(guest.dob)!=='21plus';
+      // Each guest's own pass. Gold can be picked before the date of birth is
+      // in; a date that makes them 20 moves them to Silver, and says why.
+      const passLabel=requiredLabel('Pass');const pass=document.createElement('select');pass.id=`guest-${index}-pass`;pass.name=`attendees[${index}][pass]`;pass.required=true;
+      pass.append(new Option('Choose Silver or Gold…',''),new Option('Silver','normal'),new Option('Gold · 21+','alcohol'));pass.value=guest.pass||'';
       const passNote=document.createElement('small');passNote.className='helper pass-note';
-      const passShown=()=>{passLabel.hidden=!showsOwnPass(guest);passNote.textContent=passChoice==='alcohol'&&guest.pass!=='alcohol'?'Gold needs age 21 or over on the event date, so this guest has a Silver pass.':'';passNote.hidden=!passNote.textContent;};
-      dob.addEventListener('input',()=>{guest.dob=dob.value;const bracket=ageBracket(dob.value);guest.age=bracket||'';if(bracket!=='21plus'&&guest.pass==='alcohol'){guest.pass='normal';pass.value='normal';}else if(bracket==='21plus'&&passChoice==='alcohol'&&guest.pass!=='alcohol'){guest.pass='alcohol';pass.value='alcohol';}pass.options[1].disabled=bracket!=='21plus';passShown();summary();});
-      pass.addEventListener('change',()=>{guest.pass=pass.value;passShown();summary();});passLabel.append(pass,describeField(pass,`Attendee ${index+1}: pass type`));grid.append(passLabel,passNote);passShown();
+      const passShown=()=>{const under=ageBracket(guest.dob)==='20';pass.options[2].disabled=under;passNote.textContent=under?'Gold is for guests aged 21 or over on the event date, so this guest can have Silver.':'';passNote.hidden=!passNote.textContent;};
+      dob.addEventListener('input',()=>{guest.dob=dob.value;const bracket=ageBracket(dob.value);guest.age=bracket||'';if(bracket==='20'&&guest.pass==='alcohol'){guest.pass='normal';pass.value='normal';}passShown();summary();});
+      pass.addEventListener('change',()=>{guest.pass=pass.value;passShown();summary();});passLabel.append(pass,describeField(pass,`Attendee ${index+1}: pass`));grid.append(passLabel,passNote);passShown();
       const done=document.createElement('button');done.type='button';done.className='secondary attendee-done';done.addEventListener('click',()=>finishCard(index));
       section.append(grid,done);el('attendees').append(section);
     });
     syncContactFromFirst();summary();refreshReadiness();applyCards();
   }
-  // A new guest starts on the booking's pass.
-  const startingPass=()=>passChoice==='alcohol'||passChoice==='normal'?passChoice:'normal';
-  el('plus').addEventListener('click',()=>{if(state.length<settings.maxPerBooking){state.push({name:'',email:'',instagram:'',phone:'',dob:'',age:'',gender:'',pass:startingPass()});render();saveDraft();}});
+  // A new guest starts on the previous guest's pass, so a group on one pass
+  // picks it once.
+  const nextPass=()=>state[state.length-1]?.pass||'';
+  el('plus').addEventListener('click',()=>{if(state.length<settings.maxPerBooking){state.push({name:'',email:'',instagram:'',phone:'',dob:'',age:'',gender:'',pass:nextPass()});render();saveDraft();}});
   el('minus').addEventListener('click',()=>{if(state.length>1){state.pop();render();saveDraft();}});
-  // One pass for everyone, or a mix chosen per person. A guest already known
-  // to be under 21 stays on Silver whatever the booking's pass.
-  el('pass-choice')?.addEventListener('change',event=>{
-    if(event.target.name!=='booking-pass')return;
-    passChoice=event.target.value;
-    if(passChoice!=='mix')state.forEach(guest=>{guest.pass=passChoice==='alcohol'&&guest.dob&&ageBracket(guest.dob)!=='21plus'?'normal':passChoice;});
-    touched.add('booking-pass-normal');render();saveDraft();
+  // Same pass for everyone, in one tap. A guest known to be 20 stays on Silver.
+  el('pass-all')?.addEventListener('click',event=>{
+    const option=event.target.closest('.pass-all-option');if(!option)return;
+    const chosen=option.dataset.pass==='alcohol'?'alcohol':'normal';
+    state.forEach(guest=>{guest.pass=chosen==='alcohol'&&ageBracket(guest.dob)==='20'?'normal':chosen;});
+    render();saveDraft();
   });
   // Booking for others: the contact gets their own fields, and attendee 1 is
   // just a guest. Contact details copied from attendee 1 are cleared, so the
@@ -573,7 +559,7 @@ if(typeof document!=='undefined'){
     if(!el('review-edit-guests')){
       const edit=(id,text,step)=>{const button=document.createElement('button');button.type='button';button.id=id;button.className='review-edit';button.textContent=text;button.addEventListener('click',()=>showStep(step));return button;};
       const row=document.createElement('p');row.className='review-edits';
-      row.append(edit('review-edit-guests','Edit attendees',1),edit('review-edit-passes','Change passes',0));
+      row.append(edit('review-edit-guests','Edit guests or passes',0));
       el('review-guests').after(row);
     }
     el('review-notice').textContent=(q.totalPaise===null?'Final charges are pending. ':'')+'Nothing is booked and no payment is taken until you pay below.';
@@ -598,26 +584,26 @@ if(typeof document!=='undefined'){
   function restoreDraft(){
     try{
       const draft=JSON.parse(sessionStorage.getItem('axp-booking-draft')||'null');
-      // Version 1 drafts come from the five-step form: their details are kept,
-      // but their step numbers mean something else, so they start at step 1.
-      if(!draft||(draft.v!==1&&draft.v!==2))return 0;
+      // Version 1 drafts come from the five-step form and version 2 from the
+      // three-step one: their details are kept, and their step numbers mapped.
+      if(!draft||![1,2,3].includes(draft.v))return 0;
       for(const key of CONTACT_KEYS)if(typeof draft.buyer?.[key]==='string')el('buyer-'+key).value=draft.buyer[key];
       if(Array.isArray(draft.attendees)&&draft.attendees.length){
-        const blank={name:'',email:'',instagram:'',phone:'',dob:'',age:'',gender:'',pass:'normal'};
+        const blank={name:'',email:'',instagram:'',phone:'',dob:'',age:'',gender:'',pass:''};
         state.splice(0,state.length,...draft.attendees.slice(0,10).map(guest=>({...blank,...guest})));
         state.forEach(guest=>{guest.age=ageBracket(guest.dob)||'';if(guest.pass==='alcohol'&&guest.dob&&guest.age!=='21plus')guest.pass='normal';});
       }
       if(draft.v===1)return 0;
-      passChoice=['normal','alcohol','mix'].includes(draft.passChoice)?draft.passChoice:'';
       bookingForOthers=draft.bookingForOthers===true;
       el('booking-for-others').checked=bookingForOthers;el('booking-contact').hidden=!bookingForOthers;
-      return Number.isInteger(draft.step)?draft.step:0;
+      const step=Number.isInteger(draft.step)?draft.step:0;
+      return draft.v===2?(step>=2?1:0):step;
     }catch{return 0;}
   }
   function saveDraft(){
     try{
       sessionStorage.setItem('axp-booking-draft',JSON.stringify({
-        v:2,step:stepIndex,passChoice,bookingForOthers,
+        v:3,step:stepIndex,bookingForOthers,
         buyer:Object.fromEntries(CONTACT_KEYS.map(key=>[key,el('buyer-'+key).value])),
         attendees:state,
       }));
@@ -712,7 +698,7 @@ if(typeof document!=='undefined'){
       el('footer-copyright').textContent=`© ${new Date().getFullYear()} Potentiaa. All rights reserved.`;
       applyBrand('potentiaa',settings.potentiaaLogo,settings.potentiaaPhone);
       applyBrand('avyanta',settings.avyantaLogo,settings.avyantaPhone);
-      el('pass-limit-hint').textContent=`Entry is for guests aged 20 and over. Choose up to ${settings.maxPerBooking} passes per booking and mix Silver and Gold freely. Couples on the same pass, and everyone in a booking of 4 or more, pay less each.`;
+      el('pass-limit-hint').textContent=`Entry is for guests aged 20 and over. Up to ${settings.maxPerBooking} passes per booking, Silver or Gold for each guest. A couple (two people of different genders), and everyone in a booking of 4 or more, pay less each.`;
       el('normal-benefits').textContent=settings.normalDescription;el('alcohol-benefits').textContent=settings.alcoholDescription;
       passCardPrices();
       el('summary-name').textContent=settings.eventName;el('summary-date').textContent=`${dateLabel()} · ${time(settings.startTime)}`;el('summary-venue').textContent=settings.venueName;
@@ -732,11 +718,11 @@ if(typeof document!=='undefined'){
   // a guest cannot carry an empty required field into the next screen; moving
   // back is always free. refreshReadiness still judges the whole form, which is
   // what gates the final review button.
-  // Passes, attendees, then review and pay on one screen. The event itself is
-  // part of the page above the form, not a step.
-  const steps=['your-details','your-guests','payment-step'];
+  // Guests, then review and pay. The event itself is part of the page above
+  // the form, not a step.
+  const steps=['your-guests','payment-step'];
   // The forward button says where it goes, not just "Next".
-  const nextLabels=['Continue to attendees','Review & pay',null];
+  const nextLabels=['Review & pay',null];
   let stepIndex=0;
   function stepPanels(){return steps.map(id=>el(id)).filter(Boolean);}
   function stepLabel(index){const nav=document.querySelector('.axp-steps');return (nav?.children[index*2]?.textContent||'').trim().replace(/^\d+\s*/,'');}
@@ -760,7 +746,7 @@ if(typeof document!=='undefined'){
     if(steps[stepIndex]==='payment-step')renderReview();
     // The attendee step opens on the first card still to fill in.
     if(steps[stepIndex]==='your-guests'&&stepIndex!==previous){openCard=firstIncomplete();applyCards();}
-    // Five labelled steps do not fit a phone, so there the nav shrinks to
+    // Labelled steps do not fit a phone, so there the nav shrinks to
     // numbers and this caption carries the wording.
     const stepsNav=document.querySelector('.axp-steps');
     if(stepsNav){
@@ -853,7 +839,7 @@ if(typeof document!=='undefined'){
   let barFrame=0;
   for(const eventName of ['scroll','resize'])window.addEventListener(eventName,()=>{if(!barFrame)barFrame=requestAnimationFrame(()=>{barFrame=0;updateBar();});},{passive:true});
   // A small running total beside the buttons while passes are being chosen.
-  for(const id of ['your-details','your-guests']){
+  for(const id of ['your-guests']){
     const nav=el(id)?.querySelector('.step-nav');
     if(nav&&!nav.querySelector('.step-total')){const total=document.createElement('span');total.className='step-total';total.setAttribute('aria-live','polite');nav.prepend(total);}
   }
