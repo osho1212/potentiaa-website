@@ -286,8 +286,6 @@ if(typeof document!=='undefined'){
     const guests=state.map((guest,i)=>({pass:guest.pass||'normal',gender:guest.gender||(known?other:(i%2?'man':'woman'))}));
     return quoteBooking(guests,settings,{plan,earlyBird:earlyBirdAvailable()});
   }
-  // Early-bird passes left at or below this are counted out on the guests step.
-  const EARLY_LEFT_SHOWN=20;
   // The top of the guests step: today's prices, how many early-bird passes are
   // left, what to do past the booking limit, and "same pass for everyone".
   function renderGuestNotes(){
@@ -299,11 +297,11 @@ if(typeof document!=='undefined'){
     // Early-bird prices go to a whole booking or none of it, so a booking
     // bigger than what is left is told why it pays regular prices.
     const ends=earlyBird&&earlyBird.endsAt?Date.parse(earlyBird.endsAt):NaN,running=!!(earlyBird&&earlyBird.enabled&&ends>Date.now());
-    const left=running?Math.max(0,Number(earlyBird.left)||0):0,n=state.length,passWord=k=>`${k} early-bird ${k===1?'pass':'passes'}`;
+    const left=running?Math.max(0,Number(earlyBird.left)||0):0,n=state.length;
+    // How many are left is not shown, only what it means for this booking.
     let early='';
     if(running&&left===0)early='Early-bird passes have sold out, so regular prices apply.';
-    else if(running&&n>left)early=`Only ${passWord(left)} ${left===1?'is':'are'} left. Early-bird prices go to a whole booking or none of it, so a booking of ${n} pays regular prices; a booking of ${left} or fewer still gets them.`;
-    else if(running&&left<=EARLY_LEFT_SHOWN)early=`Only ${passWord(left)} left.`;
+    else if(running&&n>left)early=`Early-bird passes are nearly gone, and early-bird prices go to a whole booking or none of it, so a booking of ${n} pays regular prices. A booking with fewer guests may still get them.`;
     el('early-bird-left').textContent=early;el('early-bird-left').hidden=!early;
     // At the limit: a second booking, or the organisers, for anyone else.
     const limit=el('booking-limit-note'),full=n>=settings.maxPerBooking;
@@ -345,11 +343,15 @@ if(typeof document!=='undefined'){
     const span=days>0?`${days}d ${hours}h`:`${hours}h ${minutes}m`;
     banner.textContent=`Early-bird prices end in ${span}. For bookings paid in full; pre-bookings pay regular prices.`;
     if(hero&&settingsLoaded){
-      const from=Math.min(unitPrice(settings,'early','normal','single'),unitPrice(settings,'early','alcohol','single'));
+      // The lowest prices on the early-bird list: one person, and each of a
+      // couple or a group (all on Silver, at these prices).
+      const single=Math.min(unitPrice(settings,'early','normal','single'),unitPrice(settings,'early','alcohol','single'));
+      const shared=Math.min(unitPrice(settings,'early','normal','group'),unitPrice(settings,'early','alcohol','group'));
       const strong=document.createElement('strong');strong.textContent=`Early bird ends in ${span}`;
-      // The count shows once some have sold: "60 of 60 left" says nothing.
-      const passes=Number.isFinite(earlyBird.left)&&Number.isFinite(earlyBird.cap)&&earlyBird.left<earlyBird.cap?` · ${earlyBird.left} of ${earlyBird.cap} early-bird passes left`:'';
-      hero.replaceChildren(strong,`${passes} · from ${money(from)}`);
+      const prices=document.createElement('span');prices.className='hero-early-prices';
+      prices.textContent=`from ${money(single)} · couples & groups from ${money(shared)} each`;
+      const dot=document.createElement('span');dot.className='hero-early-dot';dot.textContent=' · ';
+      hero.replaceChildren(strong,dot,prices);
     }
     if(!earlyTimer)earlyTimer=setInterval(()=>{summary();passCardPrices();},60000);
   }
