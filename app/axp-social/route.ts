@@ -26,14 +26,14 @@ export function GET() {
   const html = rawBookingHtml
     .replace('<title>Aagaz · AXP Social</title>', '<title>AAGAZ · AxP Social · Invitation edition</title>')
     .replace('href="style.css"', 'href="/axp/style.css?v=2"')
-    .replace('src="app.js"', 'src="/axp/app.js?v=12"')
-    .replace('src="payment.js"', 'src="/axp/payment.js?v=6"')
+    .replace('src="app.js"', 'src="/axp/app.js?v=13"')
+    .replace('src="payment.js"', 'src="/axp/payment.js?v=8"')
     .replace('width=device-width, initial-scale=1', 'width=device-width, initial-scale=1, viewport-fit=cover')
-    .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/axp-preview.css?v=18"><link rel="preload" as="image" href="/axp/ivory-plum-gathering.png"><script type="module" src="/axp/reveal.js"></script></head>')
-    .replace('<body>', '<body class="axp-edition"><a class="axp-skip" href="#your-details">Skip to booking form</a>')
+    .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/axp-preview.css?v=19"><link rel="preload" as="image" href="/axp/ivory-plum-gathering.png"><script type="module" src="/axp/reveal.js"></script></head>')
+    .replace('<body>', '<body class="axp-edition"><a class="axp-skip" href="#your-guests">Skip to booking form</a>')
     .replace(/<header>[\s\S]*?<\/header>/, '')
     .replace('<section class="hero"', '<section id="event-details" class="hero"')
-    .replace('<div id="event-rules"', '<div class="hero-actions"><a id="hero-cta" class="hero-cta" href="#your-details">Book your passes <span aria-hidden="true">→</span></a><div id="event-countdown" class="event-countdown" hidden><span class="cd-label">Doors open in</span><span id="event-countdown-units" class="cd-units"></span></div></div><ul id="hero-offers" class="hero-offers" aria-label="Offers" hidden></ul><div id="event-rules"')
+    .replace('<div id="event-rules"', '<div class="hero-actions"><a id="hero-cta" class="hero-cta" href="#your-guests">Book your passes <span aria-hidden="true">→</span></a><div id="event-countdown" class="event-countdown" hidden><span class="cd-label">Doors open in</span><span id="event-countdown-units" class="cd-units"></span></div></div><ul id="hero-offers" class="hero-offers" aria-label="Offers" hidden></ul><div id="event-rules"')
     .replace('<div id="event-kicker"', '<p class="axp-presenter"><img src="/axp/emblem.png" alt="" width="34" height="34"><span>AxP Social presents</span></p><div id="event-kicker"')
     .replace('<ul id="hero-offers" class="hero-offers" aria-label="Offers" hidden></ul>', '')
     .replace('It starts with us.', 'A new circle. A beautiful beginning.')
@@ -48,10 +48,10 @@ export function GET() {
     // Keeps the arrow with "Maps" when the link wraps in a narrow box.
     .replaceAll('Open in Google Maps ↗', 'Open in Google Maps ↗')
     .replace('Choose up to five passes. Mixing pass types is welcome.', 'Entry is for guests aged 20 and over. Choose up to 5 passes per booking; mixing pass types is welcome.')
-    .replace('</article></div></section><section id="what-is-on"', '</article></div><p class="pass-selection-note">You choose Silver or Gold for your booking in its first step, or a mix of both.</p></section><section id="what-is-on"')
+    .replace('</article></div></section><section id="what-is-on"', '</article></div><p class="pass-selection-note">You choose Silver or Gold for each guest when you book.</p></section><section id="what-is-on"')
     .replace('<div class="layout">', bookingOffers + stallSpotlight + '<div class="layout">')
     .replace('<a id="stall-link" href="/axp-social/stalls">Apply for a stall ↗</a>', '<a id="stall-link" href="#business-stalls">Explore stall opportunities &#8593;</a>')
-    .replace('<div class="layout">', '<nav class="axp-steps" aria-label="Booking steps"><a href="#your-details"><span>01</span> Passes</a><i aria-hidden="true"></i><a href="#your-guests"><span>02</span> Attendees</a><i aria-hidden="true"></i><a href="#payment-step"><span>03</span> Review &amp; pay</a></nav><div class="layout">')
+    .replace('<div class="layout">', '<nav class="axp-steps" aria-label="Booking steps"><a href="#your-guests"><span>01</span> Guests</a><i aria-hidden="true"></i><a href="#payment-step"><span>02</span> Review &amp; pay</a></nav><div class="layout">')
     .replace('<section class="panel"><div class="section-top"><span class="step">02', '<section id="your-details" class="panel step-panel"><div class="section-top"><span class="step">02')
     .replace('<section class="panel"><div class="section-top"><span class="step">03', '<section id="your-guests" class="panel step-panel"><div class="section-top"><span class="step">03')
     .replace('<section class="panel"><div class="section-top"><span class="step">04', '<section id="booking-review" class="panel step-panel"><div class="section-top"><span class="step">04')
@@ -81,7 +81,7 @@ export function GET() {
       '$1<li id="prebook-rule">Entry is by QR pass only. A pre-booking gets its QR passes once it is paid in full; until then it cannot be admitted. The balance can be paid any time by UPI on your booking page, or in cash at the venue, where our team records it and issues the passes before entry. The deposit is non-refundable.</li>'
     );
 
-  return new Response(threeStepBooking(html), {
+  return new Response(twoStepBooking(html), {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
@@ -110,16 +110,17 @@ function swap(html: string, find: string | RegExp, replacement: string): string 
 }
 
 /**
- * Three booking steps instead of five:
- *   1. Passes: how many people, whether the booker is one of them, and which pass.
- *   2. Attendees: each guest's details, with the booking contact's own fields
- *      shown only when they are booking for others.
- *   3. Review & pay: the review, the terms and the payment choice on one screen,
- *      with the Pay button straight after the choice.
+ * Two booking steps instead of five:
+ *   1. Guests: how many are coming, whether the booker is one of them, and
+ *      each guest's details and pass, Silver or Gold, chosen person by person.
+ *      The booking contact's own fields show only when they are booking for
+ *      others.
+ *   2. Review & pay: the booking and its price, the payment choice, the terms
+ *      and the Pay button, in that order.
  * "The event" was never a booking step, so it leaves the form and becomes
  * part of the page, just above it.
  */
-function threeStepBooking(input: string): string {
+function twoStepBooking(input: string): string {
   let html = input;
 
   // The event: out of the form, above the booking steps, ending in a way in.
@@ -130,55 +131,66 @@ function threeStepBooking(input: string): string {
   eventInfo = swap(
     eventInfo,
     /<div class="step-nav">[\s\S]*<\/div><\/section>\s*$/,
-    '<div class="event-cta-row"><a class="hero-cta event-cta" href="#your-details" data-start-booking>Book your passes <span aria-hidden="true">→</span></a></div></section>'
+    '<div class="event-cta-row"><a class="hero-cta event-cta" href="#your-guests" data-start-booking>Book your passes <span aria-hidden="true">→</span></a></div></section>'
   );
   html = swap(html, '<nav class="axp-steps"', `<div class="layout event-layout"><div class="form-column">${eventInfo}</div></div><nav class="axp-steps"`);
 
-  // Step 1, passes. The contact fields move to step 2, where they show only
-  // when the booker is not coming.
-  const note = cut(html, '<p class="required-note">', '<div class="guest-count">');
-  html = note.rest;
-  const contact = cut(html, '<div class="field-grid">', '<div class="step-nav">');
-  html = contact.rest;
-  html = swap(html, '<span class="step">02</span><div><h2>Your booking details</h2><p>One contact for payment and all the tickets.</p>', '<span class="step">01</span><div><h2>Your passes</h2><p>How many are coming, and which pass.</p>');
+  // The old details step is taken apart: its guest count and required-fields
+  // note join the guests step, and its contact fields show there only when the
+  // booker is not coming.
+  const details = cut(html, '<section id="your-details"', '<section id="your-guests"');
+  html = details.rest;
+  const note = cut(details.piece, '<p class="required-note">', '<div class="guest-count">').piece;
+  const count = cut(details.piece, '<div class="guest-count">', '<div class="field-grid">').piece;
+  const contact = cut(details.piece, '<div class="field-grid">', '<div class="step-nav">').piece;
+
+  // Step 1, guests. app.js fills in the prices, the early-bird and booking-size
+  // notes, and shows "same pass for everyone" once there are two or more.
   html = swap(
     html,
-    /(<section id="your-details"[\s\S]*?<div class="guest-count">[\s\S]*?<\/div><\/div>)/,
-    '$1' +
+    '<span class="step">03</span><div><h2>Who’s coming?</h2><p>Each attendee gets a named pass. No ticket transfers.</p></div></div>',
+    '<span class="step">01</span><div><h2>Who’s coming?</h2><p>A named pass for each guest, Silver or Gold. No ticket transfers.</p></div></div>' +
+      '<p id="pass-prices" class="pass-prices" aria-live="polite"></p>' +
+      '<p id="early-bird-left" class="early-bird-left" role="status" hidden></p>' +
+      count +
+      '<p id="booking-limit-note" class="booking-limit-note" hidden></p>' +
       '<label class="check attending-toggle"><input id="booking-for-others" type="checkbox" name="bookingForOthers"><span>I’m booking for others and not coming myself</span></label>' +
-      '<fieldset id="pass-choice" class="plan-choice pass-choice"><legend>Which pass? <span class="required-marker" aria-hidden="true">*</span></legend>' +
-      '<label class="plan-option"><input type="radio" id="booking-pass-normal" name="booking-pass" value="normal" required data-field-label="Pass" aria-describedby="booking-pass-normal-error"><span class="plan-text"><strong>Silver</strong><small id="pass-choice-normal-note"></small></span><b id="pass-choice-normal-amount" class="plan-amount"></b></label>' +
-      '<label class="plan-option"><input type="radio" name="booking-pass" value="alcohol"><span class="plan-text"><strong>Gold · 21+</strong><small id="pass-choice-alcohol-note"></small></span><b id="pass-choice-alcohol-amount" class="plan-amount"></b></label>' +
-      '<label class="plan-option"><input type="radio" name="booking-pass" value="mix"><span class="plan-text"><strong>A mix of both</strong><small>Choose Silver or Gold for each person on the next step.</small></span></label>' +
-      '</fieldset><small id="booking-pass-normal-error" class="field-error" hidden></small>' +
-      '<p id="pass-choice-quote" class="pass-choice-quote" aria-live="polite"></p>'
+      '<div id="pass-all" class="pass-all" hidden><span>Same pass for everyone?</span><button type="button" class="pass-all-option" data-pass="normal">All Silver</button><button type="button" class="pass-all-option" data-pass="alcohol">All Gold · 21+</button></div>'
   );
-
-  // Step 2, attendees, with the contact fields for someone booking for others.
-  html = swap(html, '<span class="step">03</span><div><h2>Who’s coming?</h2>', '<span class="step">02</span><div><h2>Who’s coming?</h2>');
   html = swap(html, '<button class="text-button" id="copy-buyer" type="button">Use my details for attendee 1</button>', '');
   html = swap(
     html,
     '<div id="attendees"></div>',
-    `${note.piece}<div id="booking-contact" class="booking-contact" hidden><h3>Booking contact</h3><p class="helper">The payment receipt and every pass are sent here.</p>${contact.piece}</div><div id="attendees"></div>`
+    `${note}<div id="booking-contact" class="booking-contact" hidden><h3>Booking contact</h3><p class="helper">The payment receipt and every pass are sent here.</p>${contact}</div><div id="attendees"></div>`
   );
 
-  // Step 3, review and pay. The review's own total goes: the payment choice
-  // right below it already shows what each way of paying costs.
+  // Step 2, review and pay: the booking and its price first, then how to
+  // pay, the terms (folded, with the box to tick left out) and the Pay button.
   const review = cut(html, '<section id="booking-review"', '<section id="payment-step"');
   html = review.rest;
-  const checks = cut(review.piece, '<div class="review-body">', '<button id="review-booking-button"');
-  let reviewBody = swap(checks.piece, /<div class="subtotal"><span>[^<]*<\/span><strong id="review-total"><\/strong><\/div>/, '');
+  let reviewBody = cut(review.piece, '<div class="review-body">', '<ul class="terms">').piece;
+  reviewBody = swap(reviewBody, /<div class="subtotal"><span>[^<]*<\/span><strong id="review-total"><\/strong><\/div>/, '');
   reviewBody = swap(reviewBody, '<h3 class="review-heading">Your booking so far</h3>', '<h3 class="review-heading">Your booking</h3>');
+  const terms = cut(review.piece, '<ul class="terms">', '<label class="check">').piece;
+  const tick = cut(review.piece, '<label class="check">', '<p class="privacy">').piece;
+  const privacy = cut(review.piece, '<p class="privacy">', '<div id="validation-summary"').piece;
+  const readiness = cut(review.piece, '<div id="validation-summary"', '<button id="review-booking-button"').piece;
+  const termsBox =
+    '<details class="terms-details"><summary>Read the booking terms</summary>' +
+    terms +
+    privacy +
+    '<p class="terms-links"><a href="/axp-social/policies/terms" target="_blank" rel="noopener">Terms and conditions</a> · <a href="/axp-social/policies/refunds" target="_blank" rel="noopener">Cancellation and refunds</a> · <a href="/axp-social/policies/privacy" target="_blank" rel="noopener">Privacy policy</a></p>' +
+    '</details>';
   html = swap(
     html,
     /<span class="step">05<\/span><div><h2>Payment<\/h2><p>[^<]*<\/p><\/div><\/div>/,
-    `<span class="step">03</span><div><h2>Review &amp; pay</h2><p>Check your booking, then choose how to pay.</p></div></div>${reviewBody}<p id="form-message" class="message" role="status"></p>`
+    `<span class="step">02</span><div><h2>Review &amp; pay</h2><p>Check your booking and its price, then choose how to pay.</p></div></div>${reviewBody}`
   );
-  // The Pay button follows the payment choice; the invitation card, a third
-  // look at the same total, moves below it.
+  // The price breakdown follows the booking, before any choice or button.
   const card = cut(html, '<div class="payment-summary">', '<div class="payment-status">');
   html = card.rest;
-  html = swap(html, '<div class="support">', `${card.piece}<div class="support">`);
+  html = swap(html, '<p id="ticket-delivery-note"', `${card.piece}<p id="ticket-delivery-note"`);
+  // Terms, the box to tick and what is still missing sit just above Pay.
+  html = swap(html, '<div class="payment-status">', `${termsBox}${tick}${readiness}<p id="form-message" class="message" role="status"></p><div class="payment-status">`);
   return html;
 }

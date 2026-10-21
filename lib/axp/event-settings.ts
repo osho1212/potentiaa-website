@@ -29,7 +29,7 @@ export interface EventSettings {
   merchantGstin: string;
   normalPrice: number;
   alcoholPrice: number;
-  /** Each, for a couple or a group of 4+ on the same pass. */
+  /** Each, for one of a couple or anyone in a booking of 4+. */
   normalGroupPrice: number;
   alcoholGroupPrice: number;
   normalDescription: string;

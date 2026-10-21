@@ -165,13 +165,11 @@ export function validateBookingInput(
       );
     }
     // Attendee 1 is usually the booking contact, so their email may be left
-    // to the contact's; everyone else needs their own, for their own pass.
+    // to the contact's. Everyone else's is optional: every pass goes to the
+    // booking contact, and a guest with an email also gets their own.
     const guestEmail = typeof guest.email === 'string' ? guest.email.trim().toLowerCase() : '';
     const finalEmail = guestEmail || (i === 0 ? buyer.email : '');
-    if (!finalEmail) {
-      throw new Error(`Enter attendee ${i + 1}'s email address.`);
-    }
-    if (finalEmail.length > 150 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(finalEmail)) {
+    if (finalEmail && (finalEmail.length > 150 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(finalEmail))) {
       throw new Error(`Check attendee ${i + 1}'s email address.`);
     }
     if (!(GENDERS as readonly string[]).includes(guest.gender)) {

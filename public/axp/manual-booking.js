@@ -10,8 +10,8 @@ let settings=null,earlyBird=null,people=[];
 const blank=()=>({name:'',email:'',phone:'+91 ',dob:'',gender:'',pass:'normal'});
 
 function field(labelText,input){const label=document.createElement('label');label.textContent=labelText;label.append(input);return label;}
-function textInput(person,key,{type='text',max=100}={}){
-  const input=document.createElement('input');input.type=type;input.maxLength=max;input.required=true;input.autocomplete='off';input.value=person[key];
+function textInput(person,key,{type='text',max=100,required=true}={}){
+  const input=document.createElement('input');input.type=type;input.maxLength=max;input.required=required;input.autocomplete='off';input.value=person[key];
   input.addEventListener('input',()=>{person[key]=input.value;});return input;
 }
 function select(person,key,options){
@@ -30,7 +30,8 @@ function renderPeople(){
     const dob=textInput(person,'dob',{type:'date',max:10});
     grid.append(
       field('Full name',textInput(person,'name')),
-      field('Email',textInput(person,'email',{type:'email',max:150})),
+      // A guest's email is optional: every pass also goes to the booking contact.
+      field('Email (optional)',textInput(person,'email',{type:'email',max:150,required:false})),
       field('Phone',textInput(person,'phone',{type:'tel',max:20})),
       field('Date of birth',dob),
       field('Gender',select(person,'gender',[['','Choose…'],...GENDERS.map(value=>[value,GENDER_LABELS[value]])])),

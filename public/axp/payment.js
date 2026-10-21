@@ -46,7 +46,10 @@ function syncConfirmationMap(){
  confirmationMap.hidden=!embed&&!href;
 }
 window.addEventListener('axp-settings-loaded',()=>{if(savedBooking&&savedBooking.status==='confirmed')syncConfirmationMap();});
-card.append(heading,message,savedDetails,balanceBox,emailStatus,tickets,refresh,resume,download,resendEmailBtn,another,confirmationMap);
+// Download and resend sit above the passes, so a long list need not be
+// scrolled through to reach them.
+const actions=document.createElement('div');actions.className='confirmation-actions';actions.append(download,resendEmailBtn);
+card.append(heading,message,savedDetails,balanceBox,emailStatus,actions,tickets,refresh,resume,another,confirmationMap);
 function freezeForm(){el('booking-form').inert=true;const nav=document.querySelector('.axp-steps');if(nav)nav.inert=true;el('plus').disabled=true;el('minus').disabled=true;}
 // app.js marks the form ready once every required detail is in, terms included.
 const formReady=()=>el('booking-form').dataset.ready==='1';
@@ -108,7 +111,9 @@ function loadCheckout(){
 }
 function bookingInput(){
  const buyer={name:el('buyer-name').value,instagram:el('buyer-instagram').value,phone:el('buyer-phone').value,email:el('buyer-email').value};
- const attendees=[...document.querySelectorAll('.attendee')].map((_,i)=>Object.fromEntries(['name','email','instagram','phone','dob','gender','pass'].map(key=>[key,el(`guest-${i}-${key}`).value])));
+ const attendees=[...document.querySelectorAll('.attendee')].map((_,i)=>({...Object.fromEntries(['name','email','instagram','phone','dob','gender'].map(key=>[key,el(`guest-${i}-${key}`).value])),
+  // The pass is a pair of ticket radios, not one field.
+  pass:document.querySelector(`input[name="attendees[${i}][pass]"]:checked`)?.value||''}));
  const plan=document.querySelector('input[name="booking-plan"]:checked')?.value==='prebook'?'prebook':'full';
  return {buyer,attendees,plan,terms:el('booking-terms').checked,mode:testMode?'test':'live',accessToken:attempt.accessToken,idempotencyKey:attempt.idempotencyKey};
 }
@@ -240,6 +245,9 @@ async function renderTickets(triggerDownload=false){
   previewTitle.className='ticket-list-title';
   previewTitle.textContent=`Official Entry Passes (${data.tickets.length})`;
   tickets.append(previewTitle);
+  // One or two passes show their QR codes; more fold to a line each, by name.
+  const folded=data.tickets.length>2;
+  if(folded){const hint=document.createElement('p');hint.className='ticket-list-hint';hint.textContent='Tap a name to show its QR code.';tickets.append(hint);}
 
   for(const ticket of data.tickets){
     const article=doc.createElement('article');article.className='pass-card';
@@ -271,7 +279,9 @@ async function renderTickets(triggerDownload=false){
      save.textContent='Save QR image';
      preview.append(save);
     }
-    tickets.append(preview);
+    const fold=document.createElement('details');fold.className='ticket-fold';fold.open=!folded;
+    const line=document.createElement('summary');line.textContent=`${ticket.name} · ${tag.textContent}`;
+    fold.append(line,preview);tickets.append(fold);
   }
 
   const notice=doc.createElement('p');notice.className='notice';
