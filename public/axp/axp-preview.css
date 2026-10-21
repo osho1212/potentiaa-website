@@ -1386,20 +1386,30 @@ body.has-booking-bar { padding-bottom: 76px; }
 .axp-edition .hero-more-link:hover { background: #fff; border-color: #402347; }
 .axp-edition .hero-more-link:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
 .axp-edition .hero-more-link[hidden] { display: none; }
+.axp-edition .hero-more-dot { display: none; }
 @media (min-width: 761px) {
   .axp-edition .hero-actions > .hero-more { order: 2; flex-basis: 100%; }
 }
 @media (max-width: 760px) {
   /* On a phone they are one quiet line of links, "Pre-book for ₹500 ·
      Apply for a stall", rather than two more buttons. */
-  .axp-edition .hero-actions > .hero-more { margin-top: -6px; }
+  /* The photograph drifts behind them, purple flowers and ribbon included,
+     so the line sits on a soft light capsule and its letters carry a light
+     glow: readable whatever passes underneath. */
+  .axp-edition .hero-actions > .hero-more {
+    align-self: center; margin-top: -4px; padding: 2px 16px; border-radius: 999px;
+    background: rgba(255, 253, 249, .88); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    box-shadow: 0 2px 12px rgba(60, 30, 66, .12), inset 0 0 0 1px rgba(180, 154, 125, .35);
+  }
   .axp-edition .hero-more { justify-content: center; align-items: center; gap: 0; }
   .axp-edition .hero-more-link {
     min-height: 40px; padding: 0 4px; border: 0; border-radius: 0; background: none; backdrop-filter: none;
-    font-size: 13px; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(64, 35, 71, .45);
+    color: #33183a; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(51, 24, 58, .5);
+    text-shadow: 0 0 2px rgba(255, 253, 249, .95), 0 0 8px rgba(255, 253, 249, .9);
   }
   .axp-edition .hero-more-link:hover { background: none; text-decoration-color: currentColor; }
-  .axp-edition .hero-more-link:not([hidden]) + .hero-more-link::before { content: '·'; display: inline-block; margin: 0 10px 0 6px; color: #8b7a6c; }
+  .axp-edition .hero-more-dot { display: inline; margin: 0 8px; color: #8b7a6c; font-weight: 600; }
+  .axp-edition .hero-more-link[hidden] + .hero-more-dot { display: none; }
   .axp-edition .hero-more-extra { display: none; }
   /* The early-bird line: the deadline, then the prices on a line of their own. */
   .axp-edition .hero-early-dot { display: none; }
