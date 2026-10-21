@@ -10,8 +10,8 @@ export const rawStallsHtml = `<!doctype html>
 <title>Business stalls &middot; AAGAZ &middot; AxP Social</title>
 <meta name="description" content="Apply for a business stall at Aagaz, the first AxP Social gathering.">
 <link rel="stylesheet" href="/axp/style.css">
-<link rel="stylesheet" href="/axp/fonts/fonts.css">
-<link rel="stylesheet" href="/axp/axp-preview.css">
+<link rel="stylesheet" href="/axp/fonts/fonts.css?v=2">
+<link rel="stylesheet" href="/axp/axp-preview.css?v=23">
 <script type="module" src="/axp/stalls.js"></script>
 <script type="module" src="/axp/reveal.js"></script>
 </head>
@@ -19,9 +19,10 @@ export const rawStallsHtml = `<!doctype html>
 <a class="axp-skip" href="#stall-form">Skip to the application form</a>
 <main>
   <section class="hero stall-hero" aria-labelledby="stall-title">
-    <a class="axp-presenter" href="/axp-social" aria-label="AxP Social presents Aagaz — back to the invitation"><img src="/axp/emblem.png" alt="" width="34" height="34"><span>AxP Social presents</span></a>
+    <a class="axp-presenter" href="/axp-social" aria-label="AxP Social presents Aagaz — back to the invitation"><img src="/axp/emblem-256.png" alt="" width="34" height="34"><span>AxP Social presents</span></a>
     <h1 id="stall-title">Business stalls<span>Bring your table to the circle.</span></h1>
     <p class="intro">Aagaz gathers a small, curated room. A limited number of stall spaces are open to businesses whose work the room would want to meet. Tell us about yours and the organisers will come back to you.</p>
+    <a class="hero-cta stall-hero-cta" href="#stall-form">Apply for a stall <span aria-hidden="true">&#8595;</span></a>
   </section>
 
   <section class="event-description" aria-labelledby="stall-about">

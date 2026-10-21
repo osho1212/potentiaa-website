@@ -49,10 +49,57 @@ window.addEventListener('axp-settings-loaded',()=>{if(savedBooking&&savedBooking
 // Download and resend sit above the passes, so a long list need not be
 // scrolled through to reach them.
 const actions=document.createElement('div');actions.className='confirmation-actions';actions.append(download,resendEmailBtn);
-card.append(heading,message,savedDetails,balanceBox,emailStatus,actions,tickets,refresh,resume,another,confirmationMap);
+// After booking: what to know before the evening, and putting it in a
+// calendar or telling friends. app.js publishes the event's details.
+const before=document.createElement('section');before.className='before-you-come';before.hidden=true;before.setAttribute('aria-labelledby','before-title');
+const plans=document.createElement('div');plans.className='after-booking-actions';plans.hidden=true;
+let calendarFileUrl=null;
+const eventInfo=()=>{try{return JSON.parse(document.documentElement.dataset.event||'null');}catch{return null;}};
+const clock=t=>new Intl.DateTimeFormat('en-IN',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'UTC'}).format(new Date('2000-01-01T'+(t||'00:00')+':00Z'));
+function renderAfterBooking(booking){
+ const event=eventInfo(),show=!!event&&['confirmed','booked'].includes(booking?.status);
+ before.hidden=plans.hidden=!show;if(!show)return;
+ const start=new Date(`${event.date}T${event.start||'00:00'}:00+05:30`);let end=new Date(`${event.date}T${event.end||'23:59'}:00+05:30`);
+ if(!(end>start))end=new Date(end.getTime()+864e5);
+ const day=new Intl.DateTimeFormat('en-IN',{weekday:'long',day:'numeric',month:'long',timeZone:'Asia/Kolkata'}).format(start);
+ const where=[event.venue,event.location].filter(Boolean).join(', ');
+ const item=(text,link)=>{const li=document.createElement('li');li.append(text);if(link)li.append(' ',link);return li;};
+ const anchor=(href,text,external)=>{const a=document.createElement('a');a.href=href;a.textContent=text;if(external){a.target='_blank';a.rel='noopener noreferrer';}return a;};
+ const title=document.createElement('h3');title.id='before-title';title.textContent='Before you come';
+ const list=document.createElement('ul');
+ list.append(item(`${day}: doors open at ${clock(event.start)}${event.barClose?`, last service at ${clock(event.barClose)}`:''}.`));
+ list.append(item(booking.status==='booked'?'Entry is by QR pass only. Your passes arrive once the balance is paid: pay it here any time, or in cash at the venue before you go in.':'Each guest shows their own QR pass at the gate. Save them to your phone, or print the pass file.'));
+ list.append(item('Bring original photo ID for every guest; names must match the passes. Gold guests need ID showing 21 or over.'));
+ if(booking.attendees?.some(guest=>guest.fare==='couple'))list.append(item('On a couple price? The gate checks each partner\'s gender against their photo ID.'));
+ list.append(item(`Getting there: ${where}.`,event.maps?anchor(event.maps,'Open in Google Maps ↗',true):null));
+ if(event.support)list.append(item('Questions? Call or WhatsApp',anchor('tel:'+event.support.replace(/[^+\d]/g,''),event.support)));
+ before.replaceChildren(title,list);
+ const stamp=date=>date.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+ const details=`Booking ref ${bookingRef(booking.id)}. Bring photo ID; each guest shows their own QR pass at the gate.`;
+ const google='https://calendar.google.com/calendar/render?'+new URLSearchParams({action:'TEMPLATE',text:`${event.name} · AxP Social`,dates:`${stamp(start)}/${stamp(end)}`,details,location:where});
+ const esc=value=>String(value).replace(/\\/g,'\\\\').replace(/[,;]/g,match=>'\\'+match).replace(/\n/g,'\\n');
+ const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//AxP Social//Aagaz//EN','BEGIN:VEVENT',`UID:${booking.id}@axp-social`,`DTSTAMP:${stamp(new Date())}`,`DTSTART:${stamp(start)}`,`DTEND:${stamp(end)}`,`SUMMARY:${esc(event.name+' · AxP Social')}`,`LOCATION:${esc(where)}`,`DESCRIPTION:${esc(details)}`,'END:VEVENT','END:VCALENDAR'].join('\r\n');
+ if(calendarFileUrl)URL.revokeObjectURL(calendarFileUrl);
+ calendarFileUrl=URL.createObjectURL(new Blob([ics],{type:'text/calendar;charset=utf-8'}));
+ const apple=anchor(calendarFileUrl,'Apple or Outlook calendar');apple.download='aagaz-axp-social.ics';
+ const invite=`I'm going to ${event.name}, a Diwali sundowner by AxP Social, on ${day} at ${event.venue}. Get your pass: ${location.origin}/axp-social`;
+ const whatsapp=anchor('https://wa.me/?text='+encodeURIComponent(invite),'Share on WhatsApp',true);whatsapp.className='share-whatsapp';
+ const calendarLine=document.createElement('p');calendarLine.className='add-to-calendar';calendarLine.append('Add to calendar: ',anchor(google,'Google Calendar',true),' · ',apple);
+ plans.replaceChildren(calendarLine,whatsapp);
+}
+window.addEventListener('axp-settings-loaded',()=>{if(savedBooking)renderAfterBooking(savedBooking);});
+card.append(heading,message,savedDetails,balanceBox,emailStatus,actions,tickets,before,plans,refresh,resume,another,confirmationMap);
 function freezeForm(){el('booking-form').inert=true;const nav=document.querySelector('.axp-steps');if(nav)nav.inert=true;el('plus').disabled=true;el('minus').disabled=true;}
 // app.js marks the form ready once every required detail is in, terms included.
 const formReady=()=>el('booking-form').dataset.ready==='1';
+// The strip above the hero. app.js adds the early-bird date to .preview-early;
+// on a phone the middle parts give way so it stays one line.
+function openBanner(){
+ const strip=document.querySelector('.preview');if(!strip)return;
+ const part=(className,text)=>{const node=document.createElement('span');node.className=className;node.textContent=text;return node;};
+ strip.replaceChildren(part('preview-open','BOOKINGS OPEN'),part('preview-detail',' · Named passes'),part('preview-secure',' · Secure payment by Razorpay'),part('preview-early',''));
+ window.dispatchEvent(new Event('axp-banner-ready'));
+}
 function updateButton(){
  button.disabled=!paymentReady||!formReady()||!!attempt;
  button.classList.toggle('primary',!button.disabled);
@@ -72,7 +119,7 @@ async function loadConfig(){
  try{
   const config=await request(testMode?'/api/admin/payment-setup':'/api/payment-config',{auth:false});paymentReady=testMode?config.testReady:config.salesOpen;
   if(testMode){document.querySelector('.preview').textContent='ORGANISER TEST MODE — no real money. Only test credentials are used.';el('payment-status-title').textContent=paymentReady?'Test checkout ready':'Test checkout needs setup';el('payment-status-description').textContent=paymentReady?'A successful test does not reserve a place at the live event.':'Add Test Mode API keys and confirm the event’s additional charges in organiser settings.';document.querySelector('.privacy').textContent='Organiser test mode saves test buyer and attendee details and payment references for verification. Use fictional details. No real money is taken.';}
-  else if(paymentReady){document.querySelector('.preview').textContent='BOOKINGS OPEN · Named passes · Secure payment by Razorpay';el('payment-status-title').textContent='Secure payments enabled';el('payment-status-description').textContent='Your amount is calculated and checked on our server. Tickets are issued after payment is verified.';document.querySelector('.privacy').textContent='Your details are used for booking, tickets and entry checks. Payment details are entered in Razorpay checkout. Booking does not subscribe you to marketing.';}
+  else if(paymentReady){openBanner();el('payment-status-title').textContent='Secure payments enabled';el('payment-status-description').textContent='Your amount is calculated and checked on our server. Tickets are issued after payment is verified.';document.querySelector('.privacy').textContent='Your details are used for booking, tickets and entry checks. Payment details are entered in Razorpay checkout. Booking does not subscribe you to marketing.';}
   updateButton();
  }catch{paymentReady=false;updateButton();}
  const urlParams=new URLSearchParams(window.location.search);
@@ -111,7 +158,8 @@ function loadCheckout(){
 }
 function bookingInput(){
  const buyer={name:el('buyer-name').value,instagram:el('buyer-instagram').value,phone:el('buyer-phone').value,email:el('buyer-email').value};
- const attendees=[...document.querySelectorAll('.attendee')].map((_,i)=>({...Object.fromEntries(['name','email','instagram','phone','dob','gender'].map(key=>[key,el(`guest-${i}-${key}`).value])),
+ // The date of birth is typed as DD/MM/YYYY; app.js keeps the ISO date the server reads.
+const attendees=[...document.querySelectorAll('.attendee')].map((_,i)=>({...Object.fromEntries(['name','email','instagram','phone','dob','gender'].map(key=>{const node=el(`guest-${i}-${key}`);return [key,key==='dob'?(node.dataset.iso||node.value):node.value];})),
   // The pass is a pair of ticket radios, not one field.
   pass:document.querySelector(`input[name="attendees[${i}][pass]"]:checked`)?.value||''}));
  const plan=document.querySelector('input[name="booking-plan"]:checked')?.value==='prebook'?'prebook':'full';
@@ -143,7 +191,7 @@ function openRazorpay(options,verifying){
   checkout.on('payment.failed',()=>{message.textContent='The payment was not completed. Check payment status before retrying; contact support if money was deducted.';refresh.hidden=false;});checkout.open();
 }
 function showBooking(booking){
- savedBooking=booking;renderSavedSummary(booking);
+ savedBooking=booking;renderSavedSummary(booking);renderAfterBooking(booking);
  // The reference is read out to support, so it is set in the plain body face.
  const ref=document.createElement('span');ref.className='booking-ref';ref.textContent=bookingRef(booking.id);
  heading.replaceChildren((booking.mode==='test'?'TEST · ':'')+'Booking ref ',ref);
