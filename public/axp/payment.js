@@ -48,13 +48,15 @@ function syncConfirmationMap(){
 window.addEventListener('axp-settings-loaded',()=>{if(savedBooking&&savedBooking.status==='confirmed')syncConfirmationMap();});
 card.append(heading,message,savedDetails,balanceBox,emailStatus,tickets,refresh,resume,download,resendEmailBtn,another,confirmationMap);
 function freezeForm(){el('booking-form').inert=true;const nav=document.querySelector('.axp-steps');if(nav)nav.inert=true;el('plus').disabled=true;el('minus').disabled=true;}
+// app.js marks the form ready once every required detail is in, terms included.
+const formReady=()=>el('booking-form').dataset.ready==='1';
 function updateButton(){
- button.disabled=!paymentReady||el('review-booking-button').disabled||!!attempt;
+ button.disabled=!paymentReady||!formReady()||!!attempt;
  button.classList.toggle('primary',!button.disabled);
  const prebook=document.querySelector('input[name="booking-plan"]:checked')?.value==='prebook';
  button.textContent=paymentReady?(testMode?(prebook?'Start test deposit payment':'Start test payment'):(prebook?'Pay deposit with Razorpay':'Pay with Razorpay')):'Razorpay payment unavailable';
  if(attempt)el('payment-form-state').textContent='An existing booking is being checked. Use its payment status controls below.';
- else if(!el('review-booking-button').disabled)el('payment-form-state').textContent=paymentReady?'Required details complete. Check the booking summary before opening checkout.':'Required details complete. Payments are still unavailable in this preview.';
+ else if(formReady())el('payment-form-state').textContent=paymentReady?'Required details complete. Check the booking summary before opening checkout.':'Required details complete. Payments are still unavailable in this preview.';
  if(savedBooking)renderSavedSummary(savedBooking);
 }
 window.addEventListener('booking-readiness-updated',updateButton);
@@ -112,7 +114,7 @@ function bookingInput(){
 }
 button.addEventListener('click',async()=>{
  if(!paymentReady)return;
- el('check-required-fields').click();if(el('review-booking-button').disabled)return;
+ if(!formReady()){el('check-required-fields').click();return;}
  attempt={accessToken:[...crypto.getRandomValues(new Uint8Array(32))].map(b=>b.toString(16).padStart(2,'0')).join(''),idempotencyKey:crypto.randomUUID(),mode:testMode?'test':'live'};updateButton();
  card.hidden=false;message.textContent='Checking availability and creating your payment order…';card.scrollIntoView({behavior:'smooth',block:'start'});
  let orderRequested=false;

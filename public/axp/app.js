@@ -7,6 +7,14 @@ if(typeof document!=='undefined'){
   // Where the early bird stands, as the server last reported it. The server
   // decides again when the booking is made; this only drives what is shown.
   let earlyBird=null,plan='full',earlyTimer=null;
+  // Step 1's choices: one pass for the whole booking (or a mix, chosen per
+  // person), and whether the booker is one of the guests. A booker who is
+  // coming is attendee 1, so their details are typed once.
+  let passChoice='',bookingForOthers=false;
+  // Attendee cards open one at a time; the rest show a line each.
+  let openCard=0;
+  // The phone's sticky bar, made once the steps exist (see updateBar).
+  let bar=null;
   function earlyBirdAvailable(count=state.length){return !!(earlyBird&&earlyBird.open&&count<=earlyBird.left&&(!earlyBird.endsAt||Date.now()<=Date.parse(earlyBird.endsAt)));}
   function currentQuote(forPlan=plan){return quoteBooking(state,settings,{plan:forPlan,earlyBird:earlyBirdAvailable()});}
   const passLabel=(pass,fare)=>`${PASS_LABELS[pass]||'Silver'}${pass==='alcohol'?' · 21+':''}${fare&&fare!=='single'?' · '+FARE_LABELS[fare]:''}`;
@@ -16,8 +24,13 @@ if(typeof document!=='undefined'){
   const dateLabel=()=>new Intl.DateTimeFormat('en-IN',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(settings.eventDate+'T00:00:00Z'));
   const instagram=v=>/^@?[A-Za-z0-9._]{1,30}$/.test(v.trim());
   const phone=v=>/^\+?[0-9 ()-]{8,20}$/.test(v.trim())&&v.replace(/\D/g,'').length>=8&&v.replace(/\D/g,'').length<=15;
-  let mirrorBuyer=true;
   const DIAL='+91 ';
+  const CONTACT_KEYS=['name','email','instagram','phone'];
+  // A booker who is coming is attendee 1: the booking contact follows their card.
+  function syncContactFromFirst(){
+    if(bookingForOthers)return;
+    for(const key of CONTACT_KEYS)el('buyer-'+key).value=state[0]?.[key]||'';
+  }
   // A field holding nothing but the dial code is empty as far as the guest is
   // concerned, so an untouched optional number must not block the step.
   const phoneEmpty=v=>{const d=String(v||'').replace(/\D/g,'');return d===''||d.length<=3;};
@@ -54,37 +67,48 @@ if(typeof document!=='undefined'){
     field.setCustomValidity('');
     let message='';
     const empty=field.id.endsWith('-phone')?phoneEmpty(field.value):!String(field.value||'').trim();
-    if(field.type==='checkbox'){if(!field.checked)message='Please acknowledge the attendee details and terms.';}
+    // A required radio group is one field, judged on its first option.
+    if(field.type==='radio'){
+      const group=[...document.querySelectorAll(`input[type="radio"][name="${field.name}"]`)];
+      if(field.required&&group[0]===field&&!group.some(option=>option.checked))message='Please choose a pass.';
+    }
+    else if(field.type==='checkbox'){if(field.required&&!field.checked)message='Please acknowledge the attendee details and terms.';}
     else if(empty){if(field.required)message=field.tagName==='SELECT'?'Please choose an option.':'Please fill in this required field.';}
     else if(field.id.endsWith('-instagram')&&!instagram(field.value))message='Enter a valid Instagram username, such as @yourusername.';
     else if(field.id.endsWith('-phone')&&!phone(field.value))message='Enter a valid phone number with country code.';
     else if(field.id.endsWith('-dob')&&!ageBracket(field.value))message=`Attendees must be 20 or older on ${dateLabel()}.`;
     else if(field.type==='email'&&field.validity.typeMismatch)message='Enter a valid email address, such as name@example.com.';
-    else if(field.id.endsWith('-pass')&&field.value==='alcohol'&&ageBracket((el(field.id.replace(/-pass$/,'-dob'))||{}).value)!=='21plus')message='Gold passes need age 21 or over on the event date.';
+    // Until a date of birth is in, its own field says so; Gold waits for it.
+    else if(field.id.endsWith('-pass')&&field.value==='alcohol'&&(el(field.id.replace(/-pass$/,'-dob'))||{}).value&&ageBracket((el(field.id.replace(/-pass$/,'-dob'))||{}).value)!=='21plus')message='Gold passes need age 21 or over on the event date.';
     else if(sharedContactError(field))message=sharedContactError(field);
     else if(!field.validity.valid)message=field.validationMessage;
     field.setCustomValidity(message);return message;
   }
+  // The fields a guest must fill, in every step, whichever is on screen. Left
+  // out: contact fields hidden because the booker is coming (attendee 1 fills
+  // them) and a pass picker hidden because the booking has one pass.
+  const liveFields=root=>[...root.querySelectorAll('input,select')].filter(field=>!field.closest('[hidden]:not(.step-panel)'));
   function refreshReadiness(){
     const missing=[];
-    for(const field of el('booking-form').querySelectorAll('input,select')){
+    for(const field of liveFields(el('booking-form'))){
       const message=fieldError(field),show=!!message&&(showAllErrors||touched.has(field.id));
       const error=el(field.id+'-error');if(error){error.textContent=show?message:'';error.hidden=!show;}
       if(show)field.setAttribute('aria-invalid','true');else field.removeAttribute('aria-invalid');
       if(message)missing.push({field,message});
     }
     const ready=settingsLoaded&&missing.length===0;
-    el('review-booking-button').disabled=!ready;
+    // payment.js reads this before it will open checkout.
+    el('booking-form').dataset.ready=ready?'1':'0';
     // With everything else filled in, the box is the one thing left: say so.
     const onlyTerms=missing.length===1&&missing[0].field.id==='booking-terms';
-    el('form-readiness').textContent=onlyTerms?'Tick the box above to agree to the terms and continue.':missing.length?`Complete or correct ${missing.length} required ${missing.length===1?'detail':'details'} to continue.`:settingsLoaded?'Required details complete. You can review your booking.':'Waiting for event settings before you can continue.';
+    el('form-readiness').textContent=onlyTerms?'Tick the box above to agree to the terms and continue.':missing.length?`Complete or correct ${missing.length} required ${missing.length===1?'detail':'details'} to continue.`:settingsLoaded?'All details are in. Choose how to pay below.':'Waiting for event settings before you can continue.';
     el('payment-form-state').textContent=missing.length?'Complete all required fields and acknowledge the terms before continuing to payment.':'Required details complete. Payments are still unavailable in this preview.';
     el('check-required-fields').hidden=missing.length===0||onlyTerms;
     el('validation-summary').hidden=!showAllErrors||missing.length===0;
     el('missing-fields').replaceChildren();
     if(showAllErrors)for(const {field,message} of missing){
       const item=document.createElement('li'),link=document.createElement('a');link.href='#'+field.id;link.textContent=`${field.dataset.fieldLabel}: ${message}`;
-      link.addEventListener('click',event=>{event.preventDefault();field.focus();});item.append(link);el('missing-fields').append(item);
+      link.addEventListener('click',event=>{event.preventDefault();revealField(field);});item.append(link);el('missing-fields').append(item);
     }
     window.dispatchEvent(new Event('booking-readiness-updated'));return ready;
   }
@@ -150,15 +174,64 @@ if(typeof document!=='undefined'){
     el('charges-pending').hidden=q.totalPaise!==null;
     renderPlanChoice();
     const passes=state.length,amount=q.totalPaise!==null?q.totalPaise/100:q.subtotalPaise/100;
-    // Passes are chosen on the attendee step, so before it the total can only
+    // Genders are entered on the attendee step, so before it the total can only
     // be a starting price: what this many people pay at the lowest prices.
-    const lowest=quoteBooking(Array.from({length:passes},(_,i)=>({pass:'normal',gender:i%2?'man':'woman'})),settings,{plan:'full',earlyBird:earlyBirdAvailable(passes)});
+    const lowest=bestCase(passChoice==='alcohol'?'alcohol':'normal',passes);
     const count=`${passes} ${passes===1?'pass':'passes'}`;
     document.querySelectorAll('.step-total').forEach(node=>{
       node.textContent=node.closest('#your-details')&&lowest.totalPaise!==null?`${count} · from ${money(lowest.totalPaise/100)}`:`${count} · ${money(amount)}`;
     });
     renderEarlyBird();
     renderOffers();
+    renderPassChoice();
+    updateBar();
+  }
+  function updateBar(){
+    if(!bar)return;
+    const panel=el(steps[stepIndex]),nav=document.querySelector('.axp-steps');
+    const own=steps[stepIndex]==='payment-step'?el('payment-button'):panel?.querySelector('.step-nav');
+    const onScreen=node=>{if(!node)return false;const box=node.getBoundingClientRect();return box.top<innerHeight&&box.bottom>0;};
+    const reached=!!nav&&nav.getBoundingClientRect().top<innerHeight;
+    bar.hidden=document.body.classList.contains('has-booking')||!panel||panel.hidden||!reached||onScreen(own);
+    document.body.classList.toggle('has-booking-bar',!bar.hidden);
+    if(bar.hidden)return;
+    const q=currentQuote(),count=`${state.length} ${state.length===1?'pass':'passes'}`;
+    if(steps[stepIndex]==='payment-step'&&q.totalPaise!==null){
+      const now=q.plan==='prebook'?q.payNowPaise:q.totalPaise;
+      barTotal.textContent=q.plan==='prebook'?`${money(now/100)} now · ${money(q.balancePaise/100)} later`:`${count} · ${money(now/100)}`;
+      barAction.textContent=q.plan==='prebook'?`Pay deposit ${money(now/100)}`:`Pay ${money(now/100)}`;
+    }else{
+      barTotal.textContent=el(`${steps[stepIndex]}`)?.querySelector('.step-total')?.textContent||count;
+      barAction.textContent=stepIndex===0?'Continue':'Review & pay';
+    }
+  }
+  // Step 1's prices for this many people, before anyone's details are in:
+  // `plainCase` with no couple, `bestCase` with every pair a couple.
+  const crowd=(pass,count,paired)=>Array.from({length:count},(_,i)=>({pass,gender:paired?(i%2?'man':'woman'):''}));
+  const bestCase=(pass,count)=>quoteBooking(crowd(pass,count,true),settings,{plan:'full',earlyBird:earlyBirdAvailable(count)});
+  const plainCase=(pass,count)=>quoteBooking(crowd(pass,count,false),settings,{plan:'full',earlyBird:earlyBirdAvailable(count)});
+  function renderPassChoice(){
+    const box=el('pass-choice');if(!box)return;
+    // Ticked before settings arrive, so a restored draft resumes past step 1.
+    for(const option of box.querySelectorAll('input[name="booking-pass"]'))option.checked=option.value===passChoice;
+    if(!settingsLoaded)return;
+    const count=state.length,list=earlyBirdAvailable(count)?'early':'regular';
+    for(const pass of ['normal','alcohol']){
+      const note=el(`pass-choice-${pass}-note`),amount=el(`pass-choice-${pass}-amount`);
+      if(note)note.textContent=`${list==='early'?'Early bird: ':''}${money(unitPrice(settings,list,pass,'single'))} each, or ${money(unitPrice(settings,list,pass,'group'))} each for couples and groups of 4+.`;
+      const best=bestCase(pass,count),plain=plainCase(pass,count);
+      if(amount)amount.textContent=best.totalPaise===null?'':`${best.totalPaise<plain.totalPaise?'from ':''}${money(best.totalPaise/100)}`;
+    }
+    const quote=el('pass-choice-quote');if(!quote)return;
+    const people=`${count} ${count===1?'person':'people'}`;
+    if(passChoice==='mix'){quote.textContent=`Prices follow each person's pass. You choose them on the next step.`;return;}
+    if(passChoice!=='normal'&&passChoice!=='alcohol'){quote.textContent='';return;}
+    const tier=tierName(passChoice),best=bestCase(passChoice,count),plain=plainCase(passChoice,count);
+    if(best.totalPaise===null){quote.textContent='';return;}
+    const early=best.priceList==='early'?' Early-bird prices, for bookings paid in full.':'';
+    if(count>=4)quote.textContent=`${people} on ${tier} pay the group price: ${money(best.totalPaise/100)} in all, ${money(best.lines[0].unitPaise/100)} each.${early}`;
+    else if(best.totalPaise<plain.totalPaise)quote.textContent=`${people} on ${tier}: ${money(plain.totalPaise/100)}, or ${money(best.totalPaise/100)} with the couple price for two guests of different genders.${early}`;
+    else quote.textContent=`${people} on ${tier}: ${money(plain.totalPaise/100)}.${early}`;
   }
   // The pass cards in step 1 show today's single price and the couple and
   // group price beside it.
@@ -248,7 +321,7 @@ if(typeof document!=='undefined'){
   function addGuest(pass){
     if(state.length>=settings.maxPerBooking)return;
     state.push({name:'',email:'',instagram:'',phone:'',dob:'',age:'',gender:'',pass});
-    render();saveDraft();
+    openCard=state.length-1;render();saveDraft();
     setTimeout(()=>el(`guest-${state.length-1}-name`)?.focus(),60);
   }
   function offerBox(id,anchor,where){
@@ -260,11 +333,11 @@ if(typeof document!=='undefined'){
   function applyHint(hint,{toAttendees=false}={}){
     if(Number.isInteger(hint.move)&&state[hint.move]){
       state[hint.move].pass=hint.pass;render();saveDraft();
-      if(steps[stepIndex]==='booking-review')renderReview();
+      if(steps[stepIndex]==='payment-step')renderReview();
       return;
     }
     addGuest(hint.pass);
-    if(toAttendees)showStep(2);
+    if(toAttendees)showStep(steps.indexOf('your-guests'));
   }
   function fillOfferBox(box,lines,hint,onAction){
     if(!box)return;
@@ -336,13 +409,64 @@ if(typeof document!=='undefined'){
     const field=document.createElement('input');field.id=`guest-${index}-${property}`;field.name=`attendees[${index}][${property}]`;field.type=type;field.required=required;field.maxLength=maxLength;field.placeholder=placeholder;
     if(property==='phone'&&!state[index].phone)state[index].phone=DIAL;
     field.value=state[index][property];
-    field.addEventListener('input',()=>{state[index][property]=field.value;if(index===0)mirrorBuyer=false;});label.append(field,describeField(field,`Attendee ${index+1}: ${labelText.toLowerCase()}`));return label;
+    field.addEventListener('input',()=>{state[index][property]=field.value;if(index===0&&CONTACT_KEYS.includes(property))syncContactFromFirst();});label.append(field,describeField(field,`Attendee ${index+1}: ${labelText.toLowerCase()}`));return label;
   }
+  // ---------- Attendee cards ----------
+  // One card is open at a time. A finished card folds to a line, such as
+  // "Asha Verma · Gold · 21+ · Woman", so a group of five is not a page of
+  // thirty-five fields. Folded fields stay in the form and are still checked.
+  const cardFields=index=>[...(el(`guest-${index}-card`)?.querySelectorAll('input,select')||[])].filter(field=>!field.closest('label[hidden]'));
+  const cardComplete=index=>cardFields(index).every(field=>!fieldError(field));
+  function firstIncomplete(after=-1){
+    for(let step=1;step<=state.length;step++){const i=(after+step)%state.length;if(!cardComplete(i))return i;}
+    return -1;
+  }
+  function cardLine(index){
+    const guest=state[index],name=guest.name.trim();
+    if(!name)return 'Details needed';
+    return [name,passLabel(guest.pass),GENDER_LABELS[guest.gender]].filter(Boolean).join(' · ');
+  }
+  function applyCards(){
+    state.forEach((guest,index)=>{
+      const card=el(`guest-${index}-card`);if(!card)return;
+      const open=index===openCard,complete=cardComplete(index);
+      card.classList.toggle('is-collapsed',!open);
+      card.classList.toggle('is-complete',!open&&complete);
+      card.querySelector('.attendee-line').textContent=open?'':cardLine(index);
+      const edit=card.querySelector('.attendee-edit');edit.hidden=open;edit.textContent=complete?'Edit':'Add details';
+      const others=state.some((g,k)=>k!==index&&!cardComplete(k));
+      card.querySelector('.attendee-done').textContent=others?'Next guest →':'Done';
+    });
+  }
+  function openCardAt(index,{focus=true}={}){
+    openCard=index;applyCards();
+    if(focus){const card=el(`guest-${index}-card`);card?.scrollIntoView({block:'start',behavior:'smooth'});el(`guest-${index}-name`)?.focus({preventScroll:true});}
+  }
+  // "Done" checks only this card, then opens the next one still to fill in.
+  function finishCard(index){
+    const fields=cardFields(index);
+    fields.forEach(field=>touched.add(field.id));
+    refreshReadiness();
+    const wrong=fields.find(field=>fieldError(field));
+    if(wrong){wrong.focus({preventScroll:true});wrong.scrollIntoView({block:'center',behavior:'smooth'});return;}
+    const next=firstIncomplete(index);
+    if(next<0){openCard=-1;applyCards();return;}
+    openCardAt(next);
+  }
+  // A Gold booking keeps one pass for everyone, except a guest under 21, who
+  // can only hold Silver; their card says so and shows the pass it gave them.
+  const showsOwnPass=guest=>!passChoice||passChoice==='mix'||guest.pass!==passChoice;
   function render(){
     el('attendees').replaceChildren();
+    if(openCard>=state.length)openCard=state.length-1;
     state.forEach((guest,index)=>{
-      const section=document.createElement('section');section.className='attendee';section.setAttribute('aria-labelledby',`guest-${index}-title`);
-      const title=document.createElement('h3');title.id=`guest-${index}-title`;title.textContent=`Attendee ${index+1}`;section.append(title);
+      const section=document.createElement('section');section.className='attendee';section.id=`guest-${index}-card`;section.dataset.index=String(index);section.setAttribute('aria-labelledby',`guest-${index}-title`);
+      const head=document.createElement('div');head.className='attendee-head';
+      const title=document.createElement('h3');title.id=`guest-${index}-title`;title.textContent=index===0&&!bookingForOthers?'You':`Attendee ${index+1}`;
+      const line=document.createElement('p');line.className='attendee-line';
+      const edit=document.createElement('button');edit.type='button';edit.className='text-button attendee-edit';edit.addEventListener('click',()=>openCardAt(index));
+      head.append(title,line,edit);section.append(head);
+      if(index===0&&!bookingForOthers){const note=document.createElement('p');note.className='helper attendee-note';note.textContent='You are the booking contact: the payment receipt and every pass come to you.';section.append(note);}
       const grid=document.createElement('div');grid.className='field-grid';
       grid.append(
         input('Full name','name',index,{placeholder:'Aarav Sharma'}),
@@ -360,14 +484,36 @@ if(typeof document!=='undefined'){
       genderLabel.append(gender,describeField(gender,`Attendee ${index+1}: gender`));grid.append(genderLabel);
       const passLabel=requiredLabel('Pass type');const pass=document.createElement('select');pass.id=`guest-${index}-pass`;pass.name=`attendees[${index}][pass]`;pass.required=true;
       pass.append(new Option('Silver','normal'),new Option('Gold · 21+','alcohol'));pass.value=guest.pass;pass.options[1].disabled=ageBracket(guest.dob)!=='21plus';
-      dob.addEventListener('input',()=>{guest.dob=dob.value;const bracket=ageBracket(dob.value);guest.age=bracket||'';if(bracket!=='21plus'&&guest.pass==='alcohol'){guest.pass='normal';pass.value='normal';}pass.options[1].disabled=bracket!=='21plus';summary();});
-      pass.addEventListener('change',()=>{guest.pass=pass.value;summary();});passLabel.append(pass,describeField(pass,`Attendee ${index+1}: pass type`));grid.append(passLabel);section.append(grid);el('attendees').append(section);
-    });summary();refreshReadiness();
+      const passNote=document.createElement('small');passNote.className='helper pass-note';
+      const passShown=()=>{passLabel.hidden=!showsOwnPass(guest);passNote.textContent=passChoice==='alcohol'&&guest.pass!=='alcohol'?'Gold needs age 21 or over on the event date, so this guest has a Silver pass.':'';passNote.hidden=!passNote.textContent;};
+      dob.addEventListener('input',()=>{guest.dob=dob.value;const bracket=ageBracket(dob.value);guest.age=bracket||'';if(bracket!=='21plus'&&guest.pass==='alcohol'){guest.pass='normal';pass.value='normal';}else if(bracket==='21plus'&&passChoice==='alcohol'&&guest.pass!=='alcohol'){guest.pass='alcohol';pass.value='alcohol';}pass.options[1].disabled=bracket!=='21plus';passShown();summary();});
+      pass.addEventListener('change',()=>{guest.pass=pass.value;passShown();summary();});passLabel.append(pass,describeField(pass,`Attendee ${index+1}: pass type`));grid.append(passLabel,passNote);passShown();
+      const done=document.createElement('button');done.type='button';done.className='secondary attendee-done';done.addEventListener('click',()=>finishCard(index));
+      section.append(grid,done);el('attendees').append(section);
+    });
+    syncContactFromFirst();summary();refreshReadiness();applyCards();
   }
-  el('plus').addEventListener('click',()=>{if(state.length<settings.maxPerBooking){state.push({name:'',email:'',instagram:'',phone:'',dob:'',age:'',gender:'',pass:'normal'});render();saveDraft();}});
+  // A new guest starts on the booking's pass.
+  const startingPass=()=>passChoice==='alcohol'||passChoice==='normal'?passChoice:'normal';
+  el('plus').addEventListener('click',()=>{if(state.length<settings.maxPerBooking){state.push({name:'',email:'',instagram:'',phone:'',dob:'',age:'',gender:'',pass:startingPass()});render();saveDraft();}});
   el('minus').addEventListener('click',()=>{if(state.length>1){state.pop();render();saveDraft();}});
-  function copyBuyerToFirst(){for(const key of ['name','email','instagram','phone'])state[0][key]=el('buyer-'+key).value;render();}
-  el('copy-buyer').addEventListener('click',()=>{mirrorBuyer=true;copyBuyerToFirst();});
+  // One pass for everyone, or a mix chosen per person. A guest already known
+  // to be under 21 stays on Silver whatever the booking's pass.
+  el('pass-choice')?.addEventListener('change',event=>{
+    if(event.target.name!=='booking-pass')return;
+    passChoice=event.target.value;
+    if(passChoice!=='mix')state.forEach(guest=>{guest.pass=passChoice==='alcohol'&&guest.dob&&ageBracket(guest.dob)!=='21plus'?'normal':passChoice;});
+    touched.add('booking-pass-normal');render();saveDraft();
+  });
+  // Booking for others: the contact gets their own fields, and attendee 1 is
+  // just a guest. Contact details copied from attendee 1 are cleared, so the
+  // booker types their own.
+  el('booking-for-others')?.addEventListener('change',event=>{
+    bookingForOthers=event.target.checked;
+    el('booking-contact').hidden=!bookingForOthers;
+    if(bookingForOthers){for(const key of CONTACT_KEYS){const field=el('buyer-'+key);if(field.value===(state[0]?.[key]||''))field.value=key==='phone'?DIAL:'';}}
+    render();saveDraft();
+  });
   el('plan-choice')?.addEventListener('change',event=>{
     if(event.target.name!=='booking-plan')return;
     plan=event.target.value==='prebook'?'prebook':'full';summary();
@@ -391,17 +537,6 @@ if(typeof document!=='undefined'){
     el('prebook-notice').close();option.focus();
   });
   el('prebook-notice-continue')?.addEventListener('click',()=>el('prebook-notice').close());
-  // A lone attendee is almost always the buyer, so their details follow the
-  // booking contact until someone edits the attendee fields directly.
-  function syncBuyerToAttendee(){
-    if(!mirrorBuyer||state.length!==1)return;
-    for(const key of ['name','email','instagram','phone']){
-      const value=el('buyer-'+key).value;state[0][key]=value;
-      const field=el(`guest-0-${key}`);if(field&&field.value!==value)field.value=value;
-    }
-    summary();
-  }
-  for(const key of ['name','email','instagram','phone'])el('buyer-'+key).addEventListener('input',syncBuyerToAttendee);
   if(!el('buyer-phone').value.trim())el('buyer-phone').value=DIAL;
   // The review step shows everything that was entered, so it is rebuilt every
   // time the step opens rather than only when a button is pressed.
@@ -431,21 +566,26 @@ if(typeof document!=='undefined'){
       row.append(name,pass);if(extra.textContent)row.append(extra);
       return row;
     }));
-    el('review-total').textContent=money((q.totalPaise??q.subtotalPaise)/100);
-    if(!el('review-edit-contact')){
+    if(el('review-total'))el('review-total').textContent=money((q.totalPaise??q.subtotalPaise)/100);
+    if(!el('review-edit-guests')){
       const edit=(id,text,step)=>{const button=document.createElement('button');button.type='button';button.id=id;button.className='review-edit';button.textContent=text;button.addEventListener('click',()=>showStep(step));return button;};
-      el('review-buyer').after(edit('review-edit-contact','Edit contact details',1));
-      el('review-guests').after(edit('review-edit-guests','Edit attendees',2));
+      const row=document.createElement('p');row.className='review-edits';
+      row.append(edit('review-edit-guests','Edit attendees',1),edit('review-edit-passes','Change passes',0));
+      el('review-guests').after(row);
     }
-    el('review-notice').textContent=(q.totalPaise===null?'Final charges are pending.':`Total: ${money(q.totalPaise/100)}.${settings.prebookEnabled?' On the next step, pay in full or pre-book with a deposit.':''}`)+' No booking has been saved, no places have been reserved, and no payment has been taken.';
+    el('review-notice').textContent=(q.totalPaise===null?'Final charges are pending. ':'')+'Nothing is booked and no payment is taken until you pay below.';
   }
+  // Enter in a field moves the booking on, never posts the form.
   el('booking-form').addEventListener('submit',event=>{
     event.preventDefault();el('form-message').textContent='';
-    if(!showMissingFields())return;
-    renderReview();showStep(4);
+    if(stepIndex<steps.length-1)goForward();
   });
   for(const eventName of ['input','change'])el('booking-form').addEventListener(eventName,refreshReadiness);
   el('booking-form').addEventListener('focusout',event=>{if(event.target.matches('[required]')){touched.add(event.target.id);refreshReadiness();}});
+  // Leaving an empty field shows its error, which pushes the buttons below it
+  // down between press and release, so the click would land on nothing. These
+  // buttons keep focus where it is when pressed; their click checks the step.
+  document.addEventListener('mousedown',event=>{if(event.target.closest('.step-next,.attendee-done,.booking-bar-action'))event.preventDefault();});
   el('check-required-fields').addEventListener('click',showMissingFields);
 
   // A refresh, a dropped connection or an accidental swipe should not cost a
@@ -455,22 +595,27 @@ if(typeof document!=='undefined'){
   function restoreDraft(){
     try{
       const draft=JSON.parse(sessionStorage.getItem('axp-booking-draft')||'null');
-      if(!draft||draft.v!==1)return 0;
-      for(const key of ['name','email','instagram','phone'])if(typeof draft.buyer?.[key]==='string')el('buyer-'+key).value=draft.buyer[key];
+      // Version 1 drafts come from the five-step form: their details are kept,
+      // but their step numbers mean something else, so they start at step 1.
+      if(!draft||(draft.v!==1&&draft.v!==2))return 0;
+      for(const key of CONTACT_KEYS)if(typeof draft.buyer?.[key]==='string')el('buyer-'+key).value=draft.buyer[key];
       if(Array.isArray(draft.attendees)&&draft.attendees.length){
         const blank={name:'',email:'',instagram:'',phone:'',dob:'',age:'',gender:'',pass:'normal'};
         state.splice(0,state.length,...draft.attendees.slice(0,10).map(guest=>({...blank,...guest})));
-        state.forEach(guest=>{guest.age=ageBracket(guest.dob)||'';if(guest.pass==='alcohol'&&guest.age!=='21plus')guest.pass='normal';});
+        state.forEach(guest=>{guest.age=ageBracket(guest.dob)||'';if(guest.pass==='alcohol'&&guest.dob&&guest.age!=='21plus')guest.pass='normal';});
       }
-      mirrorBuyer=draft.mirrorBuyer!==false;
+      if(draft.v===1)return 0;
+      passChoice=['normal','alcohol','mix'].includes(draft.passChoice)?draft.passChoice:'';
+      bookingForOthers=draft.bookingForOthers===true;
+      el('booking-for-others').checked=bookingForOthers;el('booking-contact').hidden=!bookingForOthers;
       return Number.isInteger(draft.step)?draft.step:0;
     }catch{return 0;}
   }
   function saveDraft(){
     try{
       sessionStorage.setItem('axp-booking-draft',JSON.stringify({
-        v:1,step:stepIndex,mirrorBuyer,
-        buyer:Object.fromEntries(['name','email','instagram','phone'].map(key=>[key,el('buyer-'+key).value])),
+        v:2,step:stepIndex,passChoice,bookingForOthers,
+        buyer:Object.fromEntries(CONTACT_KEYS.map(key=>[key,el('buyer-'+key).value])),
         attendees:state,
       }));
     }catch{}
@@ -584,10 +729,11 @@ if(typeof document!=='undefined'){
   // a guest cannot carry an empty required field into the next screen; moving
   // back is always free. refreshReadiness still judges the whole form, which is
   // what gates the final review button.
-  const steps=['event-info-step','your-details','your-guests','booking-review','payment-step'];
-  // The forward button says where it goes, not just "Next". The review step
-  // moves on with its own "Continue to payment" button instead.
-  const nextLabels=['Book your passes','Continue to attendees','Review booking',null,null];
+  // Passes, attendees, then review and pay on one screen. The event itself is
+  // part of the page above the form, not a step.
+  const steps=['your-details','your-guests','payment-step'];
+  // The forward button says where it goes, not just "Next".
+  const nextLabels=['Continue to attendees','Review & pay',null];
   let stepIndex=0;
   function stepPanels(){return steps.map(id=>el(id)).filter(Boolean);}
   function stepLabel(index){const nav=document.querySelector('.axp-steps');return (nav?.children[index*2]?.textContent||'').trim().replace(/^\d+\s*/,'');}
@@ -603,12 +749,14 @@ if(typeof document!=='undefined'){
     for(const panel of stepPanels()){
       const back=panel.querySelector('.step-back'),next=panel.querySelector('.step-next');
       if(back)back.hidden=stepIndex===0;
-      if(next)next.hidden=stepIndex===steps.length-1||steps[stepIndex]==='booking-review';
+      if(next)next.hidden=stepIndex===steps.length-1;
     }
     document.querySelectorAll('.step-block-note').forEach(note=>{note.textContent='';});
     const entering=el(steps[stepIndex]);
     if(entering){entering.classList.remove('is-entering');void entering.offsetWidth;entering.classList.add('is-entering');}
-    if(steps[stepIndex]==='booking-review')renderReview();
+    if(steps[stepIndex]==='payment-step')renderReview();
+    // The attendee step opens on the first card still to fill in.
+    if(steps[stepIndex]==='your-guests'&&stepIndex!==previous){openCard=firstIncomplete();applyCards();}
     // Five labelled steps do not fit a phone, so there the nav shrinks to
     // numbers and this caption carries the wording.
     const stepsNav=document.querySelector('.axp-steps');
@@ -621,7 +769,7 @@ if(typeof document!=='undefined'){
     // Each step is a history entry, so a phone's back button steps back through
     // the form instead of leaving the page and losing everything typed.
     if(push&&stepIndex!==previous){try{history.pushState({axpStep:stepIndex},'',`#step-${stepIndex+1}`);}catch{}}
-    saveDraft();
+    saveDraft();updateBar();
     if(focus&&stepIndex!==previous&&entering){
       // Keyboard and screen-reader users land on the new step's heading, not on
       // a button that has just been hidden.
@@ -635,7 +783,7 @@ if(typeof document!=='undefined'){
     const panel=el(steps[index]);
     if(!panel)return true;
     let ok=true;
-    for(const field of panel.querySelectorAll('input,select')){
+    for(const field of liveFields(panel)){
       touched.add(field.id);
       if(fieldError(field))ok=false;
     }
@@ -644,14 +792,17 @@ if(typeof document!=='undefined'){
   }
   function stepSilentlyValid(index){
     const panel=el(steps[index]);
-    return !panel||[...panel.querySelectorAll('input,select')].every(field=>!fieldError(field));
+    return !panel||liveFields(panel).every(field=>!fieldError(field));
   }
   // When a step will not let you through, take you to the first thing that is
   // wrong and say so beside the buttons, rather than failing silently.
   function explainBlocked(index){
     const panel=el(steps[index]);
-    const field=panel&&[...panel.querySelectorAll('input,select')].find(f=>fieldError(f));
+    const field=panel&&liveFields(panel).find(f=>fieldError(f));
     if(!field){showMissingFields();return;}
+    // A folded attendee card opens to show what it is missing.
+    const card=field.closest('.attendee');
+    if(card&&card.classList.contains('is-collapsed')){openCard=Number(card.dataset.index);applyCards();}
     field.focus({preventScroll:true});
     field.scrollIntoView({block:'center',behavior:'smooth'});
     let note=panel.querySelector('.step-block-note');
@@ -659,6 +810,20 @@ if(typeof document!=='undefined'){
     note.textContent='A few details need attention before you continue. They are marked above.';
   }
   function goForward(){if(stepValid(stepIndex))showStep(stepIndex+1);else explainBlocked(stepIndex);}
+  // A "details need attention" note goes as soon as its step is complete.
+  for(const eventName of ['input','change'])el('booking-form').addEventListener(eventName,()=>{
+    const note=el(steps[stepIndex])?.querySelector('.step-block-note');
+    if(note&&note.textContent&&stepSilentlyValid(stepIndex))note.textContent='';
+  });
+  // From the list of missing details: go to the step and card holding the
+  // field, then to the field itself.
+  function revealField(field){
+    const panel=field.closest('.step-panel'),index=panel?steps.indexOf(panel.id):-1;
+    if(index>=0&&index!==stepIndex)showStep(index,{focus:false});
+    const card=field.closest('.attendee');
+    if(card&&card.classList.contains('is-collapsed')){openCard=Number(card.dataset.index);applyCards();}
+    field.scrollIntoView({block:'center',behavior:'smooth'});field.focus({preventScroll:true});
+  }
   for(const panel of stepPanels()){
     const back=panel.querySelector('.step-back'),next=panel.querySelector('.step-next');
     if(back)back.addEventListener('click',()=>showStep(stepIndex-1));
@@ -668,6 +833,22 @@ if(typeof document!=='undefined'){
       next.addEventListener('click',goForward);
     }
   }
+  // On a phone the step's own buttons sit at the end of a long form, so a bar
+  // at the foot of the screen carries the total and the next action. It hides
+  // while those buttons are on screen, and before the guest reaches the steps.
+  bar=document.createElement('div');bar.className='booking-bar';bar.hidden=true;
+  const barTotal=document.createElement('span');barTotal.className='booking-bar-total';barTotal.setAttribute('aria-live','polite');
+  const barAction=document.createElement('button');barAction.type='button';barAction.className='primary booking-bar-action';
+  bar.append(barTotal,barAction);document.body.append(bar);
+  barAction.addEventListener('click',()=>{
+    if(steps[stepIndex]!=='payment-step'){goForward();return;}
+    if(el('booking-form').dataset.ready!=='1'){const first=liveFields(el('booking-form')).find(field=>fieldError(field));showMissingFields();if(first)revealField(first);return;}
+    const pay=el('payment-button');
+    if(pay.disabled){pay.scrollIntoView({block:'center',behavior:'smooth'});return;}
+    pay.click();
+  });
+  let barFrame=0;
+  for(const eventName of ['scroll','resize'])window.addEventListener(eventName,()=>{if(!barFrame)barFrame=requestAnimationFrame(()=>{barFrame=0;updateBar();});},{passive:true});
   // A small running total beside the buttons while passes are being chosen.
   for(const id of ['your-details','your-guests']){
     const nav=el(id)?.querySelector('.step-nav');
@@ -691,7 +872,10 @@ if(typeof document!=='undefined'){
     }
     showStep(target,{push:false});
   });
-  el('hero-cta')?.addEventListener('click',event=>{event.preventDefault();showStep(1);});
+  // The hero's button, and the one closing the event section, start booking.
+  for(const start of [el('hero-cta'),...document.querySelectorAll('[data-start-booking]')]){
+    start?.addEventListener('click',event=>{event.preventDefault();showStep(0,{focus:false});document.querySelector('.axp-steps')?.scrollIntoView({block:'start',behavior:'smooth'});});
+  }
   try{history.replaceState({axpStep:0},'',location.pathname+location.search);}catch{}
   showStep(0,{push:false,focus:false});
   // Come back to where the guest left off, but never past a step that is no
