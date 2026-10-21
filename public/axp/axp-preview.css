@@ -1094,6 +1094,8 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 .axp-edition .event-layout { margin-bottom: 8px; }
 .axp-edition .event-cta-row { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line); }
 .axp-edition .event-cta-row .hero-cta { width: 100%; justify-content: center; }
+/* Someone looking at their booking has already booked. */
+.has-booking .event-cta-row { display: none; }
 
 /* Step 1: who is coming and which pass. */
 .axp-edition .attending-toggle { margin: 0 0 22px; }
