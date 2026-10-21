@@ -163,7 +163,7 @@ if(typeof document!=='undefined'){
       if(small)small.textContent=`${list==='early'?'early bird · ':''}per person · couples and groups of 4+ ${money(unitPrice(settings,list,pass,'group'))} each`;
     }
   }
-  // While the early bird is open: how long is left and how many passes. It
+  // While the early bird is open: how long is left. It
   // refreshes every minute, so prices switch back as soon as it ends.
   function renderEarlyBird(){
     const hint=el('pass-limit-hint');if(!hint)return;
@@ -174,7 +174,7 @@ if(typeof document!=='undefined'){
     banner.hidden=!open;
     if(!open){clearInterval(earlyTimer);earlyTimer=null;return;}
     const left=ends-Date.now(),days=Math.floor(left/864e5),hours=Math.floor(left%864e5/36e5),minutes=Math.floor(left%36e5/6e4);
-    banner.textContent=`Early-bird prices end in ${days>0?`${days}d ${hours}h`:`${hours}h ${minutes}m`} · ${earlyBird.left} early-bird ${earlyBird.left===1?'pass':'passes'} left. For bookings paid in full; pre-bookings pay regular prices.`;
+    banner.textContent=`Early-bird prices end in ${days>0?`${days}d ${hours}h`:`${hours}h ${minutes}m`}. For bookings paid in full; pre-bookings pay regular prices.`;
     if(!earlyTimer)earlyTimer=setInterval(()=>{summary();passCardPrices();},60000);
   }
   // ---------- Offers ----------
@@ -265,7 +265,7 @@ if(typeof document!=='undefined'){
           amount:`From ${money(Math.min(unitPrice(settings,'early','normal','single'),unitPrice(settings,'early','alcohol','single')))}`,unit:'per person',
           detail:`Silver ${money(unitPrice(settings,'early','normal','single'))} / Gold ${money(unitPrice(settings,'early','alcohol','single'))}. Book before ${earlyEndLabel()}.`,
           terms:'Pay in full to get early-bird prices. Available while the early-bird allocation lasts.',
-          status:`${earlyBird.left} ${earlyBird.left===1?'pass':'passes'} left / Until ${earlyEndLabel()}`
+          status:`Until ${earlyEndLabel()}`
         });
         rows.push({
           kind:'together',title:'Couple & group offers',status:'Better together',
