@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkInAttendee, findBookingById, listAllBookings, saveBooking } from '@/lib/axp/storage-adapter';
 import { verifyAdminAuth } from '@/lib/axp/admin-auth';
+import { balanceDue, couplePair, coupleDifference } from '@/lib/axp/booking-payments';
 
 export async function POST(request: NextRequest) {
   try {
@@ -85,6 +86,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // A pre-booking with only its deposit paid has no QR of its own, but a
+    // booking code or a search can still land here. Say what is owed, so the
+    // balance can be taken and recorded in the dashboard first.
+    if (booking.status === 'booked') {
+      return NextResponse.json(
+        {
+          error: `Balance of ₹${(balanceDue(booking) / 100).toLocaleString('en-IN')} due for ${booking.buyer?.name || 'this booking'}. Take it in cash or UPI, record it under Attendees, then scan the passes.`,
+          bookingId: booking.id,
+          balanceDue: balanceDue(booking) / 100,
+        },
+        { status: 409 }
+      );
+    }
+
     if (booking.status !== 'confirmed') {
       return NextResponse.json(
         { error: 'This booking is not valid for entry. Check its payment status.' },
@@ -114,6 +129,12 @@ export async function POST(request: NextRequest) {
         kind: 'ticket',
         name: attendee.name,
         pass: attendee.pass,
+        fare: attendee.fare || 'single',
+        gender: attendee.gender || '',
+        attendeeId: attendee.id,
+        // For a couple: what they owe if their details do not match photo ID.
+        coupleDifference: coupleDifference(booking, attendee.id) / 100,
+        partnerName: couplePair(booking, attendee.id)?.find((guest) => guest.id !== attendee.id)?.name || '',
         mode: booking.mode,
         bookingId: booking.id,
         checkedInAt: (isAlreadyChecked || newlyCheckedIn) ? new Date().toISOString() : null,
@@ -156,6 +177,10 @@ export async function POST(request: NextRequest) {
         id: a.id,
         name: a.name,
         pass: a.pass,
+        fare: a.fare || 'single',
+        gender: a.gender || '',
+        coupleDifference: coupleDifference(booking!, a.id) / 100,
+        partnerId: couplePair(booking!, a.id)?.find((guest) => guest.id !== a.id)?.id || '',
         age: a.age,
         checkedInAt: a.checkedIn || (booking?.checkedInAttendees || []).includes(a.id)
           ? ((a as any).checkedInAt || booking?.createdAt)

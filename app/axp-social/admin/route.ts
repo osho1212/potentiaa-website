@@ -16,7 +16,7 @@ export function GET(request: NextRequest) {
   }
 
   const html = rawAdminHtml
-    .replace('href="/style.css"', 'href="/axp/style.css"><link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/organiser.css"')
+    .replace('href="/style.css"', 'href="/axp/style.css"><link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/organiser.css?v=2"')
     .replace('<body>', '<body class="organiser-ui">')
     .replace('<header>', '<header class="organiser-header">')
     .replace('src="/admin.js"', 'src="/axp/admin.js"')

@@ -117,3 +117,26 @@
   .organiser-ui .panel { animation: none; }
   .organiser-ui :is(.primary, .secondary):not(:disabled):active { transform: none; }
 }
+
+/* Add a booking (cash or UPI) and recording a balance. */
+.organiser-ui .manual-form { display: grid; gap: 16px; }
+.organiser-ui .manual-group { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px 16px; margin: 0; }
+.organiser-ui .manual-group legend { font-size: 12px; font-weight: 700; letter-spacing: .6px; padding: 0 6px; }
+.organiser-ui .manual-count { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+.organiser-ui .manual-count label { max-width: 200px; }
+.organiser-ui .manual-quote { font-size: 13px; line-height: 1.6; }
+.organiser-ui .manual-quote ul { margin: 0 0 8px; padding-left: 18px; }
+.organiser-ui .manual-quote p { margin: 4px 0 0; font-weight: 600; }
+.organiser-ui .manual-quote .helper { font-weight: 400; }
+.organiser-ui .manual-result { font-size: 13px; margin: 0; }
+.organiser-ui #m-submit { width: auto; justify-content: center; padding: 12px 24px; }
+.organiser-ui .record-balance { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.organiser-ui .record-balance select { width: auto; min-height: 36px; }
+.organiser-ui .record-balance button { min-height: 36px; }
+
+/* At the gate: a couple whose details do not match pays the difference. */
+.organiser-ui .couple-check { margin: 12px 0 0; padding: 12px 14px; border: 1px dashed #c9b28d; border-radius: 8px; background: rgba(250, 244, 230, .6); font-size: 13px; line-height: 1.55; }
+.organiser-ui .couple-check p { margin: 0 0 8px; }
+.organiser-ui .couple-check-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.organiser-ui .couple-check-actions select { width: auto; min-height: 36px; }
+.organiser-ui .couple-check-actions button { min-height: 36px; }

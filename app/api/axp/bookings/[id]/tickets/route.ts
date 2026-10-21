@@ -43,6 +43,7 @@ export async function GET(
           instagram: attendee.instagram,
           phone: attendee.phone,
           pass: attendee.pass,
+          fare: attendee.fare || 'single',
           ageGroup: attendee.age,
           entryCode,
           code: entryCode,

@@ -5,15 +5,15 @@ const lotus = `<svg class="axp-lotus" viewBox="0 0 64 64" fill="none" aria-hidde
 export function GET() {
   const html = rawBookingHtml
     .replace('<title>Aagaz · AXP Social</title>', '<title>AAGAZ · AxP Social · Invitation edition</title>')
-    .replace('href="style.css"', 'href="/axp/style.css"')
-    .replace('src="app.js"', 'src="/axp/app.js?v=3"')
-    .replace('src="payment.js"', 'src="/axp/payment.js?v=2"')
+    .replace('href="style.css"', 'href="/axp/style.css?v=2"')
+    .replace('src="app.js"', 'src="/axp/app.js?v=5"')
+    .replace('src="payment.js"', 'src="/axp/payment.js?v=4"')
     .replace('width=device-width, initial-scale=1', 'width=device-width, initial-scale=1, viewport-fit=cover')
-    .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/axp-preview.css"><link rel="preload" as="image" href="/axp/ivory-plum-gathering.png"><script type="module" src="/axp/reveal.js"></script></head>')
+    .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css"><link rel="stylesheet" href="/axp/axp-preview.css?v=2"><link rel="preload" as="image" href="/axp/ivory-plum-gathering.png"><script type="module" src="/axp/reveal.js"></script></head>')
     .replace('<body>', '<body class="axp-edition"><a class="axp-skip" href="#your-details">Skip to booking form</a>')
     .replace(/<header>[\s\S]*?<\/header>/, '')
     .replace('<section class="hero"', '<section id="event-details" class="hero"')
-    .replace('<div id="event-rules"', '<div class="hero-actions"><a id="hero-cta" class="hero-cta" href="#your-details">Book your passes <span aria-hidden="true">→</span></a><div id="event-countdown" class="event-countdown" hidden><span class="cd-label">Doors open in</span><span id="event-countdown-units" class="cd-units"></span></div></div><div id="event-rules"')
+    .replace('<div id="event-rules"', '<div class="hero-actions"><a id="hero-cta" class="hero-cta" href="#your-details">Book your passes <span aria-hidden="true">→</span></a><div id="event-countdown" class="event-countdown" hidden><span class="cd-label">Doors open in</span><span id="event-countdown-units" class="cd-units"></span></div></div><ul id="hero-offers" class="hero-offers" aria-label="Offers" hidden></ul><div id="event-rules"')
     .replace('<div id="event-kicker"', '<p class="axp-presenter"><img src="/axp/emblem.png" alt="" width="34" height="34"><span>AxP Social presents</span></p><div id="event-kicker"')
     .replace('It starts with us.', 'A new circle. A beautiful beginning.')
     .replace('The first gathering of AXP Social. A new circle, a beautiful haveli, and an afternoon that turns into a night to remember.', 'An afternoon that becomes an evening to remember. Join us for the first gathering of AxP Social.')
@@ -38,7 +38,25 @@ export function GET() {
     .replace('<h2 id="summary-title">Booking summary</h2>', '<h2 id="summary-title">Your invitation</h2>')
     // The policy links move into the footer, above the copyright line.
     .replace(/(<nav class="policy-nav"[^>]*>[\s\S]*?<\/nav>)\s*<footer>[\s\S]*?<\/footer>/, '<footer class="axp-footer">$1<div class="footer-meta"><span>AxP SOCIAL · AAGAZ / THE FIRST CHAPTER</span><span id="footer-copyright" class="footer-copyright"></span></div></footer>')
-    .replaceAll('href="/policies/', 'href="/axp-social/policies/');
+    .replaceAll('href="/policies/', 'href="/axp-social/policies/')
+    // Ways to save, under the pass cards. app.js fills it from the prices.
+    .replace(
+      '<p class="pass-selection-note">',
+      '<div id="offer-list-wrap" class="offer-list-wrap" hidden><span class="eyebrow">WAYS TO SAVE</span><ul id="offer-list" class="offer-list"></ul></div><p class="pass-selection-note">'
+    )
+    // How to pay: in full now, or a deposit now and the balance later. app.js
+    // fills in the amounts and hides the choice when pre-booking is off.
+    .replace(
+      '<div class="payment-summary">',
+      '<fieldset id="plan-choice" class="plan-choice"><legend>How would you like to pay?</legend>' +
+        '<label class="plan-option"><input type="radio" name="booking-plan" value="full" checked><span class="plan-text"><strong>Pay in full</strong><small id="plan-full-note"></small></span><b id="plan-full-amount" class="plan-amount"></b></label>' +
+        '<label class="plan-option"><input type="radio" name="booking-plan" value="prebook"><span class="plan-text"><strong>Pre-book with a deposit</strong><small id="plan-prebook-note"></small></span><b id="plan-prebook-amount" class="plan-amount"></b></label>' +
+        '</fieldset><div class="payment-summary">'
+    )
+    .replace(
+      /(<li id="bar-rule">[^<]*<\/li>)/,
+      '$1<li id="prebook-rule">Entry is by QR pass only. A pre-booking gets its QR passes once it is paid in full; until then it cannot be admitted. The balance can be paid any time by UPI on your booking page, or in cash at the venue, where our team records it and issues the passes before entry. The deposit is non-refundable.</li>'
+    );
 
   return new Response(html, {
     headers: {

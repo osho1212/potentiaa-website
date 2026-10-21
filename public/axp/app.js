@@ -1,20 +1,15 @@
 import {DEFAULT_SETTINGS} from './settings-model.js';
-export function calculateBooking(attendees,settings=DEFAULT_SETTINGS) {
-  if (!Array.isArray(attendees) || attendees.length<1 || attendees.length>Math.min(settings.maxPerBooking,5)) throw new Error(`Choose between 1 and ${Math.min(settings.maxPerBooking,5)} attendees.`);
-  let normal=0,alcohol=0;
-  for(const guest of attendees){
-    if(!['normal','alcohol'].includes(guest.pass))throw new Error('Choose a valid pass type.');
-    if(guest.pass==='alcohol' && guest.age!=='21plus')throw new Error('Gold passes require age 21 or over.');
-    if(guest.pass==='normal')normal++;else alcohol++;
-  }
-  const subtotalPaise=normal*Math.round(settings.normalPrice*100)+alcohol*Math.round(settings.alcoholPrice*100);
-  const extrasPaise=settings.chargesConfirmed&&settings.extraPerPerson!==null&&settings.extraPerBooking!==null?attendees.length*Math.round(settings.extraPerPerson*100)+Math.round(settings.extraPerBooking*100):null;
-  return {normal,alcohol,people:attendees.length,subtotal:subtotalPaise/100,extraCharges:extrasPaise===null?null:extrasPaise/100,total:extrasPaise===null?null:(subtotalPaise+extrasPaise)/100};
-}
+import {quoteBooking,unitPrice,GENDERS,GENDER_LABELS,FARE_LABELS,PASS_LABELS} from './pricing.js';
 if(typeof document!=='undefined'){
-  const state=[{name:'',email:'',instagram:'',phone:'',dob:'',age:'',pass:'normal'}];
+  const state=[{name:'',email:'',instagram:'',phone:'',dob:'',age:'',gender:'',pass:'normal'}];
   let settings={...DEFAULT_SETTINGS};
   let settingsLoaded=false,showAllErrors=false;
+  // Where the early bird stands, as the server last reported it. The server
+  // decides again when the booking is made; this only drives what is shown.
+  let earlyBird=null,plan='full',earlyTimer=null;
+  function earlyBirdAvailable(count=state.length){return !!(earlyBird&&earlyBird.open&&count<=earlyBird.left&&(!earlyBird.endsAt||Date.now()<=Date.parse(earlyBird.endsAt)));}
+  function currentQuote(forPlan=plan){return quoteBooking(state,settings,{plan:forPlan,earlyBird:earlyBirdAvailable()});}
+  const passLabel=(pass,fare)=>`${PASS_LABELS[pass]||'Silver'}${pass==='alcohol'?' · 21+':''}${fare&&fare!=='single'?' · '+FARE_LABELS[fare]:''}`;
   const touched=new Set();
   const el=id=>document.getElementById(id);
   const money=n=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',minimumFractionDigits:n%1?2:0,maximumFractionDigits:2}).format(n);
@@ -104,18 +99,180 @@ if(typeof document!=='undefined'){
     field.dataset.fieldLabel=label;field.setAttribute('aria-describedby',field.id+'-error');
     const error=document.createElement('small');error.id=field.id+'-error';error.className='field-error';error.hidden=true;return error;
   }
+  // One line per kind of pass charged, such as "Gold · 21+ · Couple  2 × ₹3,250".
+  function priceLines(lines){
+    const groups=new Map();
+    for(const item of lines){const key=`${item.pass}|${item.fare}|${item.unitPaise}`;const group=groups.get(key)||{pass:item.pass,fare:item.fare,unit:item.unitPaise/100,count:0};group.count++;groups.set(key,group);}
+    return [...groups.values()].map(group=>summaryLine(passLabel(group.pass,group.fare),`${group.count} × ${money(group.unit)}`));
+  }
+  function summaryLine(label,value,id){const row=document.createElement('p'),name=document.createElement('span'),amount=document.createElement('strong');name.textContent=label;amount.textContent=value;if(id)amount.id=id;row.append(name,amount);return row;}
+  function renderPlanChoice(){
+    const box=el('plan-choice');if(!box)return;
+    box.hidden=!settings.prebookEnabled;
+    if(!settings.prebookEnabled)plan='full';
+    for(const option of box.querySelectorAll('input[name="booking-plan"]'))option.checked=option.value===plan;
+    const full=currentQuote('full'),pre=currentQuote('prebook');
+    if(full.totalPaise!==null){
+      el('plan-full-amount').textContent=money(full.totalPaise/100);
+      el('plan-full-note').textContent=`${full.priceList==='early'?'Early-bird prices. ':''}Your QR passes are emailed as soon as you pay.`;
+    }
+    if(pre.totalPaise!==null){
+      el('plan-prebook-amount').textContent=`${money(pre.payNowPaise/100)} now`;
+      el('plan-prebook-note').textContent=`${money(settings.depositPerPerson)} a person now, ${money(pre.balancePaise/100)} later by UPI or in cash at the venue. Regular prices. Entry is by QR pass only, and your QR passes are issued once the booking is paid in full.`;
+    }
+  }
   function summary(){
-    const total=calculateBooking(state,settings);
-    el('guest-count').value=String(total.people);el('people-line').textContent=String(total.people);
-    el('normal-line').textContent=`${total.normal} × ${money(settings.normalPrice)}`;
-    el('alcohol-line').textContent=`${total.alcohol} × ${money(settings.alcoholPrice)}`;
-    el('subtotal').textContent=money(total.subtotal);
+    const q=currentQuote();
+    el('guest-count').value=String(q.people);
+    const lines=document.querySelector('.payment-summary .summary-lines');
+    if(lines)lines.replaceChildren(...priceLines(q.lines),summaryLine('Total people',String(q.people),'people-line'));
+    el('subtotal').textContent=money(q.subtotalPaise/100);
+    if(el('subtotal').previousElementSibling)el('subtotal').previousElementSibling.textContent='Passes';
     el('minus').disabled=state.length===1;el('plus').disabled=state.length>=settings.maxPerBooking;
-    el('confirmed-charges').hidden=total.total===null;
-    if(total.total!==null){el('extra-charge-total').textContent=money(total.extraCharges);el('final-total').textContent=money(total.total);}
-    el('charges-pending').hidden=total.total!==null;
-    const passes=state.length,amount=total.total!==null?total.total:total.subtotal;
-    document.querySelectorAll('.step-total').forEach(node=>{node.textContent=`${passes} ${passes===1?'pass':'passes'} \u00b7 ${money(amount)}`;});
+    el('confirmed-charges').hidden=q.totalPaise===null;
+    if(q.totalPaise!==null){
+      el('extra-charge-total').textContent=money(q.extrasPaise/100);el('extra-charge-total').parentElement.hidden=q.extrasPaise===0;
+      el('final-total').textContent=money(q.totalPaise/100);
+      let extra=el('plan-lines');
+      if(!extra){extra=document.createElement('div');extra.id='plan-lines';extra.className='plan-lines';el('confirmed-charges').append(extra);}
+      const rows=[];
+      if(q.savingPaise>0)rows.push(summaryLine(q.priceList==='early'?'Your saving, with early-bird prices':'Your saving',money(q.savingPaise/100)));
+      if(q.plan==='prebook')rows.push(summaryLine('Pay now',money(q.payNowPaise/100)),summaryLine('Balance later, by UPI or cash',money(q.balancePaise/100)));
+      extra.replaceChildren(...rows);
+    }
+    el('charges-pending').hidden=q.totalPaise!==null;
+    renderPlanChoice();
+    const passes=state.length,amount=q.totalPaise!==null?q.totalPaise/100:q.subtotalPaise/100;
+    document.querySelectorAll('.step-total').forEach(node=>{node.textContent=`${passes} ${passes===1?'pass':'passes'} · ${money(amount)}`;});
+    renderEarlyBird();
+    renderOffers();
+  }
+  // The pass cards in step 1 show today's single price and the couple and
+  // group price beside it.
+  function passCardPrices(){
+    const list=earlyBirdAvailable()?'early':'regular';
+    for(const [pass,id] of [['normal','normal-price'],['alcohol','alcohol-price']]){
+      const node=el(id);if(!node)continue;
+      node.textContent=money(unitPrice(settings,list,pass,'single'));
+      const small=node.parentElement&&node.parentElement.querySelector('small');
+      if(small)small.textContent=`${list==='early'?'early bird · ':''}per person · couples and groups of 4+ ${money(unitPrice(settings,list,pass,'group'))} each`;
+    }
+  }
+  // While the early bird is open: how long is left and how many passes. It
+  // refreshes every minute, so prices switch back as soon as it ends.
+  function renderEarlyBird(){
+    const hint=el('pass-limit-hint');if(!hint)return;
+    let banner=el('early-bird-banner');
+    if(!banner){banner=document.createElement('p');banner.id='early-bird-banner';banner.className='early-bird-banner';banner.setAttribute('role','status');hint.after(banner);}
+    const ends=earlyBird&&earlyBird.endsAt?Date.parse(earlyBird.endsAt):NaN;
+    const open=!!(earlyBird&&earlyBird.open&&ends>Date.now());
+    banner.hidden=!open;
+    if(!open){clearInterval(earlyTimer);earlyTimer=null;return;}
+    const left=ends-Date.now(),days=Math.floor(left/864e5),hours=Math.floor(left%864e5/36e5),minutes=Math.floor(left%36e5/6e4);
+    banner.textContent=`Early-bird prices end in ${days>0?`${days}d ${hours}h`:`${hours}h ${minutes}m`} · ${earlyBird.left} early-bird ${earlyBird.left===1?'pass':'passes'} left. For bookings paid in full; pre-bookings pay regular prices.`;
+    if(!earlyTimer)earlyTimer=setInterval(()=>{summary();passCardPrices();},60000);
+  }
+  // ---------- Offers ----------
+  // Shown where they help a guest decide, and quietly: the event page lists
+  // them, and the later steps say what is applied and what one more guest
+  // would change. Every figure comes from the prices the server charges.
+  const tierName=pass=>pass==='alcohol'?'Gold':'Silver';
+  const offerPriceList=()=>earlyBirdAvailable(1)?'early':'regular';
+  function earlyEndLabel(){return earlyBird&&earlyBird.endsAt?new Intl.DateTimeFormat('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'}).format(new Date(earlyBird.endsAt)):'';}
+  function joinWords(words){return words.length<2?words.join(''):`${words.slice(0,-1).join(', ')} and ${words.at(-1)}`;}
+  function appliedOffer(q){
+    if(q.totalPaise===null||q.savingPaise<=0)return '';
+    const parts=[];
+    if(q.priceList==='early')parts.push('early-bird prices');
+    if(q.lines.some(line=>line.fare==='couple'))parts.push('the couple price');
+    if(q.lines.some(line=>line.fare==='group'))parts.push('the group price');
+    const words=joinWords(parts);
+    return words?`${words[0].toUpperCase()}${words.slice(1)} applied: you save ${money(q.savingPaise/100)}.`:'';
+  }
+  // One suggestion at a time, Gold first: what one or two more people on the
+  // same pass would change, priced exactly as the booking would be.
+  function upsell(){
+    const q=currentQuote();
+    if(q.totalPaise===null)return null;
+    const room=settings.maxPerBooking-state.length;
+    const priceWith=extra=>quoteBooking([...state,...extra],settings,{plan,earlyBird:earlyBirdAvailable(state.length+extra.length)});
+    for(const pass of ['alcohol','normal']){
+      const idx=[];state.forEach((guest,i)=>{if(guest.pass===pass)idx.push(i);});
+      const tier=tierName(pass);
+      if(idx.length===3&&room>=1){
+        const each=priceWith([{pass,gender:''}]).lines[idx[0]].unitPaise;
+        const saving=idx.reduce((sum,i)=>sum+q.lines[i].unitPaise,0)-3*each;
+        if(saving>0)return {pass,action:'Add a guest',text:`Add one more ${tier} guest and all four pay the group price of ${money(each/100)} each, saving the three of you ${money(saving/100)}.`};
+      }
+      if(idx.length===2&&room>=2&&state[idx[0]].gender&&state[idx[1]].gender&&q.lines[idx[0]].fare==='single'){
+        const each=priceWith([{pass,gender:''},{pass,gender:''}]).lines[idx[0]].unitPaise;
+        if(each<q.lines[idx[0]].unitPaise)return {pass,action:'Add a guest',text:`Two more on ${tier} make a group of 4, and everyone on ${tier} pays ${money(each/100)} each instead of ${money(q.lines[idx[0]].unitPaise/100)}.`};
+      }
+      if(idx.length===1&&room>=1){
+        const partner=state[idx[0]].gender==='woman'?'man':'woman';
+        const each=priceWith([{pass,gender:partner}]).lines[idx[0]].unitPaise,single=q.lines[idx[0]].unitPaise;
+        if(each<single)return {pass,action:'Add a partner',text:`Coming with a partner? Two people of different genders on ${tier} pay ${money(each/100)} each instead of ${money(single/100)}.`};
+      }
+    }
+    return null;
+  }
+  function addGuest(pass){
+    if(state.length>=settings.maxPerBooking)return;
+    state.push({name:'',email:'',instagram:'',phone:'',dob:'',age:'',gender:'',pass});
+    render();saveDraft();
+    setTimeout(()=>el(`guest-${state.length-1}-name`)?.focus(),60);
+  }
+  function offerBox(id,anchor,where){
+    let box=el(id);
+    if(!box&&anchor){box=document.createElement('div');box.id=id;box.className='offer-hint';box.setAttribute('aria-live','polite');anchor[where](box);}
+    return box;
+  }
+  function fillOfferBox(box,lines,hint,onAction){
+    if(!box)return;
+    const rows=lines.filter(Boolean).map(text=>{const row=document.createElement('p');row.textContent=text;return row;});
+    if(hint){
+      const row=document.createElement('p');row.textContent=hint.text+' ';
+      const action=document.createElement('button');action.type='button';action.className='offer-action';action.textContent=hint.action;
+      action.addEventListener('click',()=>onAction(hint.pass));row.append(action);rows.push(row);
+    }
+    box.replaceChildren(...rows);box.hidden=rows.length===0;
+  }
+  function renderOffers(){
+    if(settingsLoaded){
+      // The event page: a quiet row under the main button, and the full list
+      // under the pass cards.
+      const list=offerPriceList();
+      const hero=el('hero-offers');
+      if(hero){
+        const items=[];
+        if(list==='early')items.push(`Early bird until ${earlyEndLabel()}`);
+        items.push(`Couples and groups of 4+ from ${money(Math.min(unitPrice(settings,list,'normal','group'),unitPrice(settings,list,'alcohol','group')))} each`);
+        if(settings.prebookEnabled)items.push(`Pre-book with ${money(settings.depositPerPerson)} a person`);
+        hero.replaceChildren(...items.map(text=>{const item=document.createElement('li');item.textContent=text;return item;}));hero.hidden=false;
+      }
+      const ways=el('offer-list');
+      if(ways){
+        const rows=[];
+        if(list==='early')rows.push(['Early bird',`Silver ${money(unitPrice(settings,'early','normal','single'))} and Gold ${money(unitPrice(settings,'early','alcohol','single'))} until ${earlyEndLabel()}, when you pay in full.`]);
+        rows.push(['Couple',`Two people of different genders on the same pass pay ${money(unitPrice(settings,list,'normal','group'))} each on Silver, ${money(unitPrice(settings,list,'alcohol','group'))} on Gold.`]);
+        rows.push(['Group of 4+','Four or more on the same pass each pay that same lower price, whatever the mix.']);
+        if(settings.prebookEnabled)rows.push(['Pre-book',`Hold your places with ${money(settings.depositPerPerson)} a person and pay the rest later, at regular prices. Entry is by QR pass, issued once paid in full.`]);
+        ways.replaceChildren(...rows.map(([title,text])=>{const item=document.createElement('li'),name=document.createElement('strong'),detail=document.createElement('span');name.textContent=title;detail.textContent=text;item.append(name,detail);return item;}));
+        if(el('offer-list-wrap'))el('offer-list-wrap').hidden=false;
+      }
+    }
+    // Attendees and review: what is applied, and what one more guest would change.
+    const q=currentQuote(),applied=appliedOffer(q),hint=upsell();
+    const goAdd=pass=>{addGuest(pass);showStep(2);};
+    fillOfferBox(offerBox('guests-offer',el('your-guests')?.querySelector('.step-nav'),'before'),[applied],hint,addGuest);
+    fillOfferBox(offerBox('review-offer',el('review-total')?.closest('.subtotal'),'after'),[applied],hint,goAdd);
+    // Payment: what paying in full keeps while the early bird is open.
+    const full=currentQuote('full'),pre=currentQuote('prebook');
+    let compare='';
+    if(settings.prebookEnabled&&full.priceList==='early'&&full.totalPaise!==null&&pre.totalPaise!==null&&pre.totalPaise>full.totalPaise){
+      compare=`${plan==='prebook'?'Paying in full now':'Paying in full'} keeps early-bird prices: ${money((pre.totalPaise-full.totalPaise)/100)} less than pre-booking.`;
+    }
+    fillOfferBox(offerBox('payment-offer',el('plan-choice'),'after'),[compare],hint,goAdd);
   }
   function input(labelText,property,index,{type='text',placeholder='',maxLength=100,required=true}={}){
     const label=required?requiredLabel(labelText):optionalLabel(labelText);
@@ -132,23 +289,33 @@ if(typeof document!=='undefined'){
       const grid=document.createElement('div');grid.className='field-grid';
       grid.append(
         input('Full name','name',index,{placeholder:'Aarav Sharma'}),
-        input('Email address','email',index,{type:'email',placeholder:'aarav@example.com',maxLength:100,required:false}),
-        input('Instagram username','instagram',index,{placeholder:'@username',maxLength:31,required:false}),
-        input('Phone number','phone',index,{type:'tel',placeholder:'+91 98765 43210',maxLength:20,required:false})
+        input('Email address','email',index,{type:'email',placeholder:'aarav@example.com',maxLength:100}),
+        input('Phone number','phone',index,{type:'tel',placeholder:'+91 98765 43210',maxLength:20}),
+        input('Instagram username','instagram',index,{placeholder:'@username',maxLength:31,required:false})
       );
       const dobLabel=requiredLabel('Date of birth');
       const dob=document.createElement('input');dob.type='date';dob.id=`guest-${index}-dob`;dob.name=`attendees[${index}][dob]`;dob.required=true;dob.value=guest.dob;{const day=String(settings.eventDate||'');if(/^\d{4}-\d{2}-\d{2}$/.test(day)){const y=Number(day.slice(0,4)),md=day.slice(4);dob.max=(y-20)+md;dob.min=(y-100)+md;}}
       dobLabel.append(dob,describeField(dob,`Attendee ${index+1}: date of birth`));grid.append(dobLabel);
+      // Gender decides couple pricing, and the gate checks it against photo ID.
+      const genderLabel=requiredLabel('Gender');const gender=document.createElement('select');gender.id=`guest-${index}-gender`;gender.name=`attendees[${index}][gender]`;gender.required=true;
+      gender.append(new Option('Choose…',''),...GENDERS.map(value=>new Option(GENDER_LABELS[value],value)));gender.value=guest.gender||'';
+      gender.addEventListener('change',()=>{guest.gender=gender.value;summary();});
+      genderLabel.append(gender,describeField(gender,`Attendee ${index+1}: gender`));grid.append(genderLabel);
       const passLabel=requiredLabel('Pass type');const pass=document.createElement('select');pass.id=`guest-${index}-pass`;pass.name=`attendees[${index}][pass]`;pass.required=true;
-      pass.append(new Option(`Silver \u00b7 ${money(settings.normalPrice)} base`,'normal'),new Option(`Gold \u00b7 ${money(settings.alcoholPrice)} base \u00b7 21+`,'alcohol'));pass.value=guest.pass;pass.options[1].disabled=ageBracket(guest.dob)!=='21plus';
+      pass.append(new Option('Silver','normal'),new Option('Gold · 21+','alcohol'));pass.value=guest.pass;pass.options[1].disabled=ageBracket(guest.dob)!=='21plus';
       dob.addEventListener('input',()=>{guest.dob=dob.value;const bracket=ageBracket(dob.value);guest.age=bracket||'';if(bracket!=='21plus'&&guest.pass==='alcohol'){guest.pass='normal';pass.value='normal';}pass.options[1].disabled=bracket!=='21plus';summary();});
       pass.addEventListener('change',()=>{guest.pass=pass.value;summary();});passLabel.append(pass,describeField(pass,`Attendee ${index+1}: pass type`));grid.append(passLabel);section.append(grid);el('attendees').append(section);
     });summary();refreshReadiness();
   }
-  el('plus').addEventListener('click',()=>{if(state.length<settings.maxPerBooking){state.push({name:'',email:'',instagram:'',phone:'',dob:'',age:'',pass:'normal'});render();saveDraft();}});
+  el('plus').addEventListener('click',()=>{if(state.length<settings.maxPerBooking){state.push({name:'',email:'',instagram:'',phone:'',dob:'',age:'',gender:'',pass:'normal'});render();saveDraft();}});
   el('minus').addEventListener('click',()=>{if(state.length>1){state.pop();render();saveDraft();}});
   function copyBuyerToFirst(){for(const key of ['name','email','instagram','phone'])state[0][key]=el('buyer-'+key).value;render();}
   el('copy-buyer').addEventListener('click',()=>{mirrorBuyer=true;copyBuyerToFirst();});
+  el('plan-choice')?.addEventListener('change',event=>{
+    if(event.target.name!=='booking-plan')return;
+    plan=event.target.value==='prebook'?'prebook':'full';summary();
+    window.dispatchEvent(new Event('booking-readiness-updated'));
+  });
   // A lone attendee is almost always the buyer, so their details follow the
   // booking contact until someone edits the attendee fields directly.
   function syncBuyerToAttendee(){
@@ -165,7 +332,7 @@ if(typeof document!=='undefined'){
   // time the step opens rather than only when a button is pressed.
   function detailLine(label,value){return value&&String(value).trim()?`${label}: ${String(value).trim()}`:'';}
   function renderReview(){
-    const total=calculateBooking(state,settings);
+    const q=currentQuote();
     el('review-buyer').textContent=[
       detailLine('Booking contact',el('buyer-name').value),
       detailLine('Email',el('buyer-email').value),
@@ -177,12 +344,11 @@ if(typeof document!=='undefined'){
       const name=document.createElement('strong');
       name.textContent=`${i+1}. ${guest.name.trim()||'Attendee '+(i+1)}`;
       const pass=document.createElement('span');
-      pass.textContent=guest.pass==='alcohol'
-        ?`Gold pass \u00b7 ${money(settings.alcoholPrice)} base \u00b7 21+`
-        :`Silver pass \u00b7 ${money(settings.normalPrice)} base`;
+      pass.textContent=`${passLabel(guest.pass,q.lines[i].fare)} · ${money(q.lines[i].unitPaise/100)}`;
       const extra=document.createElement('span');
       extra.textContent=[
         detailLine('Date of birth',guest.dob),
+        detailLine('Gender',GENDER_LABELS[guest.gender]),
         detailLine('Email',guest.email),
         detailLine('Phone',guest.phone),
         detailLine('Instagram',guest.instagram),
@@ -190,13 +356,13 @@ if(typeof document!=='undefined'){
       row.append(name,pass);if(extra.textContent)row.append(extra);
       return row;
     }));
-    el('review-total').textContent=money(total.subtotal);
+    el('review-total').textContent=money((q.totalPaise??q.subtotalPaise)/100);
     if(!el('review-edit-contact')){
       const edit=(id,text,step)=>{const button=document.createElement('button');button.type='button';button.id=id;button.className='review-edit';button.textContent=text;button.addEventListener('click',()=>showStep(step));return button;};
       el('review-buyer').after(edit('review-edit-contact','Edit contact details',1));
       el('review-guests').after(edit('review-edit-guests','Edit attendees',2));
     }
-    el('review-notice').textContent=(total.total===null?'Final charges are pending.':`Additional charges: ${money(total.extraCharges)}. Total payable: ${money(total.total)}.`)+' No booking has been saved, no places have been reserved, and no payment has been taken.';
+    el('review-notice').textContent=(q.totalPaise===null?'Final charges are pending.':`Total: ${money(q.totalPaise/100)}.${settings.prebookEnabled?' On the next step, pay in full or pre-book with a deposit.':''}`)+' No booking has been saved, no places have been reserved, and no payment has been taken.';
   }
   el('booking-form').addEventListener('submit',event=>{
     event.preventDefault();el('form-message').textContent='';
@@ -217,8 +383,8 @@ if(typeof document!=='undefined'){
       if(!draft||draft.v!==1)return 0;
       for(const key of ['name','email','instagram','phone'])if(typeof draft.buyer?.[key]==='string')el('buyer-'+key).value=draft.buyer[key];
       if(Array.isArray(draft.attendees)&&draft.attendees.length){
-        const blank={name:'',email:'',instagram:'',phone:'',dob:'',age:'',pass:'normal'};
-        state.splice(0,state.length,...draft.attendees.slice(0,5).map(guest=>({...blank,...guest})));
+        const blank={name:'',email:'',instagram:'',phone:'',dob:'',age:'',gender:'',pass:'normal'};
+        state.splice(0,state.length,...draft.attendees.slice(0,10).map(guest=>({...blank,...guest})));
         state.forEach(guest=>{guest.age=ageBracket(guest.dob)||'';if(guest.pass==='alcohol'&&guest.age!=='21plus')guest.pass='normal';});
       }
       mirrorBuyer=draft.mirrorBuyer!==false;
@@ -294,8 +460,8 @@ if(typeof document!=='undefined'){
   }
   async function loadSettings(){
     try{
-      const response=await fetch('/api/public-settings',{cache:'no-store'});if(!response.ok)throw new Error('Could not load event settings.');
-      const data=await response.json();settings={...DEFAULT_SETTINGS,...data.settings};
+      const response=await fetch('/api/public-settings'+(new URLSearchParams(location.search).get('mode')==='test'?'?mode=test':''),{cache:'no-store'});if(!response.ok)throw new Error('Could not load event settings.');
+      const data=await response.json();settings={...DEFAULT_SETTINGS,...data.settings};earlyBird=data.earlyBird||null;
       el('event-title').firstChild.textContent=settings.eventName;
       el('event-kicker').textContent=`THE FIRST CHAPTER / ${dateLabel().toUpperCase()}`;
       el('event-date').textContent=new Intl.DateTimeFormat('en-IN',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'}).format(new Date(settings.eventDate+'T00:00:00Z'));
@@ -323,14 +489,15 @@ if(typeof document!=='undefined'){
       el('footer-copyright').textContent=`© ${new Date().getFullYear()} Potentiaa. All rights reserved.`;
       applyBrand('potentiaa',settings.potentiaaLogo,settings.potentiaaPhone);
       applyBrand('avyanta',settings.avyantaLogo,settings.avyantaPhone);
-      el('pass-limit-hint').textContent=`Entry is for guests aged 20 and over. Choose up to ${settings.maxPerBooking} passes per booking; mixing pass types is welcome.`;
+      el('pass-limit-hint').textContent=`Entry is for guests aged 20 and over. Choose up to ${settings.maxPerBooking} passes per booking; mixing pass types is welcome. Couples, and groups of 4 or more on the same pass, pay less each.`;
       el('normal-benefits').textContent=settings.normalDescription;el('alcohol-benefits').textContent=settings.alcoholDescription;
-      el('normal-price').textContent=money(settings.normalPrice);el('alcohol-price').textContent=money(settings.alcoholPrice);
+      passCardPrices();
       el('summary-name').textContent=settings.eventName;el('summary-date').textContent=`${dateLabel()} · ${time(settings.startTime)}`;el('summary-venue').textContent=settings.venueName;
       el('support-phone').textContent=settings.supportPhone;el('support-phone').href='tel:'+settings.supportPhone.replace(/[^+\d]/g,'');
       el('support-email').hidden=!settings.supportEmail;if(settings.supportEmail){el('support-email').textContent=settings.supportEmail;el('support-email').href='mailto:'+settings.supportEmail;}
       el('merchant-name').textContent=settings.merchantName;
       el('bar-rule').textContent=`Gold passes are for attendees aged 21 or over. Last service is at ${time(settings.barCloseTime)}.`;
+      if(el('prebook-rule'))el('prebook-rule').hidden=!settings.prebookEnabled;
       settingsLoaded=true;el('settings-load-state').hidden=true;render();
     }catch{settingsLoaded=false;el('settings-load-state').textContent='Event settings could not be loaded. Please reload before reviewing a booking.';refreshReadiness();}
   }

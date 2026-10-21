@@ -1,7 +1,11 @@
 import crypto from 'crypto';
-import { EventSettings, DEFAULT_SETTINGS } from './event-settings';
+import { EventSettings, MAX_PER_BOOKING_LIMIT } from './event-settings';
 import { POLICY_VERSION } from './policy-content';
 import { duplicateWithinBooking } from './contact-guard';
+import { GENDERS } from '../../public/axp/pricing.js';
+
+export type Gender = 'woman' | 'man' | 'nonbinary';
+export type Fare = 'single' | 'couple' | 'group';
 
 export interface AttendeeInput {
   name: string;
@@ -10,6 +14,11 @@ export interface AttendeeInput {
   email?: string;
   age: '20' | '21plus';
   pass: 'normal' | 'alcohol';
+  /** Required for bookings made since couple pricing; older bookings lack it. */
+  gender?: Gender;
+  /** The fare and per-person price this attendee was charged, fixed at booking. */
+  fare?: Fare;
+  unitPaise?: number;
 }
 
 export interface BuyerInput {
@@ -19,61 +28,9 @@ export interface BuyerInput {
   email: string;
 }
 
-export interface BookingCalculation {
-  normal: number;
-  alcohol: number;
-  people: number;
-  subtotal: number;
-  extraCharges: number | null;
-  total: number | null;
-}
-
-export function calculateBooking(
-  attendees: AttendeeInput[],
-  settings: EventSettings = DEFAULT_SETTINGS
-): BookingCalculation {
-  if (
-    !Array.isArray(attendees) ||
-    attendees.length < 1 ||
-    attendees.length > Math.min(settings.maxPerBooking, 5)
-  ) {
-    throw new Error(`Choose between 1 and ${Math.min(settings.maxPerBooking, 5)} attendees.`);
-  }
-
-  let normal = 0;
-  let alcohol = 0;
-
-  for (const guest of attendees) {
-    if (!['normal', 'alcohol'].includes(guest.pass)) {
-      throw new Error('Choose a valid pass type.');
-    }
-    if (guest.pass === 'alcohol' && guest.age !== '21plus') {
-      throw new Error('Gold passes require age 21 or over.');
-    }
-    if (guest.pass === 'normal') normal++;
-    else alcohol++;
-  }
-
-  const subtotalPaise =
-    normal * Math.round(settings.normalPrice * 100) +
-    alcohol * Math.round(settings.alcoholPrice * 100);
-
-  const extrasPaise =
-    settings.chargesConfirmed &&
-    settings.extraPerPerson !== null &&
-    settings.extraPerBooking !== null
-      ? attendees.length * Math.round(settings.extraPerPerson * 100) +
-        Math.round(settings.extraPerBooking * 100)
-      : null;
-
-  return {
-    normal,
-    alcohol,
-    people: attendees.length,
-    subtotal: subtotalPaise / 100,
-    extraCharges: extrasPaise === null ? null : extrasPaise / 100,
-    total: extrasPaise === null ? null : (subtotalPaise + extrasPaise) / 100,
-  };
+/** The most attendees a booking may hold under these settings. */
+export function bookingLimit(settings: EventSettings): number {
+  return Math.min(settings.maxPerBooking, MAX_PER_BOOKING_LIMIT);
 }
 
 export function sha256(value: string): string {
@@ -131,9 +88,8 @@ export function ageBracketFromDob(dob: string, eventDate: string): '20' | '21plu
 }
 
 /**
- * Instagram is optional for everyone, and a phone number is optional for
- * attendees: the booking contact is the one we must be able to reach. An
- * attendee without a number simply gets no WhatsApp pass.
+ * Instagram is optional for everyone. Every person on a booking gives a phone
+ * number: it is how a pass reaches them and how one pass per person is held.
  */
 function person(value: any, label: string, options: { requirePhone?: boolean } = {}) {
   if (!value || typeof value !== 'object') throw new Error(`Enter ${label}.`);
@@ -156,8 +112,20 @@ function person(value: any, label: string, options: { requirePhone?: boolean } =
   return { name, instagram, phone };
 }
 
-export function validateBookingInput(input: any, settings: EventSettings) {
-  if (!input || input.terms !== true) {
+/**
+ * The buyer and attendees of a booking, checked and cleaned. Prices are not
+ * worked out here: the caller quotes them with the pricing engine once it
+ * knows whether the early bird is open to this booking.
+ *
+ * Organiser-entered bookings pass requireTerms: false, since the guest
+ * accepted the terms in person rather than on the form.
+ */
+export function validateBookingInput(
+  input: any,
+  settings: EventSettings,
+  { requireTerms = true }: { requireTerms?: boolean } = {}
+) {
+  if (!input || (requireTerms && input.terms !== true)) {
     throw new Error('Complete the required details and acknowledge the terms.');
   }
 
@@ -170,17 +138,13 @@ export function validateBookingInput(input: any, settings: EventSettings) {
     throw new Error('Check the ticket email.');
   }
 
-  if (
-    !Array.isArray(input.attendees) ||
-    input.attendees.length < 1 ||
-    input.attendees.length > settings.maxPerBooking ||
-    input.attendees.length > 5
-  ) {
-    throw new Error(`Choose 1–${Math.min(settings.maxPerBooking, 5)} attendees.`);
+  const limit = bookingLimit(settings);
+  if (!Array.isArray(input.attendees) || input.attendees.length < 1 || input.attendees.length > limit) {
+    throw new Error(`Choose 1–${limit} attendees. For a larger group, contact event support.`);
   }
 
   const attendees: AttendeeInput[] = input.attendees.map((guest: any, i: number) => {
-    const p = person(guest, `attendee ${i + 1}`, { requirePhone: false });
+    const p = person(guest, `attendee ${i + 1}`);
 
     // A date of birth is what the form now asks for; the older age bracket is
     // still accepted so a booking in flight during a deploy does not fail.
@@ -200,12 +164,20 @@ export function validateBookingInput(input: any, settings: EventSettings) {
         `Attendee ${i + 1} must be 21 or older on the event date for a Gold pass.`
       );
     }
+    // Attendee 1 is usually the booking contact, so their email may be left
+    // to the contact's; everyone else needs their own, for their own pass.
     const guestEmail = typeof guest.email === 'string' ? guest.email.trim().toLowerCase() : '';
-    if (guestEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) {
+    const finalEmail = guestEmail || (i === 0 ? buyer.email : '');
+    if (!finalEmail) {
+      throw new Error(`Enter attendee ${i + 1}'s email address.`);
+    }
+    if (finalEmail.length > 150 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(finalEmail)) {
       throw new Error(`Check attendee ${i + 1}'s email address.`);
     }
-    const finalEmail = guestEmail || (i === 0 && buyer?.email ? buyer.email : undefined);
-    return { ...p, email: finalEmail, age, pass: guest.pass };
+    if (!(GENDERS as readonly string[]).includes(guest.gender)) {
+      throw new Error(`Choose attendee ${i + 1}'s gender.`);
+    }
+    return { ...p, email: finalEmail, age, pass: guest.pass, gender: guest.gender as Gender };
   });
 
   const duplicate = duplicateWithinBooking(attendees);
@@ -215,12 +187,7 @@ export function validateBookingInput(input: any, settings: EventSettings) {
     throw new Error('Final prices have not been confirmed by the organiser.');
   }
 
-  const total = calculateBooking(attendees, settings);
-  if (total.total === null) {
-    throw new Error('Final prices are unavailable.');
-  }
-
-  return { buyer, attendees, total, termsVersion: POLICY_VERSION };
+  return { buyer, attendees, termsVersion: POLICY_VERSION };
 }
 
 export async function bookingEntryCode(secret: string, bookingId: string): Promise<string> {

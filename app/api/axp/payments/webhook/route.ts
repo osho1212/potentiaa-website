@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hmac, safeEqual } from '@/lib/axp/payment-core';
-import { findBookingById, saveBooking } from '@/lib/axp/storage-adapter';
-import { deliverPasses } from '@/lib/axp/pass-delivery';
+import { findBookingById } from '@/lib/axp/storage-adapter';
+import { razorpayOrderFor, settlePayment } from '@/lib/axp/booking-payments';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,20 +34,24 @@ export async function POST(request: NextRequest) {
       if (bookingId && payment?.id) {
         const booking = await findBookingById(bookingId);
         const paidOrder = payment.order_id || order?.id;
-        if (booking && booking.orderId && paidOrder && paidOrder !== booking.orderId) {
-          console.error(`[Webhook] Payment ${payment.id} is for order ${paidOrder}, not booking ${bookingId}'s order; ignored.`);
-        } else if (booking && booking.status !== 'confirmed' && booking.status !== 'refunded') {
-          booking.status = 'confirmed';
-          booking.paymentId = payment.id;
-          await saveBooking(booking);
-          console.log(`[Webhook] Confirmed booking ${bookingId} via payment ${payment.id}`);
-          // The guest's browser may never come back to confirm this booking, so
-          // the webhook sends the passes itself. Delivery is once per booking,
-          // so the verify route arriving as well does not send them twice.
-          try {
-            await deliverPasses(bookingId);
-          } catch (deliveryErr) {
-            console.error(`[Webhook] Pass delivery failed for ${bookingId}:`, deliveryErr);
+        // The order must be one of this booking's own: its first order (the
+        // total, or the deposit) or one opened for its balance.
+        const match = booking ? razorpayOrderFor(booking, paidOrder) : null;
+        if (booking && !match) {
+          console.error(`[Webhook] Payment ${payment.id} is for order ${paidOrder}, not one of booking ${bookingId}'s orders; ignored.`);
+        } else if (booking && match && booking.status !== 'confirmed' && booking.status !== 'refunded') {
+          // The guest's browser may never come back to verify, so the webhook
+          // records the payment itself. A payment already recorded by the
+          // verify route changes nothing, and nothing is sent twice.
+          const outcome = await settlePayment(bookingId, {
+            kind: match.kind,
+            method: 'razorpay',
+            amountPaise: match.amountPaise,
+            orderId: paidOrder,
+            paymentId: payment.id,
+          });
+          if (outcome.recorded) {
+            console.log(`[Webhook] Recorded ${match.kind} payment ${payment.id} on booking ${bookingId}; now ${outcome.booking.status}.`);
           }
         }
       }

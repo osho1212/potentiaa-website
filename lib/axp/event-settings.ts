@@ -29,8 +29,26 @@ export interface EventSettings {
   merchantGstin: string;
   normalPrice: number;
   alcoholPrice: number;
+  /** Each, for a couple or a group of 4+ on the same pass. */
+  normalGroupPrice: number;
+  alcoholGroupPrice: number;
   normalDescription: string;
   alcoholDescription: string;
+  /** Early bird: full payment only, until the end time or the cap. */
+  earlyBirdEnabled: boolean;
+  earlyBirdEndDate: string;
+  earlyBirdEndTime: string;
+  earlyBirdCap: number;
+  earlyNormalPrice: number;
+  earlyAlcoholPrice: number;
+  earlyNormalGroupPrice: number;
+  earlyAlcoholGroupPrice: number;
+  /** Pre-booking: a deposit per person now, the balance later at regular prices. */
+  prebookEnabled: boolean;
+  depositPerPerson: number;
+  /** Balance reminder emails to pre-bookings, sent on these IST dates (YYYY-MM-DD, comma separated). */
+  remindersEnabled: boolean;
+  reminderDates: string;
   capacity: number;
   warningAt: number;
   maxPerBooking: number;
@@ -38,6 +56,9 @@ export interface EventSettings {
   extraPerBooking: number | null;
   chargesConfirmed: boolean;
 }
+
+/** The most people one booking can hold. Larger groups contact the organisers. */
+export const MAX_PER_BOOKING_LIMIT = 10;
 
 export const DEFAULT_SETTINGS: Readonly<EventSettings> = Object.freeze({
   eventName: 'Aagaz',
@@ -72,11 +93,25 @@ export const DEFAULT_SETTINGS: Readonly<EventSettings> = Object.freeze({
   merchantGstin: '',
   normalPrice: 2999,
   alcoholPrice: 3999,
+  normalGroupPrice: 2599,
+  alcoholGroupPrice: 3499,
   normalDescription: 'Entry, with soft drinks and mocktails through the evening.',
-  alcoholDescription: 'Entry, soft drinks and mocktails through the evening, plus 8 drink coupons. Exact menu and measures to be confirmed.',
+  alcoholDescription: 'Entry, with soft drinks and mocktails through the evening, and Gold benefits for guests aged 21 and over. Details to be announced.',
+  earlyBirdEnabled: true,
+  earlyBirdEndDate: '2026-10-27',
+  earlyBirdEndTime: '23:59',
+  earlyBirdCap: 60,
+  earlyNormalPrice: 2699,
+  earlyAlcoholPrice: 3599,
+  earlyNormalGroupPrice: 2450,
+  earlyAlcoholGroupPrice: 3250,
+  prebookEnabled: true,
+  depositPerPerson: 500,
+  remindersEnabled: true,
+  reminderDates: '2026-11-01, 2026-11-03',
   capacity: 200,
   warningAt: 150,
-  maxPerBooking: 5,
+  maxPerBooking: 10,
   extraPerPerson: 0,
   extraPerBooking: 0,
   chargesConfirmed: true,
@@ -103,7 +138,21 @@ const OPTIONAL_WITH_DEFAULTS = [
   'potentiaaLogo',
   'avyantaPhone',
   'avyantaLogo',
+  'earlyBirdEndDate',
+  'earlyBirdEndTime',
+  'reminderDates',
 ];
+
+/** Prices, switches and limits added with couple, group, early-bird and pre-booking pricing. */
+const NEW_NUMBERS_WITH_DEFAULTS = [
+  'normalGroupPrice',
+  'alcoholGroupPrice',
+  'earlyNormalPrice',
+  'earlyAlcoholPrice',
+  'earlyNormalGroupPrice',
+  'earlyAlcoholGroupPrice',
+  'depositPerPerson',
+] as const;
 
 /**
  * The no-API-key Google Maps embed. Takes either "lat,lng" or a place query.
@@ -153,6 +202,9 @@ export function validateSettings(input: any): EventSettings {
     paymentUrl: 500,
     normalDescription: 500,
     alcoholDescription: 500,
+    earlyBirdEndDate: 10,
+    earlyBirdEndTime: 5,
+    reminderDates: 120,
   };
 
   for (const [key, max] of Object.entries(textFields)) {
@@ -259,8 +311,12 @@ export function validateSettings(input: any): EventSettings {
   }
   out.paymentUrl = url.href;
 
-  for (const key of ['normalPrice', 'alcoholPrice', 'extraPerPerson', 'extraPerBooking']) {
-    const value = input[key];
+  for (const key of ['normalPrice', 'alcoholPrice', ...NEW_NUMBERS_WITH_DEFAULTS, 'extraPerPerson', 'extraPerBooking']) {
+    // A form saved before these prices existed does not send them.
+    const value =
+      (NEW_NUMBERS_WITH_DEFAULTS as readonly string[]).includes(key) && input[key] == null
+        ? (DEFAULT_SETTINGS as any)[key]
+        : input[key];
     if ((key === 'extraPerPerson' || key === 'extraPerBooking') && value === null) {
       out[key] = null;
       continue;
@@ -274,19 +330,24 @@ export function validateSettings(input: any): EventSettings {
     ) {
       throw new Error('Prices and charges must be valid rupee amounts with up to two decimals.');
     }
-    if ((key === 'normalPrice' || key === 'alcoholPrice') && value === 0) {
-      throw new Error('Pass prices must be greater than zero.');
+    if (key !== 'extraPerPerson' && key !== 'extraPerBooking' && value === 0) {
+      throw new Error('Pass prices and the pre-booking deposit must be greater than zero.');
     }
     out[key] = value;
   }
 
-  for (const [key, max] of [
-    ['capacity', 10000],
-    ['warningAt', 10000],
-    ['maxPerBooking', 5],
+  if (out.depositPerPerson > Math.min(out.normalPrice, out.normalGroupPrice, out.alcoholPrice, out.alcoholGroupPrice)) {
+    throw new Error('The pre-booking deposit cannot be more than the cheapest regular price.');
+  }
+
+  for (const [key, min, max] of [
+    ['capacity', 1, 10000],
+    ['warningAt', 1, 10000],
+    ['maxPerBooking', 1, MAX_PER_BOOKING_LIMIT],
+    ['earlyBirdCap', 0, 10000],
   ] as const) {
-    const v = input[key];
-    if (!Number.isInteger(v) || v < 1 || v > max) throw new Error(`Check ${key}.`);
+    const v = key === 'earlyBirdCap' && input[key] == null ? DEFAULT_SETTINGS.earlyBirdCap : input[key];
+    if (!Number.isInteger(v) || v < min || v > max) throw new Error(`Check ${key}.`);
     out[key] = v;
   }
 
@@ -294,10 +355,34 @@ export function validateSettings(input: any): EventSettings {
     throw new Error('Early warning cannot exceed capacity.');
   }
 
-  out.whatsappEnabled =
-    typeof input.whatsappEnabled === 'boolean'
-      ? input.whatsappEnabled
-      : DEFAULT_SETTINGS.whatsappEnabled;
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(out.earlyBirdEndDate) ||
+    Number.isNaN(Date.parse(out.earlyBirdEndDate + 'T00:00:00Z')) ||
+    !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(out.earlyBirdEndTime)
+  ) {
+    throw new Error('Enter a valid early-bird end date and time.');
+  }
+
+  // Reminder dates: any number up to ten, each a real date, kept in order.
+  const reminderDates = out.reminderDates
+    ? out.reminderDates.split(',').map((part: string) => part.trim()).filter(Boolean)
+    : [];
+  if (
+    reminderDates.length > 10 ||
+    reminderDates.some(
+      (day: string) =>
+        !/^\d{4}-\d{2}-\d{2}$/.test(day) ||
+        Number.isNaN(Date.parse(day + 'T00:00:00Z')) ||
+        new Date(day + 'T00:00:00Z').toISOString().slice(0, 10) !== day
+    )
+  ) {
+    throw new Error('Enter balance reminder dates as YYYY-MM-DD, separated by commas.');
+  }
+  out.reminderDates = [...new Set(reminderDates)].sort().join(', ');
+
+  for (const key of ['whatsappEnabled', 'earlyBirdEnabled', 'prebookEnabled', 'remindersEnabled'] as const) {
+    out[key] = typeof input[key] === 'boolean' ? input[key] : DEFAULT_SETTINGS[key];
+  }
 
   if (typeof input.chargesConfirmed !== 'boolean') {
     throw new Error('Check whether final charges are confirmed.');

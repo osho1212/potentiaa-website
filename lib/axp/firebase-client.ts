@@ -1,47 +1,52 @@
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import {
-  getFirestore,
-  Firestore,
-  doc,
-  getDoc,
-  setDoc,
-  getDocs,
-  collection,
-  query,
-  updateDoc,
-} from 'firebase/firestore';
-import {
-  getStorage,
-  FirebaseStorage,
-  ref,
-  uploadBytes,
-  getDownloadURL,
-} from 'firebase/storage';
+import { initializeApp, getApps, cert, App } from 'firebase-admin/app';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
+import { getStorage, getDownloadURL } from 'firebase-admin/storage';
 import type { BookingRecord } from './storage-adapter';
 import type { EventSettings } from './event-settings';
 
-const firebaseConfig = {
-  projectId: process.env.FIREBASE_PROJECT_ID || 'potentia-projects',
-  apiKey: process.env.FIREBASE_API_KEY || 'AIzaSyByNw2L4gVeGXiETsbPa8hrVN8VOgTzc5A',
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'potentia-projects.firebasestorage.app',
-  appId: process.env.FIREBASE_APP_ID || '1:10477941048:web:a3c5c6f4acb3863f4991cd',
-};
+/**
+ * Only this server reads or writes the guest database. It signs in with a
+ * service account through the Admin SDK, which the security rules do not
+ * apply to, and the rules (firestore.rules, storage.rules) refuse everyone
+ * else. Guests' phone numbers, emails and dates of birth used to be readable
+ * by anyone holding the project's public web config; they no longer are.
+ *
+ * The key comes from FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY, copied
+ * from a service account key file of the potentia-projects project.
+ */
+const EXPECTED_PROJECT = process.env.FIREBASE_PROJECT_ID || 'potentia-projects';
 
-function getFirebaseApp(): FirebaseApp {
-  const name = 'axp-social-firebase';
+function getFirebaseApp(): App {
+  const name = 'axp-social-admin';
   const existing = getApps().find(app => app.name === name);
   if (existing) {
     return existing;
   }
-  return initializeApp(firebaseConfig, name);
+
+  const clientEmail = (process.env.FIREBASE_CLIENT_EMAIL || '').trim();
+  // Vercel keeps a pasted key's line breaks, but a key copied out of the JSON
+  // file arrives with them written as "\n"; both work.
+  const privateKey = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n').trim();
+  if (!clientEmail || !privateKey) {
+    throw new Error('FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY are not set, so the guest database cannot be reached.');
+  }
+  // A key from the wrong project would open an empty database: no settings,
+  // no bookings to count against capacity or check contacts against.
+  if (!clientEmail.endsWith(`@${EXPECTED_PROJECT}.iam.gserviceaccount.com`)) {
+    throw new Error(`The Firebase service account ${clientEmail} is not from the ${EXPECTED_PROJECT} project.`);
+  }
+
+  return initializeApp(
+    {
+      credential: cert({ projectId: EXPECTED_PROJECT, clientEmail, privateKey }),
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || `${EXPECTED_PROJECT}.firebasestorage.app`,
+    },
+    name
+  );
 }
 
 export function getFirebaseDb(): Firestore {
   return getFirestore(getFirebaseApp());
-}
-
-export function getFirebaseStorageInstance(): FirebaseStorage {
-  return getStorage(getFirebaseApp());
 }
 
 /**
@@ -50,8 +55,7 @@ export function getFirebaseStorageInstance(): FirebaseStorage {
 export async function saveBookingFirestore(booking: BookingRecord): Promise<void> {
   try {
     const db = getFirebaseDb();
-    const docRef = doc(db, 'axp_bookings', booking.id);
-    await setDoc(docRef, JSON.parse(JSON.stringify(booking)), { merge: true });
+    await db.collection('axp_bookings').doc(booking.id).set(JSON.parse(JSON.stringify(booking)), { merge: true });
   } catch (error) {
     console.error(`[Firebase] Failed to save booking ${booking.id}:`, error);
     throw error;
@@ -64,7 +68,7 @@ export async function saveBookingFirestore(booking: BookingRecord): Promise<void
  */
 export async function saveBookingFieldsFirestore(id: string, fields: Record<string, unknown>): Promise<void> {
   const db = getFirebaseDb();
-  await setDoc(doc(db, 'axp_bookings', id), JSON.parse(JSON.stringify(fields)), { merge: true });
+  await db.collection('axp_bookings').doc(id).set(JSON.parse(JSON.stringify(fields)), { merge: true });
 }
 
 /**
@@ -74,9 +78,8 @@ export async function saveBookingFieldsFirestore(id: string, fields: Record<stri
 export async function getBookingFirestore(id: string): Promise<BookingRecord | null> {
   try {
     const db = getFirebaseDb();
-    const docRef = doc(db, 'axp_bookings', id);
-    const snap = await getDoc(docRef);
-    if (!snap.exists()) {
+    const snap = await db.collection('axp_bookings').doc(id).get();
+    if (!snap.exists) {
       return null;
     }
     return snap.data() as BookingRecord;
@@ -93,8 +96,7 @@ export async function getBookingFirestore(id: string): Promise<BookingRecord | n
 export async function getAllBookingsFirestore(): Promise<Record<string, BookingRecord>> {
   try {
     const db = getFirebaseDb();
-    const colRef = collection(db, 'axp_bookings');
-    const snap = await getDocs(query(colRef));
+    const snap = await db.collection('axp_bookings').get();
     const result: Record<string, BookingRecord> = {};
     snap.forEach(d => {
       result[d.id] = d.data() as BookingRecord;
@@ -111,14 +113,13 @@ export async function getAllBookingsFirestore(): Promise<Record<string, BookingR
  */
 export async function saveStallEnquiryFirestore(enquiry: any): Promise<void> {
   const db = getFirebaseDb();
-  const docRef = doc(db, 'axp_stall_enquiries', enquiry.id);
-  await setDoc(docRef, JSON.parse(JSON.stringify(enquiry)), { merge: true });
+  await db.collection('axp_stall_enquiries').doc(enquiry.id).set(JSON.parse(JSON.stringify(enquiry)), { merge: true });
 }
 
 export async function getAllStallEnquiriesFirestore(): Promise<Record<string, any>> {
   try {
     const db = getFirebaseDb();
-    const snap = await getDocs(query(collection(db, 'axp_stall_enquiries')));
+    const snap = await db.collection('axp_stall_enquiries').get();
     const result: Record<string, any> = {};
     snap.forEach((d) => {
       result[d.id] = d.data();
@@ -131,7 +132,8 @@ export async function getAllStallEnquiriesFirestore(): Promise<Record<string, an
 }
 
 /**
- * Mark an attendee as checked in atomically in Firestore
+ * Mark an attendee as checked in. The read and the write are one transaction,
+ * so two gate phones scanning the same booking cannot overwrite each other.
  */
 export async function updateCheckInFirestore(
   bookingId: string,
@@ -140,27 +142,29 @@ export async function updateCheckInFirestore(
 ): Promise<boolean> {
   try {
     const db = getFirebaseDb();
-    const docRef = doc(db, 'axp_bookings', bookingId);
-    const snap = await getDoc(docRef);
-    if (!snap.exists()) {
-      return false;
-    }
-    const booking = snap.data() as BookingRecord;
-    const attendees = (booking.attendees || []).map(a => {
-      if (a.id === attendeeId) {
-        return { ...a, checkedIn: true, checkedInAt };
+    const docRef = db.collection('axp_bookings').doc(bookingId);
+    return await db.runTransaction(async (tx) => {
+      const snap = await tx.get(docRef);
+      if (!snap.exists) {
+        return false;
       }
-      return a;
+      const booking = snap.data() as BookingRecord;
+      const attendees = (booking.attendees || []).map(a => {
+        if (a.id === attendeeId) {
+          return { ...a, checkedIn: true, checkedInAt };
+        }
+        return a;
+      });
+      const checkedInAttendees = Array.from(
+        new Set([...(booking.checkedInAttendees || []), attendeeId])
+      );
+      tx.update(docRef, JSON.parse(JSON.stringify({
+        attendees,
+        checkedInAttendees,
+        updatedAt: checkedInAt,
+      })));
+      return true;
     });
-    const checkedInAttendees = Array.from(
-      new Set([...(booking.checkedInAttendees || []), attendeeId])
-    );
-    await updateDoc(docRef, {
-      attendees,
-      checkedInAttendees,
-      updatedAt: checkedInAt,
-    });
-    return true;
   } catch (error) {
     console.error(`[Firebase] Failed to update check-in for attendee ${attendeeId}:`, error);
     return false;
@@ -168,15 +172,17 @@ export async function updateCheckInFirestore(
 }
 
 /**
- * Save Event Settings to Firestore under `axp_settings/aagaz`
+ * Save Event Settings to Firestore under `axp_settings/aagaz`. A failed save
+ * throws, so the organiser is told rather than shown settings that only one
+ * server remembers.
  */
 export async function saveSettingsFirestore(settings: EventSettings): Promise<void> {
   try {
     const db = getFirebaseDb();
-    const docRef = doc(db, 'axp_settings', 'aagaz');
-    await setDoc(docRef, JSON.parse(JSON.stringify(settings)), { merge: true });
+    await db.collection('axp_settings').doc('aagaz').set(JSON.parse(JSON.stringify(settings)), { merge: true });
   } catch (error) {
     console.error('[Firebase] Failed to save settings to Firestore:', error);
+    throw error;
   }
 }
 
@@ -186,9 +192,8 @@ export async function saveSettingsFirestore(settings: EventSettings): Promise<vo
 export async function getSettingsFirestore(): Promise<EventSettings | null> {
   try {
     const db = getFirebaseDb();
-    const docRef = doc(db, 'axp_settings', 'aagaz');
-    const snap = await getDoc(docRef);
-    if (!snap.exists()) {
+    const snap = await db.collection('axp_settings').doc('aagaz').get();
+    if (!snap.exists) {
       return null;
     }
     return snap.data() as EventSettings;
@@ -207,13 +212,13 @@ export async function uploadConfirmationImageStorage(
   filename = `aagaz-${bookingId}.png`
 ): Promise<string | null> {
   try {
-    const storage = getFirebaseStorageInstance();
-    const fileRef = ref(storage, `axp-social/confirmations/${filename}`);
-    await uploadBytes(fileRef, imageBuffer, {
+    const file = getStorage(getFirebaseApp()).bucket().file(`axp-social/confirmations/${filename}`);
+    await file.save(Buffer.from(imageBuffer), {
       contentType: 'image/png',
-      cacheControl: 'public, max-age=31536000',
+      metadata: { cacheControl: 'public, max-age=31536000' },
     });
-    return await getDownloadURL(fileRef);
+    // A tokenised download link works without any read access in the rules.
+    return await getDownloadURL(file);
   } catch (error) {
     console.error('[Firebase] Cloud Storage upload error:', error);
     return null;
