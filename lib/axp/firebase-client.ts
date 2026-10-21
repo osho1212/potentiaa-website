@@ -63,6 +63,19 @@ export async function saveBookingFirestore(booking: BookingRecord): Promise<void
 }
 
 /**
+ * Permanently delete a booking from Firestore under `axp_bookings`
+ */
+export async function deleteBookingFirestore(id: string): Promise<void> {
+  try {
+    const db = getFirebaseDb();
+    await db.collection('axp_bookings').doc(id).delete();
+  } catch (error) {
+    console.error(`[Firebase] Failed to delete booking ${id}:`, error);
+    throw error;
+  }
+}
+
+/**
  * Merge only the given top-level fields into a booking, leaving every other
  * field (attendees, check-ins) exactly as Firestore has it.
  */
@@ -167,6 +180,44 @@ export async function updateCheckInFirestore(
     });
   } catch (error) {
     console.error(`[Firebase] Failed to update check-in for attendee ${attendeeId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Reset an attendee's check-in status (undo check-in).
+ */
+export async function resetCheckInFirestore(
+  bookingId: string,
+  attendeeId: string
+): Promise<boolean> {
+  try {
+    const db = getFirebaseDb();
+    const docRef = db.collection('axp_bookings').doc(bookingId);
+    return await db.runTransaction(async (tx) => {
+      const snap = await tx.get(docRef);
+      if (!snap.exists) {
+        return false;
+      }
+      const booking = snap.data() as BookingRecord;
+      const attendees = (booking.attendees || []).map(a => {
+        if (a.id === attendeeId) {
+          const updated = { ...a, checkedIn: false };
+          delete updated.checkedInAt;
+          return updated;
+        }
+        return a;
+      });
+      const checkedInAttendees = (booking.checkedInAttendees || []).filter(id => id !== attendeeId);
+      tx.update(docRef, JSON.parse(JSON.stringify({
+        attendees,
+        checkedInAttendees,
+        updatedAt: new Date().toISOString(),
+      })));
+      return true;
+    });
+  } catch (error) {
+    console.error(`[Firebase] Failed to reset check-in for attendee ${attendeeId}:`, error);
     return false;
   }
 }

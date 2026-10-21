@@ -115,7 +115,8 @@ export async function GET(request: NextRequest) {
           whatsapp_detail: whatsapp.detail,
           created_at: booking.createdAt,
           confirmed_at: booking.createdAt,
-          checked_in_at: isCheckedIn ? booking.createdAt : null,
+          checked_in: isCheckedIn,
+          checked_in_at: isCheckedIn ? (attendee.checkedInAt || booking.createdAt) : null,
         });
       }
     }
