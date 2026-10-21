@@ -69,16 +69,16 @@ if(typeof document!=='undefined'){
     // A required radio group is one field, judged on its first option.
     if(field.type==='radio'){
       const group=[...document.querySelectorAll(`input[type="radio"][name="${field.name}"]`)];
-      if(field.required&&group[0]===field&&!group.some(option=>option.checked))message='Please choose a pass.';
+      if(field.required&&group[0]===field&&!group.some(option=>option.checked))message='Choose Silver or Gold for this guest.';
     }
     else if(field.type==='checkbox'){if(field.required&&!field.checked)message='Please acknowledge the attendee details and terms.';}
-    else if(empty){if(field.required)message=field.id.endsWith('-pass')?'Choose Silver or Gold for this guest.':field.tagName==='SELECT'?'Please choose an option.':'Please fill in this required field.';}
+    else if(empty){if(field.required)message=field.tagName==='SELECT'?'Please choose an option.':'Please fill in this required field.';}
     else if(field.id.endsWith('-instagram')&&!instagram(field.value))message='Enter a valid Instagram username, such as @yourusername.';
     else if(field.id.endsWith('-phone')&&!phone(field.value))message='Enter a valid phone number with country code.';
     else if(field.id.endsWith('-dob')&&!ageBracket(field.value))message=`Attendees must be 20 or older on ${dateLabel()}.`;
     else if(field.type==='email'&&field.validity.typeMismatch)message='Enter a valid email address, such as name@example.com.';
     // Until a date of birth is in, its own field says so; Gold waits for it.
-    else if(field.id.endsWith('-pass')&&field.value==='alcohol'&&(el(field.id.replace(/-pass$/,'-dob'))||{}).value&&ageBracket((el(field.id.replace(/-pass$/,'-dob'))||{}).value)!=='21plus')message='Gold passes need age 21 or over on the event date.';
+    else if(field.id.endsWith('-pass-alcohol')&&field.checked&&(el(field.id.replace(/-pass-alcohol$/,'-dob'))||{}).value&&ageBracket((el(field.id.replace(/-pass-alcohol$/,'-dob'))||{}).value)!=='21plus')message='Gold passes need age 21 or over on the event date.';
     else if(sharedContactError(field))message=sharedContactError(field);
     else if(!field.validity.valid)message=field.validationMessage;
     field.setCustomValidity(message);return message;
@@ -151,7 +151,62 @@ if(typeof document!=='undefined'){
       el('plan-prebook-note').textContent=`${money(settings.depositPerPerson)} a person now, ${money(pre.balancePaise/100)} later by UPI or in cash at the venue. Regular prices. Entry is by QR pass only, and your QR passes are issued once the booking is paid in full.`;
     }
   }
+  // Silver or Gold as two small tickets, in the same stationery as the pass
+  // section above: eyebrow, name, price, and an "Admit one" stub whose seal
+  // fills with a crown when chosen. Gold is for guests of 21 and over, so it
+  // stays shut until their date of birth shows it.
+  const CROWN='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18.5L4.4 7l4.8 4.8L12 5l2.8 6.8L19.6 7 21 18.5z" fill="var(--metal)" stroke="var(--metal-edge)" stroke-width="1.5" stroke-linejoin="round"/><path d="M3 21h18" stroke="var(--metal-edge)" stroke-width="1.8" stroke-linecap="round"/><circle cx="4.4" cy="6.4" r="1.1" fill="var(--metal-edge)"/><circle cx="12" cy="4.4" r="1.1" fill="var(--metal-edge)"/><circle cx="19.6" cy="6.4" r="1.1" fill="var(--metal-edge)"/></svg>';
+  function passPick(index,guest,onPick){
+    const group=document.createElement('fieldset');group.className='pass-pick';group.dataset.index=String(index);
+    const legend=document.createElement('legend'),star=document.createElement('span');
+    legend.textContent='Pass type ';star.className='required-marker';star.setAttribute('aria-hidden','true');star.textContent='*';legend.append(star);
+    const options=document.createElement('div');options.className='pass-pick-options';
+    const part=(tag,className,text)=>{const node=document.createElement(tag);node.className=className;if(text)node.textContent=text;return node;};
+    for(const [value,eyebrow,name,code] of [['normal','Silver','Silver pass','AGZ · S'],['alcohol','Gold · 21+','Gold pass','AGZ · G']]){
+      const option=part('label','pass-pick-option'),radio=document.createElement('input');
+      option.dataset.pass=value;
+      radio.type='radio';radio.id=`guest-${index}-pass-${value}`;radio.name=`attendees[${index}][pass]`;radio.value=value;radio.dataset.fieldLabel=`Attendee ${index+1}: pass type`;
+      // No pass is chosen for a guest until someone picks one; the group is
+      // required, and judged on its first ticket (see fieldError).
+      if(value==='normal'){radio.required=true;radio.setAttribute('aria-describedby',`guest-${index}-pass-normal-error`);}
+      const body=part('span','pass-pick-body'),price=part('span','pass-pick-price');
+      price.append(part('strong','pass-pick-amount'),part('small','pass-pick-meta'));
+      body.append(part('span','pass-pick-eyebrow',eyebrow),part('span','pass-pick-name',name),price);
+      const stub=part('span','pass-pick-stub'),seal=part('span','pass-pick-seal');
+      stub.setAttribute('aria-hidden','true');seal.innerHTML=CROWN;
+      stub.append(part('span','pass-pick-notch is-top'),seal,part('span','pass-pick-admit','Admit one'),part('span','pass-pick-code',code),part('span','pass-pick-notch is-bottom'));
+      option.append(radio,body,stub);options.append(option);
+    }
+    const hint=document.createElement('small');hint.className='pass-pick-hint';hint.id=`guest-${index}-pass-hint`;
+    const error=document.createElement('small');error.id=`guest-${index}-pass-normal-error`;error.className='field-error';error.hidden=true;
+    group.setAttribute('aria-describedby',hint.id);
+    group.addEventListener('change',event=>{if(event.target.name===`attendees[${index}][pass]`){guest.pass=event.target.value;onPick();}});
+    group.append(legend,options,hint,error);
+    return group;
+  }
+  // Keeps every attendee's cards in step with what is known: the checked pass,
+  // what this guest would pay on each (a couple or group price says so), and
+  // whether Gold is open to them yet.
+  function refreshPassPicks(){
+    for(const group of document.querySelectorAll('.pass-pick')){
+      const index=Number(group.dataset.index),guest=state[index];if(!guest)continue;
+      const bracket=ageBracket(guest.dob),goldOpen=bracket==='21plus';
+      for(const option of group.querySelectorAll('.pass-pick-option')){
+        const radio=option.querySelector('input'),value=option.dataset.pass,locked=value==='alcohol'&&!goldOpen;
+        radio.checked=guest.pass===value;radio.disabled=locked;option.classList.toggle('is-locked',locked);
+        const q=quoteBooking(state.map((other,k)=>k===index?{...other,pass:value}:other),settings,{plan,earlyBird:earlyBirdAvailable()}),line=q.lines[index];
+        option.querySelector('.pass-pick-amount').textContent=money(line.unitPaise/100);
+        option.querySelector('.pass-pick-meta').textContent=`${q.priceList==='early'?'early bird · ':''}${line.fare==='single'?'per person':`${FARE_LABELS[line.fare].toLowerCase()} price`}`;
+      }
+      // A guest can start on Gold (the previous guest's pass, or "All Gold")
+      // before their date of birth is in; it holds once that shows 21 or over.
+      const hint=group.querySelector('.pass-pick-hint');
+      hint.textContent=goldOpen?'':bracket?'Gold is for guests aged 21 and over on the event date, so this guest can have Silver.':guest.pass==='alcohol'?'Gold is for guests aged 21 and over: add a date of birth to keep it.':'Gold is for guests aged 21 and over. Add a date of birth to choose it.';
+      hint.hidden=goldOpen;
+    }
+  }
   function summary(){
+    refreshPassPicks();
     const q=currentQuote();
     el('guest-count').value=String(q.people);
     const lines=document.querySelector('.payment-summary .summary-lines');
@@ -469,14 +524,11 @@ if(typeof document!=='undefined'){
       gender.append(new Option('Choose…',''),...GENDERS.map(value=>new Option(GENDER_LABELS[value],value)));gender.value=guest.gender||'';
       gender.addEventListener('change',()=>{guest.gender=gender.value;summary();});
       genderLabel.append(gender,describeField(gender,`Attendee ${index+1}: gender`));grid.append(genderLabel);
-      // Each guest's own pass. Gold can be picked before the date of birth is
-      // in; a date that makes them 20 moves them to Silver, and says why.
-      const passLabel=requiredLabel('Pass');const pass=document.createElement('select');pass.id=`guest-${index}-pass`;pass.name=`attendees[${index}][pass]`;pass.required=true;
-      pass.append(new Option('Choose Silver or Gold…',''),new Option('Silver','normal'),new Option('Gold · 21+','alcohol'));pass.value=guest.pass||'';
-      const passNote=document.createElement('small');passNote.className='helper pass-note';
-      const passShown=()=>{const under=ageBracket(guest.dob)==='20';pass.options[2].disabled=under;passNote.textContent=under?'Gold is for guests aged 21 or over on the event date, so this guest can have Silver.':'';passNote.hidden=!passNote.textContent;};
-      dob.addEventListener('input',()=>{guest.dob=dob.value;const bracket=ageBracket(dob.value);guest.age=bracket||'';if(bracket==='20'&&guest.pass==='alcohol'){guest.pass='normal';pass.value='normal';}passShown();summary();});
-      pass.addEventListener('change',()=>{guest.pass=pass.value;passShown();summary();});passLabel.append(pass,describeField(pass,`Attendee ${index+1}: pass`));grid.append(passLabel,passNote);passShown();
+      // Each guest's own pass, picked on a ticket (see passPick). A date of
+      // birth that makes them 20 moves them to Silver; refreshPassPicks says why.
+      const passPicker=passPick(index,guest,()=>summary());
+      dob.addEventListener('input',()=>{guest.dob=dob.value;const bracket=ageBracket(dob.value);guest.age=bracket||'';if(bracket==='20'&&guest.pass==='alcohol')guest.pass='normal';summary();});
+      grid.append(passPicker);
       const done=document.createElement('button');done.type='button';done.className='secondary attendee-done';done.addEventListener('click',()=>finishCard(index));
       section.append(grid,done);el('attendees').append(section);
     });

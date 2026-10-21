@@ -111,7 +111,9 @@ function loadCheckout(){
 }
 function bookingInput(){
  const buyer={name:el('buyer-name').value,instagram:el('buyer-instagram').value,phone:el('buyer-phone').value,email:el('buyer-email').value};
- const attendees=[...document.querySelectorAll('.attendee')].map((_,i)=>Object.fromEntries(['name','email','instagram','phone','dob','gender','pass'].map(key=>[key,el(`guest-${i}-${key}`).value])));
+ const attendees=[...document.querySelectorAll('.attendee')].map((_,i)=>({...Object.fromEntries(['name','email','instagram','phone','dob','gender'].map(key=>[key,el(`guest-${i}-${key}`).value])),
+  // The pass is a pair of ticket radios, not one field.
+  pass:document.querySelector(`input[name="attendees[${i}][pass]"]:checked`)?.value||''}));
  const plan=document.querySelector('input[name="booking-plan"]:checked')?.value==='prebook'?'prebook':'full';
  return {buyer,attendees,plan,terms:el('booking-terms').checked,mode:testMode?'test':'live',accessToken:attempt.accessToken,idempotencyKey:attempt.idempotencyKey};
 }
