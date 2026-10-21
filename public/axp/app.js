@@ -337,7 +337,25 @@ if(typeof document!=='undefined'){
     if(event.target.name!=='booking-plan')return;
     plan=event.target.value==='prebook'?'prebook':'full';summary();
     window.dispatchEvent(new Event('booking-readiness-updated'));
+    if(plan==='prebook')showPrebookNotice();
   });
+  // Early-bird prices are for bookings paid in full, so a guest who picks
+  // pre-booking while they apply is told what it costs them, with a way back.
+  function showPrebookNotice(){
+    const dialog=el('prebook-notice');if(!dialog||dialog.open)return;
+    const full=currentQuote('full'),pre=currentQuote('prebook');
+    if(full.priceList!=='early')return;
+    let text=`Early-bird prices are not available on pre-bookings. They apply only when you pay in full. A pre-booking with a ${money(settings.depositPerPerson)} deposit per person pays regular prices.`;
+    if(full.totalPaise!==null&&pre.totalPaise!==null&&pre.totalPaise>full.totalPaise)text+=` Your total would be ${money(pre.totalPaise/100)} instead of ${money(full.totalPaise/100)}, ${money((pre.totalPaise-full.totalPaise)/100)} more.`;
+    el('prebook-notice-text').textContent=text;
+    dialog.showModal();
+  }
+  el('prebook-notice-full')?.addEventListener('click',()=>{
+    const option=el('plan-choice').querySelector('input[name="booking-plan"][value="full"]');
+    option.checked=true;option.dispatchEvent(new Event('change',{bubbles:true}));
+    el('prebook-notice').close();option.focus();
+  });
+  el('prebook-notice-continue')?.addEventListener('click',()=>el('prebook-notice').close());
   // A lone attendee is almost always the buyer, so their details follow the
   // booking contact until someone edits the attendee fields directly.
   function syncBuyerToAttendee(){

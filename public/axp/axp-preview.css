@@ -983,7 +983,14 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
 .axp-edition .plan-lines p { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; margin: 10px 0 0; }
 .axp-edition .plan-lines strong { white-space: nowrap; font-weight: 600; }
 
-/* Early bird: time and passes left, under the pass cards' hint. */
+/* Pre-booking chosen while early-bird prices apply: the notice and a way back. */
+.axp-edition .prebook-notice { max-width: 480px; width: calc(100% - 32px); color: var(--ink); }
+.axp-edition .prebook-notice h2 { font-size: 26px; line-height: 1.2; margin: 0 0 12px; }
+.axp-edition .prebook-notice p { font-size: 14px; line-height: 1.65; color: var(--ink); margin: 0 0 22px; }
+.axp-edition .prebook-notice-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.axp-edition .prebook-notice-actions button { flex: 1 1 auto; width: auto; min-height: 46px; padding: 12px 18px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; text-align: center; white-space: nowrap; }
+
+/* Early bird: time left, under the pass cards' hint. */
 .axp-edition .early-bird-banner { margin: 12px 0 24px; padding: 11px 15px; border: 1px solid #d4bee0; border-left: 4px solid var(--green); border-radius: 8px; background: #f8f3f9; font-size: 13px; line-height: 1.55; color: #2e1533; }
 
 /* A pre-booking's balance, on the booking's page. */
