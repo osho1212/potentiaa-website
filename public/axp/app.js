@@ -224,7 +224,13 @@ if(typeof document!=='undefined'){
     }
     const quote=el('pass-choice-quote');if(!quote)return;
     const people=`${count} ${count===1?'person':'people'}`;
-    if(passChoice==='mix'){quote.textContent=`Prices follow each person's pass. You choose them on the next step.`;return;}
+    if(passChoice==='mix'){
+      const early=list==='early'?' Early-bird prices, for bookings paid in full.':'';
+      quote.textContent=count>=4
+        ?`${people} make a group, so everyone pays the group price of their own pass: Silver ${money(unitPrice(settings,list,'normal','group'))}, Gold ${money(unitPrice(settings,list,'alcohol','group'))} each.${early}`
+        :`Prices follow each person's pass. You choose them on the next step.`;
+      return;
+    }
     if(passChoice!=='normal'&&passChoice!=='alcohol'){quote.textContent='';return;}
     const tier=tierName(passChoice),best=bestCase(passChoice,count),plain=plainCase(passChoice,count);
     if(best.totalPaise===null){quote.textContent='';return;}
@@ -274,14 +280,22 @@ if(typeof document!=='undefined'){
     const words=joinWords(parts);
     return words?`${words[0].toUpperCase()}${words.slice(1)} applied: you save ${money(q.savingPaise/100)}.`:'';
   }
-  // One suggestion at a time, Gold first: what one or two more people on the
-  // same pass would change, priced exactly as the booking would be.
+  // One suggestion at a time: what one or two more people, or one guest on
+  // another pass, would change, priced exactly as the booking would be.
   const firstName=name=>String(name||'').trim().split(/\s+/)[0]||'';
   function upsell(){
     const q=currentQuote();
     if(q.totalPaise===null)return null;
     const room=settings.maxPerBooking-state.length;
     const priceWith=extra=>quoteBooking([...state,...extra],settings,{plan,earlyBird:earlyBirdAvailable(state.length+extra.length)});
+    // Four or more on any passes make a group, so the whole booking counts.
+    // A new guest starts on the last guest's pass; either pass would do.
+    const n=state.length,last=state[n-1].pass,tier=tierName(last);
+    const groupSaving=extra=>{const after=priceWith(extra);return after.totalPaise===null?0:state.reduce((sum,_,i)=>sum+q.lines[i].unitPaise-after.lines[i].unitPaise,0);};
+    if(n===3&&room>=1){
+      const saving=groupSaving([{pass:last,gender:''}]);
+      if(saving>0)return {pass:last,action:'Add a guest',text:`Add one more guest, on Silver or Gold, and all four of you pay the group price, saving the three of you ${money(saving/100)}.`};
+    }
     // A couple split across passes pays single prices: the couple price needs
     // both on the same pass. Offer to move the Silver guest up to Gold when
     // they are old enough for it; a downgrade is never suggested.
@@ -296,25 +310,14 @@ if(typeof document!=='undefined'){
         return {pass:'alcohol',move:j,action:`Move ${who} to Gold`,text:`Put ${who} on Gold too and you both get the couple price of ${money(after.lines[i].unitPaise/100)} each${more>0?`, for ${money(more/100)} more in total`:more<0?`, saving ${money(-more/100)}`:''}.`};
       }
     }
-    for(const pass of ['alcohol','normal']){
-      const idx=[];state.forEach((guest,i)=>{if(guest.pass===pass)idx.push(i);});
-      const tier=tierName(pass);
-      if(idx.length===3&&room>=1){
-        const each=priceWith([{pass,gender:''}]).lines[idx[0]].unitPaise;
-        const saving=idx.reduce((sum,i)=>sum+q.lines[i].unitPaise,0)-3*each;
-        if(saving>0)return {pass,action:'Add a guest',text:`Add one more ${tier} guest and all four pay the group price of ${money(each/100)} each, saving the three of you ${money(saving/100)}.`};
-      }
-      if(idx.length===2&&room>=2&&state[idx[0]].gender&&state[idx[1]].gender&&q.lines[idx[0]].fare==='single'){
-        const each=priceWith([{pass,gender:''},{pass,gender:''}]).lines[idx[0]].unitPaise;
-        if(each<q.lines[idx[0]].unitPaise)return {pass,action:'Add a guest',text:`Two more on ${tier} make a group of 4, and everyone on ${tier} pays ${money(each/100)} each instead of ${money(q.lines[idx[0]].unitPaise/100)}.`};
-      }
-      // Their partner may already be in the booking on the other pass.
-      const partnerHere=idx.length===1&&state.some((g,k)=>k!==idx[0]&&q.lines[k].fare==='single'&&g.gender&&state[idx[0]].gender&&g.gender!==state[idx[0]].gender);
-      if(idx.length===1&&room>=1&&!partnerHere){
-        const partner=state[idx[0]].gender==='woman'?'man':'woman';
-        const each=priceWith([{pass,gender:partner}]).lines[idx[0]].unitPaise,single=q.lines[idx[0]].unitPaise;
-        if(each<single)return {pass,action:'Add a partner',text:`Coming with a partner? Two people of different genders on ${tier} pay ${money(each/100)} each instead of ${money(single/100)}.`};
-      }
+    if(n===2&&room>=2&&state.every(g=>g.gender)){
+      const saving=groupSaving([{pass:last,gender:''},{pass:last,gender:''}]);
+      if(saving>0)return {pass:last,action:'Add a guest',text:`Two more guests, on any passes, make a group of 4, and everyone pays the group price: ${money(saving/100)} less for the two of you.`};
+    }
+    if(n===1&&room>=1&&state[0].gender){
+      const partner=state[0].gender==='woman'?'man':'woman';
+      const each=priceWith([{pass:last,gender:partner}]).lines[0].unitPaise,single=q.lines[0].unitPaise;
+      if(each<single)return {pass:last,action:'Add a partner',text:`Coming with a partner? Two people of different genders on ${tier} pay ${money(each/100)} each instead of ${money(single/100)}.`};
     }
     return null;
   }
@@ -379,7 +382,7 @@ if(typeof document!=='undefined'){
           kind:'together',title:'Couple & group offers',status:'Better together',
           amount:`From ${money(Math.min(unitPrice(settings,list,'normal','group'),unitPrice(settings,list,'alcohol','group')))}`,unit:'per person',
           detail:`Come together for less. Silver ${money(unitPrice(settings,list,'normal','group'))} / Gold ${money(unitPrice(settings,list,'alcohol','group'))} each.`,
-          terms:'Couples: two guests of different genders. Groups: 4+ guests. Same pass type required.'+(list==='early'?' Early-bird rates require full payment.':'')
+          terms:'Couples: two guests of different genders on the same pass. Groups: 4 or more guests, any mix of Silver and Gold.'+(list==='early'?' Early-bird rates require full payment.':'')
         });
         if(settings.prebookEnabled)rows.push({
           kind:'prebook',title:'Pre-book your passes',status:'Reserve with a deposit',
@@ -709,7 +712,7 @@ if(typeof document!=='undefined'){
       el('footer-copyright').textContent=`© ${new Date().getFullYear()} Potentiaa. All rights reserved.`;
       applyBrand('potentiaa',settings.potentiaaLogo,settings.potentiaaPhone);
       applyBrand('avyanta',settings.avyantaLogo,settings.avyantaPhone);
-      el('pass-limit-hint').textContent=`Entry is for guests aged 20 and over. Choose up to ${settings.maxPerBooking} passes per booking; mixing pass types is welcome. Couples, and groups of 4 or more on the same pass, pay less each.`;
+      el('pass-limit-hint').textContent=`Entry is for guests aged 20 and over. Choose up to ${settings.maxPerBooking} passes per booking and mix Silver and Gold freely. Couples on the same pass, and everyone in a booking of 4 or more, pay less each.`;
       el('normal-benefits').textContent=settings.normalDescription;el('alcohol-benefits').textContent=settings.alcoholDescription;
       passCardPrices();
       el('summary-name').textContent=settings.eventName;el('summary-date').textContent=`${dateLabel()} · ${time(settings.startTime)}`;el('summary-venue').textContent=settings.venueName;

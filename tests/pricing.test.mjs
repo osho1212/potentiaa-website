@@ -36,7 +36,9 @@ const examples = [
   ['3 on Gold: a couple + 1', [gold('woman'), gold('man'), gold('man')], 10099, 10997, 1500, 9497],
   ['Group of 4, all Silver', [silver('man'), silver('man'), silver('man'), silver('man')], 9800, 10396, 2000, 8396],
   ['Group of 4, all Gold', [gold('woman'), gold('woman'), gold('woman'), gold('woman')], 13000, 13996, 2000, 11996],
-  ['Group of 4 Gold + 1 Silver', [gold('man'), gold('man'), gold('woman'), gold('man'), silver('woman')], 15699, 16995, 2500, 14495],
+  ['Group of 4 Gold + 1 Silver', [gold('man'), gold('man'), gold('woman'), gold('man'), silver('woman')], 15450, 16595, 2500, 14095],
+  ['Group of 2 Gold + 2 Silver', [gold('man'), gold('man'), silver('man'), silver('man')], 11400, 12196, 2000, 10196],
+  ['Group of 1 Gold + 3 Silver', [gold('woman'), silver('man'), silver('man'), silver('woman')], 10600, 11296, 2000, 9296],
   ['Group of 6, all Gold', Array.from({ length: 6 }, () => gold('man')), 19500, 20994, 3000, 17994],
   ['Group of 10, all Gold', Array.from({ length: 10 }, () => gold('nonbinary')), 32500, 34990, 5000, 29990],
 ];
@@ -53,17 +55,23 @@ for (const [name, people, early, regular, deposit, balance] of examples) {
   });
 }
 
+test('four or more in one booking are a group, whatever their passes', () => {
+  assert.deepEqual(assignFares([gold('man'), silver('man'), gold('woman'), silver('woman')]), ['group', 'group', 'group', 'group']);
+  // Three is not a group, so mixed passes only pair up as couples on one pass.
+  assert.deepEqual(assignFares([gold('man'), silver('man'), silver('woman')]), ['single', 'couple', 'couple']);
+});
+
 test('a couple needs two different genders on the same pass', () => {
   assert.deepEqual(assignFares([gold('woman'), silver('man')]), ['single', 'single']);
   assert.deepEqual(assignFares([gold('woman'), gold('nonbinary')]), ['couple', 'couple']);
   assert.deepEqual(assignFares([gold('woman'), gold('man'), gold('woman')]), ['couple', 'couple', 'single']);
 });
 
-test('a Silver guest does not count towards a Gold group', () => {
-  assert.deepEqual(
-    assignFares([gold('man'), gold('man'), gold('man'), silver('woman')]),
-    ['single', 'single', 'single', 'single']
-  );
+test('a Silver guest counts towards the group, and pays the Silver group price', () => {
+  const four = [gold('man'), gold('man'), gold('man'), silver('woman')];
+  assert.deepEqual(assignFares(four), ['group', 'group', 'group', 'group']);
+  const quote = quoteBooking(four, settings, { earlyBird: true });
+  assert.deepEqual(quote.lines.map((line) => rupees(line.unitPaise)), [3250, 3250, 3250, 2450]);
 });
 
 test('adding a person never lowers the total', () => {

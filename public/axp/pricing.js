@@ -8,10 +8,11 @@
  *     booking paid in full while the early bird is open (before its end time,
  *     with enough early-bird passes left for the whole booking). Pre-bookings
  *     always pay regular prices.
- *  2. The fare, once per person, worked out separately for Silver and Gold.
- *     Four or more on the same pass make a group, and all of them pay the
- *     group price. Otherwise two people of different genders on the same pass
- *     make a couple and pay the same lower price; everyone else pays single.
+ *  2. The fare, once per person. A booking of four or more is a group: every
+ *     guest pays the group price of their own pass, Silver or Gold, whatever
+ *     the mix. In a smaller booking, two people of different genders on the
+ *     same pass make a couple and pay that same lower price; everyone else
+ *     pays single.
  *
  * Amounts are worked in paise so rupee prices never pick up rounding errors.
  */
@@ -67,6 +68,8 @@ export function unitPrice(settings, priceList, pass, fare) {
  * @returns {Fare[]}
  */
 export function assignFares(attendees) {
+  // Four or more in one booking: everyone is in the group, on either pass.
+  if (attendees.length >= GROUP_SIZE) return attendees.map(() => 'group');
   /** @type {Fare[]} */
   const fares = attendees.map(() => 'single');
   for (const pass of ['normal', 'alcohol']) {
@@ -74,10 +77,6 @@ export function assignFares(attendees) {
     attendees.forEach((guest, i) => {
       if (guest.pass === pass) members.push(i);
     });
-    if (members.length >= GROUP_SIZE) {
-      for (const i of members) fares[i] = 'group';
-      continue;
-    }
     // Two or three on one pass: the first pair of different genders is the
     // couple. With three, which pair it is never changes the total.
     pairing: for (let x = 0; x < members.length; x++) {

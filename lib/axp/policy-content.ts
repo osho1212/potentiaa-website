@@ -1,6 +1,6 @@
 import { EventSettings } from './event-settings';
 
-export const POLICY_VERSION = 'aagaz-2026-03';
+export const POLICY_VERSION = 'aagaz-2026-04';
 
 export const POLICY_PAGES: Record<string, string> = {
   about: 'About us',
@@ -77,7 +77,7 @@ export function getPolicyContent(settings: EventSettings, slug: string): { title
       money(s.earlyAlcoholPrice)
     )}</td><td>${e(money(s.alcoholPrice))}</td><td>${e(s.alcoholDescription)}</td></tr><tr><td>Gold · 21+, couple or group (each)</td><td>${e(
       money(s.earlyAlcoholGroupPrice)
-    )}</td><td>${e(money(s.alcoholGroupPrice))}</td><td>${e(s.alcoholDescription)}</td></tr></tbody></table><p>Prices are per person. Couple prices apply to two people of different genders on the same pass type; group prices apply when four or more people in one booking have the same pass type. Each pass type is priced separately within a booking.</p><p>${
+    )}</td><td>${e(money(s.alcoholGroupPrice))}</td><td>${e(s.alcoholDescription)}</td></tr></tbody></table><p>Prices are per person. Couple prices apply to two people of different genders on the same pass type. Group prices apply to everyone in a booking of four or more people, whatever their pass types: each person pays the group price of their own pass.</p><p>${
       s.earlyBirdEnabled
         ? `Early-bird prices apply to bookings paid in full until ${e(
             new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(s.earlyBirdEndDate + 'T00:00:00Z'))

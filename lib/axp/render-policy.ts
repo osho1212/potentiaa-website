@@ -40,7 +40,7 @@ export function renderPolicyHtml(settings: EventSettings, slug: string): string 
     content.title
   )}</h1><p class="helper">${e(
     s.eventName
-  )} · Policy version ${POLICY_VERSION} · 20 October 2026</p>${
+  )} · Policy version ${POLICY_VERSION} · 21 October 2026</p>${
     content.html
   }</article><nav class="policy-nav" aria-label="Event information and policies">${navigation}</nav></main></body></html>`;
 }
