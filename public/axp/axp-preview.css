@@ -1336,7 +1336,7 @@ body.has-booking-bar { padding-bottom: 76px; }
 .axp-edition .booking-aside-total strong { font: 600 26px/1 var(--display); color: var(--green); }
 .axp-edition .booking-aside-saving { margin: -4px 0 0; font-size: 12px; color: #4b3550; }
 .axp-edition .booking-aside-saving[hidden] { display: none; }
-.axp-edition .booking-aside-action { width: 100%; min-height: 48px; justify-content: center; }
+.axp-edition .booking-aside-action { display: inline-flex; width: 100%; min-height: 48px; align-items: center; justify-content: center; gap: 8px; }
 .axp-edition .booking-aside-note { margin: 0; font-size: 11px; line-height: 1.5; color: var(--muted); }
 
 /* Review & pay: one line a guest; what else was typed opens beneath it. */

@@ -11,7 +11,7 @@ export const rawStallsHtml = `<!doctype html>
 <meta name="description" content="Apply for a business stall at Aagaz, the first AxP Social gathering.">
 <link rel="stylesheet" href="/axp/style.css">
 <link rel="stylesheet" href="/axp/fonts/fonts.css?v=2">
-<link rel="stylesheet" href="/axp/axp-preview.css?v=20">
+<link rel="stylesheet" href="/axp/axp-preview.css?v=21">
 <script type="module" src="/axp/stalls.js"></script>
 <script type="module" src="/axp/reveal.js"></script>
 </head>

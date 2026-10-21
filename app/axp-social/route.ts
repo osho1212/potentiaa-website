@@ -67,7 +67,7 @@ export function GET() {
     .replace('src="app.js"', 'src="/axp/app.js?v=14"')
     .replace('src="payment.js"', 'src="/axp/payment.js?v=9"></script><script type="module" src="/axp/find-booking.js?v=1"')
     .replace('width=device-width, initial-scale=1', 'width=device-width, initial-scale=1, viewport-fit=cover')
-    .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css?v=2"><link rel="stylesheet" href="/axp/axp-preview.css?v=20"><link rel="preload" as="image" type="image/webp" href="/axp/ivory-plum-gathering.webp" fetchpriority="high"><script type="module" src="/axp/reveal.js"></script></head>')
+    .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css?v=2"><link rel="stylesheet" href="/axp/axp-preview.css?v=21"><link rel="preload" as="image" type="image/webp" href="/axp/ivory-plum-gathering.webp" fetchpriority="high"><script type="module" src="/axp/reveal.js"></script></head>')
     .replace('<body>', '<body class="axp-edition"><a class="axp-skip" href="#your-guests">Skip to booking form</a>')
     .replace(/<header>[\s\S]*?<\/header>/, '')
     .replace('<section class="hero"', '<section id="event-details" class="hero"')
