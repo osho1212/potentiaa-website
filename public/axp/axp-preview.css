@@ -996,21 +996,79 @@ body.axp-edition { font-family: 'DM Sans', Arial, sans-serif; font-size: 14px; b
   .axp-edition .plan-amount { grid-column: 2; }
 }
 
-/* Offers: quiet tags under the main button, a list under the pass cards, and
-   a soft hint in the attendee, review and payment steps. */
-.axp-edition .hero-offers { width: 59%; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
-.axp-edition .hero-offers li { padding: 5px 12px; border: 1px solid rgba(180, 154, 125, .55); border-radius: 999px; background: rgba(255, 253, 249, .72); font-size: 12px; line-height: 1.4; color: #4f434b; }
-.axp-edition .offer-list-wrap { margin: 30px 0 0; padding-top: 18px; border-top: 1px solid var(--line); }
-.axp-edition .offer-list-wrap .eyebrow { color: #77604e; }
-.axp-edition .offer-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 32px; }
-.axp-edition .offer-list li { display: grid; gap: 3px; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
-.axp-edition .offer-list strong { font-size: 13px; font-weight: 600; color: var(--ink); }
+/* Lead with the offers immediately below the hero, before the booking steps. */
+.axp-edition .booking-offers { margin: 30px 0 8px; }
+.axp-edition .booking-offers-heading { margin-bottom: 18px; }
+.axp-edition .booking-offers-heading .eyebrow { color: #785985; font-size: 10px; letter-spacing: 2px; }
+.axp-edition .booking-offers-heading h2 { margin: 7px 0 0; font: 500 36px/1.15 var(--display); color: var(--ink); }
+.axp-edition .booking-offers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 0; list-style: none; margin: 0; padding: 24px 0; background: #fff; }
+.axp-edition .booking-offer { min-width: 0; display: flex; flex-direction: column; padding: 0 24px; border: 0; border-radius: 0; background: transparent; box-shadow: none; animation: none; cursor: auto; }
+.axp-edition .booking-offer + .booking-offer { border-left: 1px solid #e7ddea; }
+.axp-edition .booking-offer h3 { margin: 0 0 14px; min-height: 2.3em; font: 600 27px/1.15 var(--display); color: var(--green); }
+.axp-edition .booking-offer-status { margin: 0 0 16px; font-size: 9px; line-height: 1.5; letter-spacing: 1.3px; text-transform: uppercase; color: #785985; font-weight: 500; }
+.axp-edition .booking-offer-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 0 0 18px; }
+.axp-edition .booking-offer-price strong { font: 600 clamp(30px, 2.8vw, 38px)/1.1 var(--display); color: var(--green); }
+.axp-edition .booking-offer-price > span { font-size: 11px; color: var(--muted); }
+.axp-edition .booking-offer-detail { margin: 0 0 18px; font-size: 13px; line-height: 1.65; color: var(--ink); }
+.axp-edition .booking-offer-terms { margin: auto 0 0; padding-top: 14px; border-top: 1px solid #ded4e1; font-size: 11px; line-height: 1.65; color: var(--muted); }
+.axp-edition .booking-offer-early .booking-offer-status { color: #785985; }
+.axp-edition .booking-offer-prebook .booking-offer-status { color: #785985; }
+/* Rotate only the border shine; the white surface and content stay still. */
+@property --axp-border-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes axp-border-shine {
+  to { --axp-border-angle: 360deg; }
+}
+.axp-edition .stall-spotlight,
+.axp-edition .early-bird-banner {
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: linear-gradient(#fff, #fff) padding-box,
+    conic-gradient(from var(--axp-border-angle), #684476 0%, #9262a6 25%, #dbc4e6 36%, #fff5ff 42%, #ac86bd 48%, #684476 60%, #684476 100%) border-box;
+  animation: axp-border-shine 6s linear infinite;
+  box-shadow: none;
+  cursor: default;
+}
+@media (prefers-reduced-motion: reduce) {
+  .axp-edition .stall-spotlight,
+  .axp-edition .early-bird-banner { animation: none; }
+}
+/* Mobile first: price and application action remain in the normal reading flow. */
+.axp-edition .stall-spotlight { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; margin: 20px 0 28px; padding: 22px; }
+.axp-edition .stall-spotlight > div { min-width: 0; }
+.axp-edition .stall-spotlight .eyebrow { display: block; font-size: 10px; line-height: 1.6; letter-spacing: 1.6px; color: #785985; }
+.axp-edition .stall-spotlight h2 { margin: 10px 0 12px; font: 500 clamp(30px, 4vw, 40px)/1.1 var(--display); color: var(--ink); }
+.axp-edition .stall-spotlight-copy > p { margin: 0; font-size: 14px; line-height: 1.7; color: var(--ink); }
+.axp-edition .stall-spotlight-copy .stall-spotlight-availability { margin-top: 14px; font-size: 12px; color: #785985; }
+.axp-edition .stall-spotlight-action { padding-top: 20px; border-top: 1px solid #e7ddea; }
+.axp-edition .stall-spotlight-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin: 0 0 8px; color: var(--green); }
+.axp-edition .stall-spotlight-price strong { font: 600 42px/1.1 var(--display); }
+.axp-edition .stall-spotlight-price > span { font-size: 13px; color: var(--muted); }
+.axp-edition .stall-spotlight-inclusion { margin: 0 0 18px; font-size: 13px; line-height: 1.6; color: var(--ink); }
+.axp-edition .stall-spotlight-cta { box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 50px; padding: 14px 18px; border-radius: 4px; background: var(--green); color: #fff; font: 500 14px/1.5 'DM Sans', Arial, sans-serif; text-decoration: none; }
+.axp-edition .stall-spotlight-cta:hover { background: #593261; }
+.axp-edition .stall-spotlight-cta:focus-visible { outline: 3px solid #957b9d; outline-offset: 4px; }
+.axp-edition .stall-spotlight-note { margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: var(--muted); text-align: center; }
+@media (min-width: 761px) {
+  .axp-edition .stall-spotlight { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: center; gap: 32px; padding: 30px; }
+  .axp-edition .stall-spotlight-action { border-top: 0; border-left: 1px solid #e7ddea; padding: 0 0 0 30px; }
+}
+/* Contextual hints remain alongside the attendee, review and payment steps. */
 .axp-edition .offer-hint { margin: 18px 0 0; padding: 12px 15px; border: 1px dashed #cdb6d6; border-radius: 8px; background: rgba(244, 237, 245, .55); font-size: 12.5px; line-height: 1.6; color: #3c3036; }
 .axp-edition .offer-hint p { margin: 0; }
 .axp-edition .offer-hint p + p { margin-top: 6px; }
 .axp-edition .offer-hint .offer-action { padding: 0; border: 0; background: none; color: var(--green); font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .axp-edition #payment-offer { margin: 0 0 22px; }
 @media (max-width: 760px) {
-  .axp-edition .hero-offers { width: auto; justify-content: flex-start; }
-  .axp-edition .offer-list { grid-template-columns: 1fr; }
+  .axp-edition .booking-offers { margin-top: 24px; }
+  .axp-edition .booking-offers-heading h2 { font-size: 32px; }
+  .axp-edition .booking-offers-grid { grid-template-columns: 1fr; gap: 0; padding: 0 22px; }
+  .axp-edition .booking-offer { padding: 22px 0; }
+  .axp-edition .booking-offer + .booking-offer { border-left: 0; border-top: 1px solid #e7ddea; }
+  .axp-edition .booking-offer h3 { min-height: 0; margin-bottom: 10px; }
+  .axp-edition .booking-offer-status { margin-bottom: 10px; }
+  .axp-edition .booking-offer-price { margin-bottom: 12px; }
 }

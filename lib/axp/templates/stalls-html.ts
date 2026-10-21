@@ -27,7 +27,7 @@ export const rawStallsHtml = `<!doctype html>
   <section class="event-description" aria-labelledby="stall-about">
     <span class="eyebrow">BEFORE YOU APPLY</span>
     <h2 id="stall-about">How it works</h2>
-    <p>This is an enquiry, not a booking. Nothing is charged and no space is held by this form. The organisers review every application and reply with the details, the fee if one applies, and what the space includes. Stall spaces are limited, so applying early helps.</p>
+    <p><strong>&#8377;6,000 per stall, with event entry included.</strong> The organisers will confirm the included pass allocation and setup details with you. This is an enquiry, not a booking: no payment is required to apply, and submitting this form does not hold a space. Applications are subject to organiser approval. Stall spaces are limited.</p>
   </section>
 
   <div class="layout stall-layout">
