@@ -178,9 +178,8 @@ if(typeof document!=='undefined'){
     if(!earlyTimer)earlyTimer=setInterval(()=>{summary();passCardPrices();},60000);
   }
   // ---------- Offers ----------
-  // Shown where they help a guest decide, and quietly: the event page lists
-  // them, and the later steps say what is applied and what one more guest
-  // would change. Every figure comes from the prices the server charges.
+  // Lead with offers below the hero. Later steps explain what is applied
+  // and what one more guest would change. All prices use server settings.
   const tierName=pass=>pass==='alcohol'?'Gold':'Silver';
   const offerPriceList=()=>earlyBirdAvailable(1)?'early':'regular';
   function earlyEndLabel(){return earlyBird&&earlyBird.endsAt?new Intl.DateTimeFormat('en-IN',{day:'numeric',month:'short',timeZone:'Asia/Kolkata'}).format(new Date(earlyBird.endsAt)):'';}
@@ -242,27 +241,45 @@ if(typeof document!=='undefined'){
     }
     box.replaceChildren(...rows);box.hidden=rows.length===0;
   }
+  function offerCard({kind,title,amount,unit,detail,terms,status}){
+    const item=document.createElement('li');item.className=`booking-offer booking-offer-${kind}`;
+    const name=document.createElement('h3');name.textContent=title;
+    const price=document.createElement('p');price.className='booking-offer-price';
+    const value=document.createElement('strong');value.textContent=amount;
+    const basis=document.createElement('span');basis.textContent=unit;price.append(value,basis);
+    const description=document.createElement('p');description.className='booking-offer-detail';description.textContent=detail;
+    const conditions=document.createElement('p');conditions.className='booking-offer-terms';conditions.textContent=terms;
+    item.append(name,price,description,conditions);
+    if(status){const badge=document.createElement('p');badge.className='booking-offer-status';badge.textContent=status;item.prepend(badge);}
+    return item;
+  }
   function renderOffers(){
     if(settingsLoaded){
-      // The event page: a quiet row under the main button, and the full list
-      // under the pass cards.
+      // The event page: three clear attraction points directly below the hero.
       const list=offerPriceList();
-      const hero=el('hero-offers');
-      if(hero){
-        const items=[];
-        if(list==='early')items.push(`Early bird until ${earlyEndLabel()}`);
-        items.push(`Couples and groups of 4+ from ${money(Math.min(unitPrice(settings,list,'normal','group'),unitPrice(settings,list,'alcohol','group')))} each`);
-        if(settings.prebookEnabled)items.push(`Pre-book with ${money(settings.depositPerPerson)} a person`);
-        hero.replaceChildren(...items.map(text=>{const item=document.createElement('li');item.textContent=text;return item;}));hero.hidden=false;
-      }
       const ways=el('offer-list');
       if(ways){
         const rows=[];
-        if(list==='early')rows.push(['Early bird',`Silver ${money(unitPrice(settings,'early','normal','single'))} and Gold ${money(unitPrice(settings,'early','alcohol','single'))} until ${earlyEndLabel()}, when you pay in full.`]);
-        rows.push(['Couple',`Two people of different genders on the same pass pay ${money(unitPrice(settings,list,'normal','group'))} each on Silver, ${money(unitPrice(settings,list,'alcohol','group'))} on Gold.`]);
-        rows.push(['Group of 4+','Four or more on the same pass each pay that same lower price, whatever the mix.']);
-        if(settings.prebookEnabled)rows.push(['Pre-book',`Hold your places with ${money(settings.depositPerPerson)} a person and pay the rest later, at regular prices. Entry is by QR pass, issued once paid in full.`]);
-        ways.replaceChildren(...rows.map(([title,text])=>{const item=document.createElement('li'),name=document.createElement('strong'),detail=document.createElement('span');name.textContent=title;detail.textContent=text;item.append(name,detail);return item;}));
+        if(list==='early')rows.push({
+          kind:'early',title:'Early-bird passes',
+          amount:`From ${money(Math.min(unitPrice(settings,'early','normal','single'),unitPrice(settings,'early','alcohol','single')))}`,unit:'per person',
+          detail:`Silver ${money(unitPrice(settings,'early','normal','single'))} / Gold ${money(unitPrice(settings,'early','alcohol','single'))}. Book before ${earlyEndLabel()}.`,
+          terms:'Pay in full to get early-bird prices. Available while the early-bird allocation lasts.',
+          status:`${earlyBird.left} ${earlyBird.left===1?'pass':'passes'} left / Until ${earlyEndLabel()}`
+        });
+        rows.push({
+          kind:'together',title:'Couple & group offers',status:'Better together',
+          amount:`From ${money(Math.min(unitPrice(settings,list,'normal','group'),unitPrice(settings,list,'alcohol','group')))}`,unit:'per person',
+          detail:`Come together for less. Silver ${money(unitPrice(settings,list,'normal','group'))} / Gold ${money(unitPrice(settings,list,'alcohol','group'))} each.`,
+          terms:'Couples: two guests of different genders. Groups: 4+ guests. Same pass type required.'+(list==='early'?' Early-bird rates require full payment.':'')
+        });
+        if(settings.prebookEnabled)rows.push({
+          kind:'prebook',title:'Pre-book your passes',status:'Reserve with a deposit',
+          amount:`${money(settings.depositPerPerson)} now`,unit:'per person',
+          detail:'Reserve your places now. Pay the balance later by UPI or in cash at the venue.',
+          terms:'Regular pass prices apply. Deposit is non-refundable. QR passes are issued after full payment.'
+        });
+        ways.replaceChildren(...rows.map(offerCard));
         if(el('offer-list-wrap'))el('offer-list-wrap').hidden=false;
       }
     }
