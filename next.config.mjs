@@ -15,7 +15,9 @@ import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
  * The rest of the policy still holds without it.
  *
  * Adding a third-party service (analytics, a CAPTCHA, a map or video embed)
- * means adding its origin here, or the browser will block it.
+ * means adding its origin here, or the browser will block it. The Meta Pixel
+ * on the AXP Social pages is one: its script, and the requests, hidden frame
+ * and form posts that report each event.
  *
  * Development adds 'unsafe-eval' and websockets, which webpack's dev runtime and
  * hot reload need. Neither ships in a production build.
@@ -23,18 +25,18 @@ import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
 function contentSecurityPolicy(isDev) {
   const directives = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://cdn.razorpay.com", ...(isDev ? ["'unsafe-eval'"] : [])],
+    "script-src": ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://cdn.razorpay.com", "https://connect.facebook.net", ...(isDev ? ["'unsafe-eval'"] : [])],
     "style-src": ["'self'", "'unsafe-inline'"],
-    "img-src": ["'self'", "data:", "blob:", "https://*.razorpay.com"],
+    "img-src": ["'self'", "data:", "blob:", "https://*.razorpay.com", "https://www.facebook.com"],
     "font-src": ["'self'", "data:"],
     "media-src": ["'self'", "blob:"],
-    "connect-src": ["'self'", "https://api.emailjs.com", "https://*.razorpay.com", "https://api.razorpay.com", ...(isDev ? ["ws:"] : [])],
+    "connect-src": ["'self'", "https://api.emailjs.com", "https://*.razorpay.com", "https://api.razorpay.com", "https://www.facebook.com", "https://connect.facebook.net", ...(isDev ? ["ws:"] : [])],
     "worker-src": ["'self'", "blob:"],
     "manifest-src": ["'self'"],
-    "frame-src": ["'self'", "https://*.razorpay.com", "https://api.razorpay.com", "https://maps.google.com", "https://www.google.com"],
+    "frame-src": ["'self'", "https://*.razorpay.com", "https://api.razorpay.com", "https://maps.google.com", "https://www.google.com", "https://www.facebook.com"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
-    "form-action": ["'self'", "https://api.razorpay.com"],
+    "form-action": ["'self'", "https://api.razorpay.com", "https://www.facebook.com"],
     "frame-ancestors": ["'none'"],
   };
   return Object.entries(directives)

@@ -1,6 +1,7 @@
 import { rawBookingHtml } from '@/lib/axp/templates/booking-html';
 import { site } from '@/lib/site';
 import { shareTags } from '@/lib/axp/share-tags';
+import { withMetaPixel } from '@/lib/axp/meta-pixel';
 
 const lotus = `<svg class="axp-lotus" viewBox="0 0 64 64" fill="none" aria-hidden="true"><g stroke="currentColor" stroke-width="1.1"><path d="M32 47C19 38 21 24 32 13c11 11 13 25 0 34Z"/><path d="M32 47C15 45 10 33 11 23c14 0 24 9 21 24Zm0 0c17-2 22-14 21-24-14 0-24 9-21 24Z"/><path d="M32 47C16 51 8 44 4 35c12-5 25-1 28 12Zm0 0c16 4 24-3 28-12-12-5-25-1-28 12Z"/><path d="m22 51 10 7 10-7M32 47v11"/></g></svg>`;
 
@@ -64,8 +65,8 @@ export function GET() {
       })
     )
     .replace('href="style.css"', 'href="/axp/style.css?v=2"')
-    .replace('src="app.js"', 'src="/axp/app.js?v=16"')
-    .replace('src="payment.js"', 'src="/axp/payment.js?v=9"></script><script type="module" src="/axp/find-booking.js?v=1"')
+    .replace('src="app.js"', 'src="/axp/app.js?v=17"')
+    .replace('src="payment.js"', 'src="/axp/payment.js?v=10"></script><script type="module" src="/axp/find-booking.js?v=1"')
     .replace('width=device-width, initial-scale=1', 'width=device-width, initial-scale=1, viewport-fit=cover')
     .replace('</head>', '<link rel="stylesheet" href="/axp/fonts/fonts.css?v=2"><link rel="stylesheet" href="/axp/axp-preview.css?v=24"><link rel="preload" as="image" type="image/webp" href="/axp/ivory-plum-gathering.webp" fetchpriority="high"><script type="module" src="/axp/reveal.js"></script></head>')
     .replace('<body>', '<body class="axp-edition"><a class="axp-skip" href="#your-guests">Skip to booking form</a>')
@@ -120,7 +121,7 @@ export function GET() {
       '$1<li id="prebook-rule">Entry is by QR pass only. A pre-booking gets its QR passes once it is paid in full; until then it cannot be admitted. The balance can be paid any time by UPI on your booking page, or in cash at the venue, where our team records it and issues the passes before entry. The deposit is non-refundable.</li>'
     );
 
-  return new Response(twoStepBooking(html), {
+  return new Response(withMetaPixel(twoStepBooking(html)), {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
