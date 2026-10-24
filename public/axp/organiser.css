@@ -133,6 +133,13 @@
 .organiser-ui .record-balance { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .organiser-ui .record-balance select { width: auto; min-height: 36px; }
 .organiser-ui .record-balance button { min-height: 36px; }
+/* The note every payment taken by hand has to carry onto the cashbook. */
+.organiser-ui .record-balance .balance-note { width: 100%; min-width: 180px; min-height: 36px; font-size: 13px; }
+
+/* The cashbook: what was taken in cash and by UPI, one row per payment. */
+.organiser-ui #cashbook-panel .dashboard-actions label { flex: 1 1 220px; margin: 0; }
+.organiser-ui #cashbook-panel .dashboard-actions input { min-height: 36px; }
+.organiser-ui .booking-table td.cashbook-unnoted div { color: var(--muted); font-style: italic; }
 
 /* At the gate: a couple whose details do not match pays the difference. */
 .organiser-ui .couple-check { margin: 12px 0 0; padding: 12px 14px; border: 1px dashed #c9b28d; border-radius: 8px; background: rgba(250, 244, 230, .6); font-size: 13px; line-height: 1.55; }

@@ -9,6 +9,9 @@ import { bookingView } from '@/lib/axp/booking-view';
  * the venue or beforehand. The whole balance by default; a smaller amount
  * leaves the rest due. Once nothing is due the booking is confirmed and its
  * QR passes are emailed, so the guest can be scanned in straight away.
+ *
+ * The note is required, as it is for a booking entered by hand: this payment
+ * is a cashbook row, and a row nobody can account for is worse than none.
  */
 export async function POST(
   request: NextRequest,
@@ -23,6 +26,10 @@ export async function POST(
     const method = body.method === 'upi' ? 'upi' : body.method === 'cash' ? 'cash' : null;
     if (!method) {
       return NextResponse.json({ error: 'Choose how the money was received: cash or UPI.' }, { status: 400 });
+    }
+    const note = typeof body.note === 'string' ? body.note.trim().slice(0, 200) : '';
+    if (!note) {
+      return NextResponse.json({ error: 'Add a cashbook note: the UPI reference, or who took the cash.' }, { status: 400 });
     }
 
     const booking = await findBookingById(id);
@@ -50,7 +57,7 @@ export async function POST(
       kind: 'balance',
       method,
       amountPaise,
-      note: typeof body.note === 'string' && body.note.trim() ? body.note.trim().slice(0, 200) : undefined,
+      note,
     });
 
     return NextResponse.json({

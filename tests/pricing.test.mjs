@@ -90,6 +90,39 @@ test('a Silver guest counts towards the group, and pays the Silver group price',
   assert.deepEqual(quote.lines.map((line) => rupees(line.unitPaise)), [3250, 3250, 3250, 2450]);
 });
 
+test('an organiser can set a fare the rules would not give', () => {
+  const fares = (people, fareOverrides) =>
+    quoteBooking(people, settings, { earlyBird: true, fareOverrides }).lines.map((line) => line.fare);
+  // A same-gender pair: no couple by the rules, the couple price by hand.
+  assert.deepEqual(fares([gold('woman'), gold('woman')]), ['single', 'single']);
+  assert.deepEqual(fares([gold('woman'), gold('woman')], ['couple', 'couple']), ['couple', 'couple']);
+  // Two people on the group rate, which needs four by the rules.
+  assert.deepEqual(fares([silver('woman'), silver('man')], ['group', 'group']), ['group', 'group']);
+  // And the other way: a couple put back on single prices.
+  assert.deepEqual(fares([gold('woman'), silver('man')], ['single', 'single']), ['single', 'single']);
+});
+
+test('a set fare is charged at that fare\u2019s price', () => {
+  const quote = quoteBooking([gold('woman'), gold('woman')], settings, {
+    earlyBird: true,
+    fareOverrides: ['couple', 'couple'],
+  });
+  assert.deepEqual(quote.lines.map((line) => rupees(line.unitPaise)), [3250, 3250]);
+  assert.equal(rupees(quote.totalPaise), 6500);
+});
+
+test('an entry that is not a fare leaves the rules to decide', () => {
+  const people = [gold('woman'), silver('man'), silver('woman')];
+  const byRules = quoteBooking(people, settings, { earlyBird: true }).lines.map((line) => line.fare);
+  for (const overrides of [null, undefined, [], ['', null], ['nonsense', '', 0], ['single']]) {
+    const fares = quoteBooking(people, settings, { earlyBird: true, fareOverrides: overrides }).lines.map(
+      (line) => line.fare
+    );
+    // Only a real fare in a slot changes it; everything else is ignored.
+    assert.deepEqual(fares, overrides?.[0] === 'single' ? ['single', ...byRules.slice(1)] : byRules);
+  }
+});
+
 test('adding a person never lowers the total', () => {
   for (const earlyBird of [true, false]) {
     for (const make of [gold, silver]) {
