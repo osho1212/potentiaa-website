@@ -54,12 +54,18 @@ function rows(){
       balanceBookings.add(item.id);
       const wrap=document.createElement('div');wrap.className='record-balance';
       const method=document.createElement('select');method.append(new Option('Cash','cash'),new Option('UPI','upi'));method.setAttribute('aria-label','How the balance was paid');
+      // Money taken by hand goes on the cashbook, and a cashbook row has to
+      // say what it was: a UPI reference, or who took the cash. The server
+      // refuses the payment without one.
+      const note=document.createElement('input');note.type='text';note.maxLength=200;note.required=true;note.autocomplete='off';
+      note.className='balance-note';note.placeholder='Cashbook note (required)';note.setAttribute('aria-label','Cashbook note for this payment');
       const record=document.createElement('button');record.type='button';record.className='secondary';record.textContent=`Record ${rupees(item.balance_due)} received`;
       record.addEventListener('click',async()=>{
+        if(!note.value.trim()){el('dashboard-message').textContent='Add a cashbook note: the UPI reference, or who took the cash.';note.focus();return;}
         if(!window.confirm(`Record ${rupees(item.balance_due)} received by ${method.value==='upi'?'UPI':'cash'} for ${item.buyer_name}? The booking becomes fully paid and its QR passes are emailed.`))return;
         record.disabled=true;
         try{
-          const response=await fetch('/api/admin/bookings/'+encodeURIComponent(item.id)+'/payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:method.value})});
+          const response=await fetch('/api/admin/bookings/'+encodeURIComponent(item.id)+'/payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:method.value,note:note.value.trim()})});
           const data=await response.json().catch(()=>({}));
           if(!response.ok)throw new Error(data.error||'The payment could not be recorded.');
           const sent=data.emailDelivery?.recipients?.length?` to ${data.emailDelivery.recipients.join(', ')}`:'';
@@ -68,7 +74,7 @@ function rows(){
           el('dashboard-message').textContent=data.status==='confirmed'?`Balance recorded for ${item.buyer_name}. Fully paid; QR passes emailed${sent}.`:`Payment recorded for ${item.buyer_name}. ${rupees(data.balanceDue)} still due.`;
         }catch(err){el('dashboard-message').textContent='Payment error: '+err.message;record.disabled=false;}
       });
-      wrap.append(method,record);row.children[1].append(wrap);
+      wrap.append(method,note,record);row.children[1].append(wrap);
     }
 
     // Actions column (Check-in / Reset entry + Delete booking)

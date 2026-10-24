@@ -12,7 +12,9 @@
  *     guest pays the group price of their own pass, Silver or Gold, whatever
  *     the mix. In a booking of two or three, two people of different genders
  *     make a couple, on any passes, and each pays that same lower price for
- *     their own pass; everyone else pays single.
+ *     their own pass; everyone else pays single. An organiser entering a
+ *     booking from the dashboard can set a fare by hand instead, which is how
+ *     a same-gender couple or a group of fewer than four gets the lower price.
  *
  * Amounts are worked in paise so rupee prices never pick up rounding errors.
  */
@@ -21,6 +23,7 @@ export const GENDERS = Object.freeze(['woman', 'man', 'nonbinary']);
 export const GENDER_LABELS = Object.freeze({ woman: 'Woman', man: 'Man', nonbinary: 'Non-binary' });
 export const PASS_LABELS = Object.freeze({ normal: 'Silver', alcohol: 'Gold' });
 export const FARE_LABELS = Object.freeze({ single: 'Single', couple: 'Couple', group: 'Group' });
+export const FARES = Object.freeze(['single', 'couple', 'group']);
 export const GROUP_SIZE = 4;
 
 // Settings keys for each price. A couple and a group share one price.
@@ -113,19 +116,30 @@ export function earlyBirdEndsAt(settings) {
  * and the balance later. earlyBird: whether early-bird prices are available
  * to this booking (the server decides, from the clock and the cap).
  *
+ * fareOverrides: a fare per attendee, in the same order, set by an organiser
+ * entering a booking by hand. Anything else in the list - '', null, a word
+ * that is not a fare - leaves that attendee on the fare the rules give them.
+ * A guest booking online never sends these: only the organiser dashboard does,
+ * and only the manual-booking endpoint passes them on.
+ *
  * totalPaise is null while the organiser has not confirmed final charges.
  * @param {{ pass?: string, gender?: string }[]} attendees
  * @param {Record<string, any>} settings
- * @param {{ plan?: string, earlyBird?: boolean }} [options]
+ * @param {{ plan?: string, earlyBird?: boolean, fareOverrides?: (string | null)[] | null }} [options]
  * @returns {Quote}
  */
-export function quoteBooking(attendees, settings, { plan = 'full', earlyBird = false } = {}) {
+export function quoteBooking(attendees, settings, { plan = 'full', earlyBird = false, fareOverrides = null } = {}) {
   const prebook = plan === 'prebook';
   const priceList = !prebook && earlyBird ? 'early' : 'regular';
   // The couple is the pair whose couple prices save the most on this list.
   const fares = assignFares(attendees, (pass) =>
     toPaise(unitPrice(settings, priceList, pass, 'single')) - toPaise(unitPrice(settings, priceList, pass, 'couple'))
   );
+  if (Array.isArray(fareOverrides)) {
+    fares.forEach((_, i) => {
+      if (FARES.includes(fareOverrides[i])) fares[i] = fareOverrides[i];
+    });
+  }
   const lines = attendees.map((guest, i) => {
     const unitPaise = toPaise(unitPrice(settings, priceList, guest.pass, fares[i]));
     const singlePaise = toPaise(unitPrice(settings, 'regular', guest.pass, 'single'));

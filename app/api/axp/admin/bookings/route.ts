@@ -4,13 +4,9 @@ import { verifyAdminAuth } from '@/lib/axp/admin-auth';
 import { toE164, WhatsAppDeliveryResult } from '@/lib/axp/whatsapp-service';
 import { balanceDue, paidSoFar } from '@/lib/axp/booking-payments';
 import { FARE_LABELS, GENDER_LABELS } from '@/public/axp/pricing.js';
+import { spreadsheetCsv } from '@/lib/axp/spreadsheet';
 
 const METHOD_LABELS: Record<string, string> = { razorpay: 'Razorpay', cash: 'Cash', upi: 'UPI' };
-
-function spreadsheetCell(value: any) {
-  const text = String(value ?? '');
-  return '"' + (/^[\s]*[=+\-@]/.test(text) ? "'" + text : text).replaceAll('"', '""') + '"';
-}
 
 /**
  * A booking only carries whatsappDelivery when the organiser had WhatsApp pass
@@ -129,10 +125,7 @@ export async function GET(request: NextRequest) {
         'phone', 'age_group', 'gender', 'pass_type', 'fare', 'price', 'whatsapp_status', 'whatsapp_detail',
         'created_at', 'confirmed_at', 'checked_in_at'
       ];
-      const csv = '\uFEFF' + [
-        fields.map(spreadsheetCell).join(','),
-        ...entries.map((row) => fields.map((key) => spreadsheetCell(row[key])).join(','))
-      ].join('\r\n');
+      const csv = spreadsheetCsv(fields, entries);
 
       return new Response(csv, {
         headers: {

@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { verifyAdminAuth } from '@/lib/axp/admin-auth';
 import { getEventSettings, saveBooking, BookingRecord } from '@/lib/axp/storage-adapter';
 import { sha256 } from '@/lib/axp/payment-core';
-import { BookingRefusal, checkAndQuote } from '@/lib/axp/booking-quote';
+import { BookingRefusal, FARES, checkAndQuote } from '@/lib/axp/booking-quote';
 import { settlePayment } from '@/lib/axp/booking-payments';
 import { bookingView } from '@/lib/axp/booking-view';
 
@@ -15,6 +15,14 @@ import { bookingView } from '@/lib/axp/booking-view';
  * (one pass per phone and email, capacity, early-bird cap), then records the
  * money received. Paid in full: confirmed, and the QR passes are emailed.
  * Deposit only: booked, with the no-QR confirmation and a balance page.
+ *
+ * One thing an organiser can do here that a guest cannot: set an attendee's
+ * fare by hand, so a same-gender couple or a pair taking the group rate gets
+ * the lower price. Only this endpoint accepts fareOverrides.
+ *
+ * The note is required. Money taken by hand has nothing behind it but the
+ * person who took it, so every cashbook row has to say what it was: a UPI
+ * reference, or whose pocket the cash went into.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -27,6 +35,16 @@ export async function POST(request: NextRequest) {
     const method = body.method === 'upi' ? 'upi' : body.method === 'cash' ? 'cash' : null;
     const priceList = ['early', 'regular'].includes(body.priceList) ? body.priceList : 'auto';
     const note = typeof body.note === 'string' ? body.note.trim().slice(0, 200) : '';
+    if (!note) {
+      return NextResponse.json({ error: 'Add a cashbook note: the UPI reference, or who took the cash.' }, { status: 400 });
+    }
+    // One entry per attendee, in the same order. Anything that is not a fare
+    // leaves that attendee on the fare the rules give them.
+    const fareOverrides = Array.isArray(body.fareOverrides)
+      ? body.fareOverrides.map((fare: unknown) =>
+          typeof fare === 'string' && FARES.includes(fare) ? fare : null
+        )
+      : null;
     if (!method) {
       return NextResponse.json({ error: 'Choose how the money was received: cash or UPI.' }, { status: 400 });
     }
@@ -38,6 +56,7 @@ export async function POST(request: NextRequest) {
       mode,
       plan,
       priceList,
+      fareOverrides,
       requireTerms: false,
     });
 
