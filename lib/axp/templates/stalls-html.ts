@@ -12,7 +12,7 @@ export const rawStallsHtml = `<!doctype html>
 <link rel="stylesheet" href="/axp/style.css">
 <link rel="stylesheet" href="/axp/fonts/fonts.css?v=2">
 <link rel="stylesheet" href="/axp/axp-preview.css?v=24">
-<script type="module" src="/axp/stalls.js"></script>
+<script type="module" src="/axp/stalls.js?v=2"></script>
 <script type="module" src="/axp/reveal.js"></script>
 </head>
 <body class="axp-edition">

@@ -1,3 +1,5 @@
+import { track } from './meta-pixel.js';
+
 const el = id => document.getElementById(id);
 const form = el('stall-form');
 const message = el('stall-message');
@@ -43,6 +45,7 @@ form.addEventListener('submit', async event => {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || 'Your stall enquiry could not be sent.');
+    track('Lead', { content_name: 'Stall enquiry' }, `lead_${data.id}`);
     form.hidden = true;
     el('stall-done').hidden = false;
     el('stall-done').scrollIntoView({ block: 'center' });

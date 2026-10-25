@@ -1,5 +1,6 @@
 import {DEFAULT_SETTINGS} from './settings-model.js';
 import {quoteBooking,unitPrice,GENDERS,GENDER_LABELS,FARE_LABELS,PASS_LABELS} from './pricing.js';
+import {track} from './meta-pixel.js';
 if(typeof document!=='undefined'){
   const state=[{name:'',email:'',instagram:'',phone:'',dob:'',age:'',gender:'',pass:''}];
   let settings={...DEFAULT_SETTINGS};
@@ -973,6 +974,15 @@ if(typeof document!=='undefined'){
       if(start.id==='hero-prebook'&&settings.prebookEnabled){plan='prebook';summary();}
       showStep(0,{focus:false});document.querySelector('.axp-steps')?.scrollIntoView({block:'start',behavior:'smooth'});
     });
+  }
+  // Seeing the passes and their prices is the ad's ViewContent, once a visit.
+  const passTypes=el('pass-types');
+  if(passTypes&&'IntersectionObserver' in window){
+    const seen=new IntersectionObserver(entries=>{
+      if(!entries.some(entry=>entry.isIntersecting))return;
+      seen.disconnect();track('ViewContent',{content_name:'AAGAZ passes',content_type:'product'});
+    },{threshold:0.4});
+    seen.observe(passTypes);
   }
   try{history.replaceState({axpStep:0},'',location.pathname+location.search);}catch{}
   showStep(0,{push:false,focus:false});

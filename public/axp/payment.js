@@ -1,4 +1,5 @@
 import {PASS_LABELS,FARE_LABELS} from './pricing.js';
+import {track} from './meta-pixel.js';
 const el=id=>document.getElementById(id);
 const testMode=new URLSearchParams(location.search).get('mode')==='test';
 let paymentReady=false,checkoutScript=null,attempt=null,polling=false,savedBooking=null,ticketFileUrl=null,emailDispatched=false;
@@ -22,7 +23,7 @@ const balanceText=document.createElement('p');const payBalance=document.createEl
 balanceBox.append(balanceText,payBalance);
 payBalance.addEventListener('click',async()=>{
  if(!attempt?.id)return;payBalance.disabled=true;
- try{await loadCheckout();const data=await request('/api/bookings/'+attempt.id+'/balance',{body:{}});openRazorpay(data.checkout,'Verifying your balance payment. Keep this page open…');}
+ try{await loadCheckout();const data=await request('/api/bookings/'+attempt.id+'/balance',{body:{}});openRazorpay(data.checkout,'Verifying your balance payment. Keep this page open…','Balance payment');}
  catch(error){message.textContent=error.message;}finally{payBalance.disabled=false;}
 });
 const passLabel=guest=>`${PASS_LABELS[guest.pass]||'Silver'}${guest.pass==='alcohol'?' · 21+':''}${guest.fare&&guest.fare!=='single'?' · '+FARE_LABELS[guest.fare]:''}`;
@@ -172,7 +173,9 @@ button.addEventListener('click',async()=>{
  card.hidden=false;message.textContent='Checking availability and creating your payment order…';card.scrollIntoView({behavior:'smooth',block:'start'});
  let orderRequested=false;
  try{
-  await loadCheckout();saveAttempt();orderRequested=true;const booking=await request('/api/bookings',{body:bookingInput(),auth:false});attempt.id=booking.id;saveAttempt();freezeForm();openGateway(booking);
+  await loadCheckout();saveAttempt();orderRequested=true;const booking=await request('/api/bookings',{body:bookingInput(),auth:false});attempt.id=booking.id;saveAttempt();freezeForm();
+  if(!testMode)track('InitiateCheckout',{value:booking.payNow,currency:'INR',num_items:booking.people},`checkout_${booking.id}`);
+  openGateway(booking);
  }catch(error){message.textContent=error.message;if(orderRequested&&![400,403,409,413,415,429].includes(error.status)){freezeForm();message.textContent+=' Use Check payment status before retrying. No ticket has been issued.';}else{attempt=null;try{sessionStorage.removeItem('axp-last-booking');}catch{}updateButton();}}
 });
 function openGateway(booking){
@@ -181,14 +184,20 @@ function openGateway(booking){
   const rupees=value=>'₹'+Number(value).toLocaleString('en-IN');
   const amounts=booking.plan==='prebook'?`Deposit now: ${rupees(booking.payNow)}. Balance later: ${rupees(booking.total-booking.payNow)}.`:`Total payable: ${rupees(booking.total)}.`;
   message.textContent=`${testMode?'TEST · ':''}Booking ref ${bookingRef(booking.id)}. ${amounts} Your checkout hold lasts until ${new Date(booking.expiresAt).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'})} IST.`;
-  openRazorpay(booking.checkout,'Verifying your payment. Keep this page open…');
+  openRazorpay(booking.checkout,'Verifying your payment. Keep this page open…',booking.plan==='prebook'?'Pre-booking deposit':'Passes');
 }
-function openRazorpay(options,verifying){
+function openRazorpay(options,verifying,purchaseName){
   const checkout=new window.Razorpay({key:options.key,amount:options.amount,currency:options.currency,name:options.name,description:options.description,order_id:options.orderId,prefill:{name:options.prefill.name,email:options.prefill.email,contact:options.prefill.phone},theme:{color:'#294f3c'},handler:async response=>{
    message.textContent=verifying;
-   try{showBooking(await request('/api/bookings/'+attempt.id+'/verify',{body:response}));if(['confirmed','booked'].includes(savedBooking?.status))return;startPolling();}catch(error){message.textContent=error.message+' Do not pay again; use Check payment status or contact support.';refresh.hidden=false;}
+   try{showBooking(await request('/api/bookings/'+attempt.id+'/verify',{body:response}));if(['confirmed','booked'].includes(savedBooking?.status)){trackPurchase(options,response,purchaseName);return;}startPolling();}catch(error){message.textContent=error.message+' Do not pay again; use Check payment status or contact support.';refresh.hidden=false;}
   },modal:{ondismiss:()=>{message.textContent='Checkout closed. Use Check payment status before paying again.';refresh.hidden=false;}}});
   checkout.on('payment.failed',()=>{message.textContent='The payment was not completed. Check payment status before retrying; contact support if money was deducted.';refresh.hidden=false;});checkout.open();
+}
+// One Purchase per verified payment: the full amount, the deposit, or a
+// balance, identified by its Razorpay payment id.
+function trackPurchase(options,response,name){
+ if(testMode)return;
+ track('Purchase',{value:options.amount/100,currency:options.currency||'INR',num_items:savedBooking?.people,content_name:name},`purchase_${response.razorpay_payment_id}`);
 }
 function showBooking(booking){
  savedBooking=booking;renderSavedSummary(booking);renderAfterBooking(booking);

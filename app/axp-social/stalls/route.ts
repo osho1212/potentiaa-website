@@ -1,9 +1,10 @@
 import { rawStallsHtml } from '@/lib/axp/templates/stalls-html';
 import { site } from '@/lib/site';
 import { shareTags } from '@/lib/axp/share-tags';
+import { withMetaPixel } from '@/lib/axp/meta-pixel';
 
 export function GET() {
-  const html = rawStallsHtml.replace(
+  const html = withMetaPixel(rawStallsHtml).replace(
     /<meta name="description" content="[^"]*">/,
     shareTags({
       title: 'Business stalls at AAGAZ · AxP Social',
