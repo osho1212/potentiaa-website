@@ -15,10 +15,53 @@ function cell(lines,className){
   for(const line of lines.filter(Boolean)){const div=document.createElement('div');div.textContent=line;td.append(div);}
   return td;
 }
+function noteCell(entry){
+  const td=document.createElement('td');
+  const first=document.createElement('div');
+  // Older entries predate the note being required, and say so rather than
+  // leaving a blank that reads like a note nobody wrote down.
+  first.textContent=entry.note||'No note recorded';
+  if(!entry.note)first.className='cashbook-unnoted';
+  td.append(first);
+  for(const added of entry.notes||[]){
+    const line=document.createElement('div');line.className='cashbook-added-note';
+    const text=document.createElement('span');text.textContent=added.text;
+    const stamp=document.createElement('small');stamp.textContent=when(added.at);
+    line.append(text,stamp);td.append(line);
+  }
+  const open=document.createElement('button');open.type='button';
+  open.className='btn-action cashbook-add-note';open.textContent='Add note';
+  const box=document.createElement('div');box.className='cashbook-note-form';box.hidden=true;
+  const input=document.createElement('input');input.type='text';input.maxLength=200;
+  input.autocomplete='off';input.placeholder='What else should this row say?';
+  input.setAttribute('aria-label','Another note for this cashbook entry');
+  const save=document.createElement('button');save.type='button';save.className='btn-action';save.textContent='Save note';
+  const state=document.createElement('p');state.className='cashbook-note-state';state.hidden=true;
+  box.append(input,save);
+  open.addEventListener('click',()=>{box.hidden=!box.hidden;if(!box.hidden)input.focus();});
+  const add=async()=>{
+    const text=input.value.trim();
+    if(!text){state.hidden=false;state.textContent='Write the note first.';input.focus();return;}
+    save.disabled=true;state.hidden=false;state.textContent='Adding…';
+    try{
+      const response=await fetch('/api/admin/cashbook/note',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({bookingId:entry.booking_id,paymentIndex:entry.payment_index,paymentAt:entry.at,text})});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.error||'The note could not be added.');
+      input.value='';
+      // Redrawn from the server, so the row shows the note as it was saved.
+      await load();
+    }catch(error){state.textContent=error.message;save.disabled=false;}
+  };
+  save.addEventListener('click',add);
+  input.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();add();}});
+  td.append(open,box,state);
+  return td;
+}
 function draw(){
   const query=el('cashbook-search').value.trim().toLowerCase();
   const shown=query
-    ? entries.filter(entry=>[entry.note,entry.buyer_name,entry.buyer_phone,entry.booking_ref,entry.method_label,entry.kind_label]
+    ? entries.filter(entry=>[entry.note,entry.notes_text,entry.buyer_name,entry.buyer_phone,entry.booking_ref,entry.method_label,entry.kind_label]
         .some(value=>String(value||'').toLowerCase().includes(query)))
     : entries;
   el('cashbook-rows').replaceChildren(...shown.map(entry=>{
@@ -28,9 +71,7 @@ function draw(){
       cell([money(entry.amount),entry.method_label]),
       cell([entry.kind_label,'Booking '+entry.booking_ref,STATUS_LABELS[entry.booking_status]||entry.booking_status]),
       cell([entry.buyer_name,entry.buyer_phone,entry.people?`${entry.people} ${entry.people===1?'person':'people'}`:'']),
-      // Older entries predate the note being required, and say so rather than
-      // leaving a blank that reads like a note nobody wrote down.
-      cell([entry.note||'No note recorded'],entry.note?'':'cashbook-unnoted'),
+      noteCell(entry),
     );
     return row;
   }));

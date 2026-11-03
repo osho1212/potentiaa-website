@@ -32,7 +32,16 @@ export interface PaymentEntry {
   orderId?: string;
   paymentId?: string;
   at: string;
+  /** Written when the payment was recorded, and never rewritten afterwards. */
   note?: string;
+  /**
+   * Notes added to this payment later, newest last. The cashbook squares
+   * against the tin at the end of the night and a row often needs more said
+   * about it afterwards — who counted it, which envelope it went into, why it
+   * is short. They are added to rather than edited: what was written when the
+   * money was taken is the record, and nothing here overwrites it.
+   */
+  notes?: { at: string; text: string }[];
 }
 
 export interface BookingRecord {

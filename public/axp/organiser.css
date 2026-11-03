@@ -221,3 +221,17 @@
   .organiser-ui .edit-booking-actions .primary,
   .organiser-ui .edit-booking-actions .secondary { width: 100%; }
 }
+
+/* Notes added to a cashbook row after the money was taken. The note written
+   at the time stays first; everything since sits under it in order. */
+.organiser-ui .cashbook-added-note {
+  border-left: 2px solid #d9d2c2; padding-left: 8px; margin-top: 6px;
+}
+.organiser-ui .cashbook-added-note small {
+  display: block; font-size: 9px; color: var(--muted); margin-top: 2px;
+}
+.organiser-ui .cashbook-add-note { margin-top: 8px; }
+.organiser-ui .cashbook-note-form { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
+.organiser-ui .cashbook-note-form input { min-height: 34px; min-width: 150px; font-size: 12px; }
+.organiser-ui .cashbook-note-form button { white-space: nowrap; }
+.organiser-ui .cashbook-note-state { font-size: 11px; margin: 6px 0 0; color: #9f3627; }

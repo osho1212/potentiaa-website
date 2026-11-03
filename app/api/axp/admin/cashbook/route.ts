@@ -36,6 +36,8 @@ const METHOD_LABELS: Record<string, string> = { cash: 'Cash', upi: 'UPI' };
 interface CashbookEntry extends Record<string, unknown> {
   at: string;
   booking_id: string;
+  /** Where this payment sits in its booking's ledger, so a note can be added to it. */
+  payment_index: number;
   booking_ref: string;
   method: string;
   method_label: string;
@@ -44,6 +46,10 @@ interface CashbookEntry extends Record<string, unknown> {
   amount_paise: number;
   amount: number;
   note: string;
+  /** Notes added after the money was taken, oldest first. */
+  notes: { at: string; text: string }[];
+  /** The added notes as one cell, for the spreadsheet. */
+  notes_text: string;
   buyer_name: string;
   buyer_phone: string;
   buyer_email: string;
@@ -56,7 +62,7 @@ interface CashbookEntry extends Record<string, unknown> {
 }
 
 const CSV_FIELDS = [
-  'at', 'booking_ref', 'booking_id', 'method', 'kind', 'amount', 'note',
+  'at', 'booking_ref', 'booking_id', 'method', 'kind', 'amount', 'note', 'notes_text',
   'buyer_name', 'buyer_phone', 'buyer_email', 'people', 'entered_as',
   'booking_status', 'booking_total', 'booking_paid', 'booking_balance_due',
 ];
@@ -88,12 +94,16 @@ export async function GET(request: NextRequest) {
       const duePaise = Math.max(0, (booking.amountPaise || 0) - paidPaise);
       // A refunded booking's payments stay on the ledger: the cash still came
       // in, and the refund is accounted for separately.
-      for (const payment of booking.payments || []) {
+      const ledger = booking.payments || [];
+      for (let index = 0; index < ledger.length; index++) {
+        const payment = ledger[index];
         if (!BY_HAND.has(payment.method)) continue;
         const amountPaise = payment.amountPaise || 0;
+        const addedNotes = payment.notes || [];
         entries.push({
           at: payment.at,
           booking_id: booking.id,
+          payment_index: index,
           booking_ref: booking.id.slice(0, 8),
           method: payment.method,
           method_label: METHOD_LABELS[payment.method] || payment.method,
@@ -102,6 +112,8 @@ export async function GET(request: NextRequest) {
           amount_paise: amountPaise,
           amount: amountPaise / 100,
           note: payment.note || '',
+          notes: addedNotes,
+          notes_text: addedNotes.map((item) => item.text).join(' | '),
           buyer_name: booking.buyer?.name || '',
           buyer_phone: booking.buyer?.phone || '',
           buyer_email: booking.buyer?.email || '',
