@@ -183,3 +183,41 @@
   border-color: #9c2424; background: #fdeeee; color: #791818;
   box-shadow: 0 2px 6px rgba(156, 36, 36, .14);
 }
+
+/* Correcting a saved booking. Wider than the page's other dialogs: it holds
+   the booking contact and every attendee on the same two-column grid the
+   "Add a booking" form uses. */
+.organiser-ui .edit-booking {
+  max-width: 760px; width: calc(100% - 32px);
+  max-height: calc(100vh - 48px); overflow: auto;
+}
+.organiser-ui .edit-booking h2 { margin: 0 0 6px; }
+.organiser-ui .edit-booking #edit-booking-fields { display: grid; gap: 16px; }
+.organiser-ui .edit-booking #edit-booking-fields > div { display: grid; gap: 16px; }
+.organiser-ui .edit-booking label small {
+  font-size: 10px; font-weight: 400; color: var(--muted); line-height: 1.5;
+}
+.organiser-ui .edit-booking #edit-booking-message:not([hidden]) {
+  color: #9f3627; font-weight: 600;
+}
+.organiser-ui .edit-booking-actions { display: flex; gap: 12px; align-items: center; }
+.organiser-ui .edit-booking-actions .primary { width: auto; justify-content: center; padding: 12px 24px; }
+.organiser-ui .btn-edit-booking {
+  border-color: #cbd7e4; color: #24506f; background: #f7fafd;
+}
+.organiser-ui .btn-edit-booking:hover:not(:disabled) {
+  border-color: #24506f; background: #ecf3f9; color: #183851;
+  box-shadow: 0 2px 6px rgba(36, 80, 111, .12);
+}
+
+/* The next instalment on a booking that still owes something, taken from the
+   cashbook rather than from the guest list. */
+.organiser-ui .cashbook-entry { margin-bottom: 20px; }
+.organiser-ui .cashbook-entry #cashbook-save { width: auto; justify-content: center; padding: 12px 24px; }
+
+@media (max-width: 600px) {
+  .organiser-ui .edit-booking { padding: 20px; }
+  .organiser-ui .edit-booking-actions { flex-direction: column; align-items: stretch; }
+  .organiser-ui .edit-booking-actions .primary,
+  .organiser-ui .edit-booking-actions .secondary { width: 100%; }
+}

@@ -16,6 +16,10 @@ import { spreadsheetCsv } from '@/lib/axp/spreadsheet';
  * Every entry carries the note the organiser had to write when they recorded
  * it, so a row is traceable to a UPI reference or to whoever took the cash.
  * Entries recorded before notes were required show as "No note recorded".
+ *
+ * The response also lists the bookings that still owe something, so the
+ * cashbook can take the next payment against one without the organiser having
+ * to find its row in the guest list first.
  */
 
 const BY_HAND = new Set(['cash', 'upi']);
@@ -67,13 +71,26 @@ export async function GET(request: NextRequest) {
     const bookings = (await listAllBookings()).filter((booking) => booking.mode === mode);
 
     const entries: CashbookEntry[] = [];
+    // Bookings the cashbook can take another payment against: a pre-booking
+    // whose balance is still owed. The payment endpoint accepts exactly these.
+    const openBookings: {
+      id: string;
+      ref: string;
+      buyer_name: string;
+      buyer_phone: string;
+      people: number;
+      total: number;
+      paid: number;
+      balance_due: number;
+    }[] = [];
     for (const booking of bookings) {
+      const paidPaise = (booking.payments || []).reduce((sum, item) => sum + (item.amountPaise || 0), 0);
+      const duePaise = Math.max(0, (booking.amountPaise || 0) - paidPaise);
       // A refunded booking's payments stay on the ledger: the cash still came
       // in, and the refund is accounted for separately.
       for (const payment of booking.payments || []) {
         if (!BY_HAND.has(payment.method)) continue;
         const amountPaise = payment.amountPaise || 0;
-        const paidPaise = (booking.payments || []).reduce((sum, item) => sum + (item.amountPaise || 0), 0);
         entries.push({
           at: payment.at,
           booking_id: booking.id,
@@ -95,10 +112,23 @@ export async function GET(request: NextRequest) {
           booking_status: booking.status,
           booking_total: (booking.amountPaise || 0) / 100,
           booking_paid: paidPaise / 100,
-          booking_balance_due: Math.max(0, (booking.amountPaise || 0) - paidPaise) / 100,
+          booking_balance_due: duePaise / 100,
+        });
+      }
+      if (booking.status === 'booked' && duePaise > 0) {
+        openBookings.push({
+          id: booking.id,
+          ref: booking.id.slice(0, 8),
+          buyer_name: booking.buyer?.name || '',
+          buyer_phone: booking.buyer?.phone || '',
+          people: booking.guestCount || booking.attendees.length,
+          total: (booking.amountPaise || 0) / 100,
+          paid: paidPaise / 100,
+          balance_due: duePaise / 100,
         });
       }
     }
+    openBookings.sort((a, b) => a.buyer_name.localeCompare(b.buyer_name));
     // Newest first, which is the order an organiser checks the day's takings in.
     entries.sort((a, b) => Date.parse(b.at || '') - Date.parse(a.at || ''));
 
@@ -128,6 +158,7 @@ export async function GET(request: NextRequest) {
         unnoted: entries.filter((entry) => !entry.note).length,
       },
       entries,
+      openBookings,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || 'The cashbook could not be loaded.' }, { status: 500 });

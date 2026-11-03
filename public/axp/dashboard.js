@@ -1,5 +1,6 @@
 import jsQR from '/axp/jsqr.js';
 import {FARE_LABELS,GENDER_LABELS} from '/axp/pricing.js';
+import {openBookingEditor} from '/axp/booking-edit.js';
 
 const el=id=>document.getElementById(id);
 let entries=[],inspected=null,stream=null,scanning=false,inspectionVersion=0,cameraVersion=0,loading=null;
@@ -9,6 +10,7 @@ const passName=value=>value==='alcohol'?'Gold · 21+':'Silver';
 // photo IDs are checked against.
 const gateLabel=guest=>[passName(guest.pass),guest.fare&&guest.fare!=='single'?FARE_LABELS[guest.fare]:'',GENDER_LABELS[guest.gender]||''].filter(Boolean).join(' · ');
 const rupees=value=>'₹'+Number(value||0).toLocaleString('en-IN');
+const EDITABLE_STATUSES=['confirmed','booked','paid_review','order_uncertain'];
 const STATUS_LABELS={confirmed:'Fully paid',booked:'Booked · balance due',pending:'Checkout open',creating:'Checkout opening',paid_review:'Payment needs review',order_uncertain:'Order needs a check',refunded:'Refunded'};
 // whatsapp_status is per attendee: 'sent' when their number is in the delivery
 // receipt, 'failed' when it is not, 'not_applicable' when the booking carries no
@@ -108,6 +110,21 @@ function rows(){
       }
     });
     actionGroup.append(checkinBtn);
+
+    // Organisers type bookings in at the door, so a wrong name, number, date
+    // of birth or pass is corrected here rather than by deleting the booking
+    // and losing its reference, its payments and its entry record.
+    if(EDITABLE_STATUSES.includes(item.status)){
+      const editBtn=document.createElement('button');editBtn.type='button';
+      editBtn.className='btn-action btn-edit-booking';
+      editBtn.textContent='Edit details';
+      editBtn.title=`Correct the saved details on ${item.buyer_name}'s booking`;
+      editBtn.addEventListener('click',()=>openBookingEditor(item.id,{onSaved:async note=>{
+        await load();
+        el('dashboard-message').textContent=note;
+      }}));
+      actionGroup.append(editBtn);
+    }
 
     if(!deleteBookings.has(item.id)){
       deleteBookings.add(item.id);
